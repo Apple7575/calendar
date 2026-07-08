@@ -33,8 +33,8 @@
       ]
     ],
     "extra": {
-      "supabaseUrl": "REPLACE_WITH_SUPABASE_URL",
-      "supabaseAnonKey": "REPLACE_WITH_SUPABASE_ANON_KEY"
+      "supabaseUrl": "https://qlurqptsnvxvlbsvpjie.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsdXJxcHRzbnZ4dmxic3ZwamllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODg2NjEsImV4cCI6MjA5OTA2NDY2MX0.rQhKMJAZ10hUClgLbmDR6qejnhPQo8dxCR3Qe8Pur9c"
     }
   }
 }

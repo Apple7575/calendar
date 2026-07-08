@@ -43,6 +43,12 @@ async function ensureOk(res: Response, action: string): Promise<void> {
   } catch {
     // 본문 파싱 실패는 무시
   }
+  // 로그인은 됐지만 캘린더 권한(scope)이 빠진 토큰 — 재동의가 필요
+  if (res.status === 403 && /insufficient/i.test(detail)) {
+    throw new Error(
+      "구글 캘린더 접근 권한이 없어요. 설정 탭 → '구글 캘린더 다시 연결'을 누르고, 구글 동의 화면에서 캘린더 항목의 체크박스를 켜 주세요."
+    );
+  }
   throw new Error(`구글 캘린더 ${action} 실패 (${res.status})${detail ? `: ${detail}` : ""}`);
 }
 

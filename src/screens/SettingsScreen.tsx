@@ -156,7 +156,7 @@ export function SettingsScreen() {
               {statusLabel[googleStatus]}
             </Text>
           </View>
-          {googleStatus !== "connected" && googleStatus !== "checking" ? (
+          {googleStatus !== "checking" ? (
             <View style={{ marginTop: spacing.sm }}>
               <PrimaryButton
                 title="구글 캘린더 다시 연결"
@@ -164,6 +164,10 @@ export function SettingsScreen() {
                 loading={reconnecting}
                 variant="secondary"
               />
+              <Text style={styles.scopeHint}>
+                권한 오류(403)가 나면 다시 연결하면서 구글 동의 화면의{" "}
+                <Text style={{ fontWeight: "700" }}>캘린더 접근 체크박스</Text>를 꼭 켜 주세요.
+              </Text>
             </View>
           ) : null}
         </Section>
@@ -183,4 +187,10 @@ const styles = StyleSheet.create({
   rowText: { fontSize: fontSizes.body, color: colors.text },
   statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   statusText: { fontSize: fontSizes.body, fontWeight: "700", color: colors.textMuted },
+  scopeHint: {
+    fontSize: fontSizes.caption,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    lineHeight: 17,
+  },
 });
