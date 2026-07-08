@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useState } from "react";
@@ -20,11 +21,16 @@ import { listLocalEventsInRange } from "../lib/events";
 import { expandEventRows } from "../lib/recurrence";
 import { listTaskDatesInRange } from "../lib/tasks";
 import { RootStackParamList } from "../navigation/types";
-import { colors, fontSizes, spacing } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import { ThemeColors } from "../theme/themes";
+import { fontSizes, spacing } from "../theme/tokens";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function CalendarScreen() {
+  const theme = useTheme();
+  const c = theme.colors;
+  const styles = useMemo(() => createStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const [monthKey, setMonthKey] = useState(todayKey().slice(0, 7));
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
@@ -66,26 +72,34 @@ export function CalendarScreen() {
         taskDates,
         diaryDates: diaryEntries.map((e) => e.date),
         colors: {
-          event: colors.dotEvent,
-          googleEvent: colors.dotGoogle,
-          task: colors.dotTask,
-          diary: colors.dotDiary,
-          selected: colors.primary,
+          event: c.dotEvent,
+          googleEvent: c.dotGoogle,
+          task: c.dotTask,
+          diary: c.dotDiary,
+          selected: c.primary,
         },
         selectedDate: todayKey(),
       }),
-    [localEvents, google.events, taskDates, diaryEntries]
+    [localEvents, google.events, taskDates, diaryEntries, c]
   );
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>캘린더</Text>
-        <TouchableOpacity onPress={google.refresh} hitSlop={8} disabled={google.loading}>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={google.refresh}
+          hitSlop={8}
+          disabled={google.loading}
+        >
           {google.loading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
+            <ActivityIndicator size="small" color={c.primary} />
           ) : (
-            <Text style={styles.refreshText}>구글 새로고침</Text>
+            <>
+              <Ionicons name="sync-outline" size={15} color={c.primary} />
+              <Text style={styles.refreshText}>구글</Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
@@ -97,8 +111,9 @@ export function CalendarScreen() {
         <Text style={styles.error}>{error ?? google.error}</Text>
       ) : null}
 
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <Calendar
+          key={theme.id} // 테마 변경 시 캘린더 내부 테마 재적용
           current={`${monthKey}-01`}
           markingType="multi-dot"
           markedDates={markedDates}
@@ -106,20 +121,27 @@ export function CalendarScreen() {
           onMonthChange={(m) => setMonthKey(`${m.year}-${String(m.month).padStart(2, "0")}`)}
           monthFormat="yyyy년 M월"
           theme={{
-            todayTextColor: colors.primary,
-            arrowColor: colors.primary,
+            calendarBackground: c.background,
+            dayTextColor: c.text,
+            monthTextColor: c.text,
+            textSectionTitleColor: c.textMuted,
+            textDisabledColor: theme.isDark ? "#4A4F63" : "#C9CCD9",
+            todayTextColor: c.primary,
+            selectedDayBackgroundColor: c.primary,
+            selectedDayTextColor: c.white,
+            arrowColor: c.primary,
             textDayFontSize: fontSizes.body,
             textMonthFontSize: fontSizes.emphasis,
-            textMonthFontWeight: "700",
+            textMonthFontWeight: "800",
             textDayHeaderFontSize: fontSizes.caption,
           }}
         />
 
         <View style={styles.legend}>
-          <LegendDot color={colors.dotEvent} label="내 일정" />
-          <LegendDot color={colors.dotGoogle} label="구글" />
-          <LegendDot color={colors.dotTask} label="할 일" />
-          <LegendDot color={colors.dotDiary} label="일기" />
+          <LegendDot color={c.dotEvent} label="내 일정" styles={styles} />
+          <LegendDot color={c.dotGoogle} label="구글" styles={styles} />
+          <LegendDot color={c.dotTask} label="할 일" styles={styles} />
+          <LegendDot color={c.dotDiary} label="일기" styles={styles} />
         </View>
 
         <MonthlyStats
@@ -132,7 +154,15 @@ export function CalendarScreen() {
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
+function LegendDot({
+  color,
+  label,
+  styles,
+}: {
+  color: string;
+  label: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -141,36 +171,51 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  headerTitle: { fontSize: fontSizes.title, fontWeight: "800", color: colors.text },
-  refreshText: { color: colors.primary, fontSize: fontSizes.small, fontWeight: "700" },
-  notice: {
-    color: colors.textMuted,
-    fontSize: fontSizes.caption,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  error: {
-    color: colors.danger,
-    fontSize: fontSizes.caption,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  legend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  legendItem: { flexDirection: "row", alignItems: "center" },
-  legendDot: { width: 8, height: 8, borderRadius: 4, marginRight: 4 },
-  legendLabel: { fontSize: fontSizes.caption, color: colors.textMuted },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    headerTitle: {
+      fontSize: fontSizes.title,
+      fontWeight: "900",
+      color: c.text,
+      letterSpacing: -0.5,
+    },
+    refreshButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: c.primarySoft,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 2,
+    },
+    refreshText: { color: c.primary, fontSize: fontSizes.caption, fontWeight: "700" },
+    notice: {
+      color: c.textMuted,
+      fontSize: fontSizes.caption,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xs,
+    },
+    error: {
+      color: c.danger,
+      fontSize: fontSizes.caption,
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xs,
+    },
+    legend: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    legendItem: { flexDirection: "row", alignItems: "center" },
+    legendDot: { width: 8, height: 8, borderRadius: 4, marginRight: 4 },
+    legendLabel: { fontSize: fontSizes.caption, color: c.textMuted },
+  });

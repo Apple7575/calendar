@@ -1,5 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +19,9 @@ import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
 import { ensureNotificationPermission } from "../lib/notifications";
 import { EventRow, RepeatFreq } from "../lib/supabase";
 import { RootScreenProps } from "../navigation/types";
-import { colors, fontSizes, radii, spacing } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import { ThemeColors } from "../theme/themes";
+import { fontSizes, radii, spacing } from "../theme/tokens";
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -45,6 +47,8 @@ function defaultStart(dateKey: string): Date {
 }
 
 export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdit">) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => createStyles(c), [c]);
   const { date, eventId } = route.params;
   const isEdit = !!eventId;
 
@@ -211,10 +215,13 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={c.primary} />
       </View>
     );
   }
+
+  const chip = (selected: boolean) => [styles.chip, selected && styles.chipSelected];
+  const chipText = (selected: boolean) => [styles.chipText, selected && styles.chipTextSelected];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -222,14 +229,14 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
       <TextInput
         style={styles.input}
         placeholder="일정 제목"
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={c.textMuted}
         value={title}
         onChangeText={setTitle}
       />
 
       <View style={styles.switchRow}>
         <Text style={styles.label}>종일</Text>
-        <Switch value={allDay} onValueChange={setAllDay} trackColor={{ true: colors.primary }} />
+        <Switch value={allDay} onValueChange={setAllDay} trackColor={{ true: c.primary }} />
       </View>
 
       <Text style={styles.label}>시작</Text>
@@ -275,14 +282,10 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
         {REPEAT_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.label}
-            style={[styles.chip, repeatFreq === opt.value && styles.chipSelected]}
+            style={chip(repeatFreq === opt.value)}
             onPress={() => setRepeatFreq(opt.value)}
           >
-            <Text
-              style={[styles.chipText, repeatFreq === opt.value && styles.chipTextSelected]}
-            >
-              {opt.label}
-            </Text>
+            <Text style={chipText(repeatFreq === opt.value)}>{opt.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -293,7 +296,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
             <Switch
               value={hasUntil}
               onValueChange={setHasUntil}
-              trackColor={{ true: colors.primary }}
+              trackColor={{ true: c.primary }}
             />
           </View>
           {hasUntil ? (
@@ -317,17 +320,10 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
         {REMINDER_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.label}
-            style={[styles.chip, reminderMinutes === opt.value && styles.chipSelected]}
+            style={chip(reminderMinutes === opt.value)}
             onPress={() => handleSelectReminder(opt.value)}
           >
-            <Text
-              style={[
-                styles.chipText,
-                reminderMinutes === opt.value && styles.chipTextSelected,
-              ]}
-            >
-              {opt.label}
-            </Text>
+            <Text style={chipText(reminderMinutes === opt.value)}>{opt.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -336,7 +332,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
       <TextInput
         style={[styles.input, styles.memoInput]}
         placeholder="메모 (선택)"
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={c.textMuted}
         value={description}
         onChangeText={setDescription}
         multiline
@@ -351,7 +347,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
           <Switch
             value={pushToGoogle}
             onValueChange={setPushToGoogle}
-            trackColor={{ true: colors.primary }}
+            trackColor={{ true: c.primary }}
           />
         </View>
       ) : row?.google_event_id ? (
@@ -382,47 +378,53 @@ function mergeTime(base: Date, timePart: Date): Date {
   return next;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.md, paddingBottom: spacing.xl },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  label: {
-    fontSize: fontSizes.small,
-    fontWeight: "700",
-    color: colors.text,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  hint: { fontSize: fontSizes.caption, color: colors.textMuted, marginTop: 2 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.button,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.sm + 2,
-    fontSize: fontSizes.body,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  memoInput: { minHeight: 80, textAlignVertical: "top" },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: spacing.sm,
-  },
-  pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { fontSize: fontSizes.small, color: colors.text, fontWeight: "600" },
-  chipTextSelected: { color: colors.white },
-  buttons: { marginTop: spacing.lg },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: spacing.md, paddingBottom: spacing.xl },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.background,
+    },
+    label: {
+      fontSize: fontSizes.small,
+      fontWeight: "700",
+      color: c.text,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    hint: { fontSize: fontSizes.caption, color: c.textMuted, marginTop: 2 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+      fontSize: fontSizes.body,
+      color: c.text,
+      backgroundColor: c.inputBg,
+    },
+    memoInput: { minHeight: 80, textAlignVertical: "top" },
+    switchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: spacing.sm,
+    },
+    pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+    chip: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: c.inputBg,
+    },
+    chipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    chipText: { fontSize: fontSizes.small, color: c.text, fontWeight: "600" },
+    chipTextSelected: { color: c.white },
+    buttons: { marginTop: spacing.lg },
+  });

@@ -1,5 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,12 +24,16 @@ import {
   upsertDiary,
 } from "../lib/diary";
 import { RootScreenProps } from "../navigation/types";
-import { colors, fontSizes, radii, spacing } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import { ThemeColors } from "../theme/themes";
+import { fontSizes, radii, spacing } from "../theme/tokens";
 
 const THUMB = 96;
 const MOODS = ["😊", "🙂", "😐", "😢", "😠"] as const;
 
 export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdit">) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => createStyles(c), [c]);
   const { date } = route.params;
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
@@ -126,7 +131,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={c.primary} />
       </View>
     );
   }
@@ -154,7 +159,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         <TextInput
           style={styles.diaryInput}
           placeholder="오늘 하루는 어땠나요?"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={c.textMuted}
           value={content}
           onChangeText={setContent}
           multiline
@@ -180,7 +185,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.addThumb} onPress={pickPhotos}>
-            <Text style={styles.addThumbText}>＋</Text>
+            <Ionicons name="camera-outline" size={26} color={c.textMuted} />
             <Text style={styles.addThumbLabel}>사진</Text>
           </TouchableOpacity>
         </View>
@@ -196,55 +201,75 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: spacing.md },
-  moodRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.sm },
-  moodLabel: {
-    fontSize: fontSizes.small,
-    fontWeight: "700",
-    color: colors.text,
-    marginRight: spacing.sm,
-  },
-  moodChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.xs,
-  },
-  moodChipSelected: { backgroundColor: colors.primarySoft, borderWidth: 2, borderColor: colors.primary },
-  moodEmoji: { fontSize: 24 },
-  diaryInput: {
-    minHeight: 180,
-    fontSize: fontSizes.body,
-    color: colors.text,
-    lineHeight: 26,
-    textAlignVertical: "top",
-    padding: spacing.sm,
-  },
-  photoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  thumb: { width: THUMB, height: THUMB, borderRadius: radii.button, backgroundColor: colors.surface },
-  thumbPending: { opacity: 0.85 },
-  addThumb: {
-    width: THUMB,
-    height: THUMB,
-    borderRadius: radii.button,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addThumbText: { fontSize: 28, color: colors.textMuted, lineHeight: 32 },
-  addThumbLabel: { fontSize: fontSizes.caption, color: colors.textMuted },
-  hint: { fontSize: fontSizes.caption, color: colors.textMuted, marginTop: spacing.sm },
-  footer: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.background,
+    },
+    content: { padding: spacing.md },
+    moodRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.sm },
+    moodLabel: {
+      fontSize: fontSizes.small,
+      fontWeight: "700",
+      color: c.text,
+      marginRight: spacing.sm,
+    },
+    moodChip: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.xs,
+    },
+    moodChipSelected: {
+      backgroundColor: c.primarySoft,
+      borderWidth: 2,
+      borderColor: c.primary,
+    },
+    moodEmoji: { fontSize: 24 },
+    diaryInput: {
+      minHeight: 180,
+      fontSize: fontSizes.body,
+      color: c.text,
+      lineHeight: 26,
+      textAlignVertical: "top",
+      padding: spacing.sm,
+    },
+    photoGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    thumb: {
+      width: THUMB,
+      height: THUMB,
+      borderRadius: radii.button,
+      backgroundColor: c.surface,
+    },
+    thumbPending: { opacity: 0.85 },
+    addThumb: {
+      width: THUMB,
+      height: THUMB,
+      borderRadius: radii.button,
+      borderWidth: 2,
+      borderColor: c.border,
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 2,
+    },
+    addThumbLabel: { fontSize: fontSizes.caption, color: c.textMuted },
+    hint: { fontSize: fontSizes.caption, color: c.textMuted, marginTop: spacing.sm },
+    footer: {
+      padding: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.border,
+      backgroundColor: c.background,
+    },
+  });

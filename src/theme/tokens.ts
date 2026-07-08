@@ -1,21 +1,4 @@
-export const colors = {
-  background: "#FFFFFF",
-  surface: "#F6F7FB",
-  card: "#FFFFFF",
-  border: "#E5E7EB",
-  text: "#1F2430",
-  textMuted: "#7A8194",
-  primary: "#4A6CF7",
-  primarySoft: "#EBF0FF",
-  danger: "#E5484D",
-  success: "#2FA36B",
-  // 캘린더 dot 색
-  dotEvent: "#4A6CF7",
-  dotGoogle: "#2FA36B",
-  dotTask: "#F5A623",
-  dotDiary: "#E86FA7",
-  white: "#FFFFFF",
-} as const;
+// 크기/간격 토큰. 색은 theme/themes.ts + useTheme()를 사용한다.
 
 export const fontSizes = {
   caption: 12,
@@ -35,9 +18,18 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  card: 16,
-  button: 12,
+  card: 18,
+  button: 13,
   pill: 999,
 } as const;
 
 export const minTouch = 44;
+
+/** 라이트 테마용 은은한 카드 그림자 (다크 테마에선 자동으로 티가 안 남) */
+export const cardShadow = (shadowColor: string) => ({
+  shadowColor,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.07,
+  shadowRadius: 12,
+  elevation: 2,
+});

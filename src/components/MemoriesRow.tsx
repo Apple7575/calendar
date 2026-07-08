@@ -1,8 +1,10 @@
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getMemories, Memory } from "../lib/diary";
-import { colors, fontSizes, radii, spacing } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import { ThemeColors } from "../theme/themes";
+import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 
 type Props = {
   todayKey: string;
@@ -11,6 +13,8 @@ type Props = {
 
 /** "과거의 오늘" — 1달/3달/6달/1년/2년 전 같은 날의 일기 카드 */
 export function MemoriesRow({ todayKey, onPressMemory }: Props) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => createStyles(c), [c]);
   const [memories, setMemories] = useState<Memory[]>([]);
 
   useFocusEffect(
@@ -57,27 +61,30 @@ export function MemoriesRow({ todayKey, onPressMemory }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
-  title: {
-    fontSize: fontSizes.emphasis,
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  card: {
-    width: 220,
-    backgroundColor: colors.card,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.sm,
-    overflow: "hidden",
-  },
-  photo: { width: "100%", height: 100, backgroundColor: colors.surface },
-  photoEmpty: { alignItems: "center", justifyContent: "center" },
-  photoEmptyEmoji: { fontSize: 36 },
-  cardBody: { padding: spacing.sm + 2 },
-  label: { fontSize: fontSizes.caption, fontWeight: "700", color: colors.primary },
-  snippet: { fontSize: fontSizes.small, color: colors.text, marginTop: 2, lineHeight: 19 },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    wrap: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+    title: {
+      fontSize: fontSizes.emphasis,
+      fontWeight: "800",
+      color: c.text,
+      marginBottom: spacing.sm,
+      letterSpacing: -0.3,
+    },
+    card: {
+      width: 220,
+      backgroundColor: c.card,
+      borderRadius: radii.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.border,
+      marginRight: spacing.sm,
+      overflow: "hidden",
+      ...cardShadow(c.shadow),
+    },
+    photo: { width: "100%", height: 100, backgroundColor: c.surface },
+    photoEmpty: { alignItems: "center", justifyContent: "center" },
+    photoEmptyEmoji: { fontSize: 36 },
+    cardBody: { padding: spacing.sm + 2 },
+    label: { fontSize: fontSizes.caption, fontWeight: "800", color: c.primary },
+    snippet: { fontSize: fontSizes.small, color: c.text, marginTop: 2, lineHeight: 19 },
+  });

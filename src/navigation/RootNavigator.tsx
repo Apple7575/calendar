@@ -7,19 +7,27 @@ import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { PhotoViewerScreen } from "../screens/PhotoViewerScreen";
-import { colors } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  const { colors: c } = useTheme();
   const { session, loading } = useSession();
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: c.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={c.primary} />
       </View>
     );
   }
@@ -27,10 +35,12 @@ export function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: "700" },
+        headerTintColor: c.text,
+        headerTitleStyle: { fontWeight: "700", color: c.text },
+        headerStyle: { backgroundColor: c.background },
+        headerShadowVisible: false,
         headerBackButtonDisplayMode: "minimal",
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: c.background },
       }}
     >
       {session ? (

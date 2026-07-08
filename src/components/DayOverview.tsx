@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -15,7 +16,9 @@ import { useGoogleEvents } from "../hooks/useGoogleEvents";
 import { formatTime, monthKeyOf } from "../lib/dateUtils";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
 import * as taskLib from "../lib/tasks";
-import { colors, fontSizes, minTouch, radii, spacing } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import { ThemeColors } from "../theme/themes";
+import { fontSizes, minTouch, radii, spacing } from "../theme/tokens";
 import { Section } from "./Section";
 
 type Props = {
@@ -38,6 +41,8 @@ export function DayOverview({
   onGoSettings,
   onOpenPhotos,
 }: Props) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => createStyles(c), [c]);
   const day = useDayData(dateKey);
   const google = useGoogleEvents(monthKeyOf(dateKey));
   const [refreshing, setRefreshing] = useState(false);
@@ -98,15 +103,18 @@ export function DayOverview({
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} />
+      }
       keyboardShouldPersistTaps="handled"
     >
       {day.error ? <Text style={styles.errorText}>{day.error}</Text> : null}
       {google.error ? <Text style={styles.errorText}>{google.error}</Text> : null}
       {google.notLinked ? (
         <TouchableOpacity style={styles.banner} onPress={onGoSettings}>
+          <Ionicons name="link-outline" size={16} color={c.primary} />
           <Text style={styles.bannerText}>
-            구글 캘린더가 연결되어 있지 않아요.{onGoSettings ? " 설정에서 연결하기 →" : ""}
+            구글 캘린더가 연결되어 있지 않아요.{onGoSettings ? " 설정에서 연결하기" : ""}
           </Text>
         </TouchableOpacity>
       ) : null}
@@ -114,8 +122,9 @@ export function DayOverview({
       <Section
         title="일정"
         right={
-          <TouchableOpacity onPress={() => onEditEvent()} hitSlop={8}>
-            <Text style={styles.addLink}>+ 추가</Text>
+          <TouchableOpacity style={styles.addLink} onPress={() => onEditEvent()} hitSlop={8}>
+            <Ionicons name="add" size={18} color={c.primary} />
+            <Text style={styles.addLinkText}>추가</Text>
           </TouchableOpacity>
         }
       >
@@ -132,7 +141,7 @@ export function DayOverview({
               <View
                 style={[
                   styles.eventBar,
-                  { backgroundColor: e.source === "google" ? colors.dotGoogle : colors.dotEvent },
+                  { backgroundColor: e.source === "google" ? c.dotGoogle : c.dotEvent },
                 ]}
               />
               <View style={styles.eventBody}>
@@ -145,7 +154,9 @@ export function DayOverview({
                 <View style={styles.googleBadge}>
                   <Text style={styles.googleBadgeText}>구글</Text>
                 </View>
-              ) : null}
+              ) : (
+                <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+              )}
             </TouchableOpacity>
           ))
         )}
@@ -160,14 +171,14 @@ export function DayOverview({
               hitSlop={8}
             >
               <View style={[styles.checkbox, t.done && styles.checkboxDone]}>
-                {t.done ? <Text style={styles.checkmark}>✓</Text> : null}
+                {t.done ? <Ionicons name="checkmark" size={15} color={c.white} /> : null}
               </View>
               <Text style={[styles.taskTitle, t.done && styles.taskTitleDone]} numberOfLines={2}>
                 {t.title}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleDeleteTask(t.id, t.title)} hitSlop={8}>
-              <Text style={styles.deleteMark}>✕</Text>
+              <Ionicons name="close" size={18} color={c.textMuted} />
             </TouchableOpacity>
           </View>
         ))}
@@ -175,7 +186,7 @@ export function DayOverview({
           <TextInput
             style={styles.taskInput}
             placeholder="할 일 추가"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={c.textMuted}
             value={newTask}
             onChangeText={setNewTask}
             onSubmitEditing={handleAddTask}
@@ -183,11 +194,11 @@ export function DayOverview({
             editable={!addingTask}
           />
           <TouchableOpacity
-            style={styles.taskAddButton}
+            style={[styles.taskAddButton, !newTask.trim() && { opacity: 0.4 }]}
             onPress={handleAddTask}
             disabled={addingTask || !newTask.trim()}
           >
-            <Text style={styles.taskAddButtonText}>추가</Text>
+            <Ionicons name="arrow-up" size={18} color={c.white} />
           </TouchableOpacity>
         </View>
       </Section>
@@ -226,7 +237,10 @@ export function DayOverview({
               ) : null}
             </View>
           ) : (
-            <Text style={styles.emptyText}>아직 일기가 없어요. 눌러서 작성해 보세요.</Text>
+            <View style={styles.diaryEmpty}>
+              <Ionicons name="create-outline" size={18} color={c.textMuted} />
+              <Text style={styles.emptyText}>아직 일기가 없어요. 눌러서 작성해 보세요.</Text>
+            </View>
           )}
         </TouchableOpacity>
       </Section>
@@ -234,94 +248,104 @@ export function DayOverview({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: spacing.md, paddingBottom: spacing.xl },
-  errorText: {
-    color: colors.danger,
-    fontSize: fontSizes.small,
-    marginBottom: spacing.sm,
-  },
-  banner: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radii.button,
-    padding: spacing.sm + 4,
-    marginBottom: spacing.md,
-  },
-  bannerText: { color: colors.primary, fontSize: fontSizes.small, fontWeight: "600" },
-  addLink: { color: colors.primary, fontSize: fontSizes.body, fontWeight: "700" },
-  emptyText: { color: colors.textMuted, fontSize: fontSizes.small, paddingVertical: spacing.xs },
-  eventRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    minHeight: minTouch,
-  },
-  eventBar: { width: 4, alignSelf: "stretch", borderRadius: 2, marginRight: spacing.sm + 2 },
-  eventBody: { flex: 1 },
-  eventTitle: { fontSize: fontSizes.body, color: colors.text, fontWeight: "600" },
-  eventTime: { fontSize: fontSizes.small, color: colors.textMuted, marginTop: 2 },
-  googleBadge: {
-    backgroundColor: "#E7F5EC",
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    marginLeft: spacing.sm,
-  },
-  googleBadgeText: { color: colors.dotGoogle, fontSize: fontSizes.caption, fontWeight: "700" },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: spacing.xs + 2,
-    minHeight: 36,
-  },
-  taskToggle: { flexDirection: "row", alignItems: "center", flex: 1 },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.sm + 2,
-  },
-  checkboxDone: { backgroundColor: colors.dotTask, borderColor: colors.dotTask },
-  checkmark: { color: colors.white, fontSize: 14, fontWeight: "900" },
-  taskTitle: { fontSize: fontSizes.body, color: colors.text, flex: 1 },
-  taskTitleDone: { color: colors.textMuted, textDecorationLine: "line-through" },
-  deleteMark: { color: colors.textMuted, fontSize: fontSizes.body, padding: spacing.xs },
-  taskInputRow: { flexDirection: "row", alignItems: "center", marginTop: spacing.sm },
-  taskInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.button,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.sm + 2,
-    fontSize: fontSizes.body,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  taskAddButton: {
-    marginLeft: spacing.sm,
-    backgroundColor: colors.primary,
-    borderRadius: radii.button,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-  },
-  taskAddButtonText: { color: colors.white, fontSize: fontSizes.small, fontWeight: "700" },
-  diaryMood: { fontSize: 24, marginBottom: spacing.xs },
-  diaryPreview: { fontSize: fontSizes.body, color: colors.text, lineHeight: 24 },
-  photoRow: { flexDirection: "row", marginTop: spacing.sm },
-  photoThumb: {
-    width: 64,
-    height: 64,
-    borderRadius: 10,
-    marginRight: spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  photoMore: { alignItems: "center", justifyContent: "center", backgroundColor: colors.border },
-  photoMoreText: { color: colors.text, fontWeight: "700", fontSize: fontSizes.small },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    content: { padding: spacing.md, paddingBottom: spacing.xl },
+    errorText: {
+      color: c.danger,
+      fontSize: fontSizes.small,
+      marginBottom: spacing.sm,
+    },
+    banner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: c.primarySoft,
+      borderRadius: radii.button,
+      padding: spacing.sm + 4,
+      marginBottom: spacing.md,
+    },
+    bannerText: {
+      flex: 1,
+      color: c.primary,
+      fontSize: fontSizes.small,
+      fontWeight: "600",
+    },
+    addLink: { flexDirection: "row", alignItems: "center" },
+    addLinkText: { color: c.primary, fontSize: fontSizes.small, fontWeight: "700" },
+    emptyText: { color: c.textMuted, fontSize: fontSizes.small, paddingVertical: spacing.xs },
+    diaryEmpty: { flexDirection: "row", alignItems: "center", gap: 6 },
+    eventRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      minHeight: minTouch,
+    },
+    eventBar: { width: 4, alignSelf: "stretch", borderRadius: 2, marginRight: spacing.sm + 2 },
+    eventBody: { flex: 1 },
+    eventTitle: { fontSize: fontSizes.body, color: c.text, fontWeight: "600" },
+    eventTime: { fontSize: fontSizes.small, color: c.textMuted, marginTop: 2 },
+    googleBadge: {
+      backgroundColor: c.successSoft,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      marginLeft: spacing.sm,
+    },
+    googleBadgeText: { color: c.dotGoogle, fontSize: fontSizes.caption, fontWeight: "700" },
+    taskRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: spacing.xs + 2,
+      minHeight: 36,
+    },
+    taskToggle: { flexDirection: "row", alignItems: "center", flex: 1 },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: c.border,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.sm + 2,
+    },
+    checkboxDone: { backgroundColor: c.dotTask, borderColor: c.dotTask },
+    taskTitle: { fontSize: fontSizes.body, color: c.text, flex: 1 },
+    taskTitleDone: { color: c.textMuted, textDecorationLine: "line-through" },
+    taskInputRow: { flexDirection: "row", alignItems: "center", marginTop: spacing.sm },
+    taskInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+      fontSize: fontSizes.body,
+      color: c.text,
+      backgroundColor: c.inputBg,
+    },
+    taskAddButton: {
+      marginLeft: spacing.sm,
+      backgroundColor: c.primary,
+      borderRadius: radii.pill,
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    diaryMood: { fontSize: 24, marginBottom: spacing.xs },
+    diaryPreview: { fontSize: fontSizes.body, color: c.text, lineHeight: 24 },
+    photoRow: { flexDirection: "row", marginTop: spacing.sm },
+    photoThumb: {
+      width: 64,
+      height: 64,
+      borderRadius: 12,
+      marginRight: spacing.sm,
+      backgroundColor: c.surface,
+    },
+    photoMore: { alignItems: "center", justifyContent: "center", backgroundColor: c.border },
+    photoMoreText: { color: c.text, fontWeight: "700", fontSize: fontSizes.small },
+  });

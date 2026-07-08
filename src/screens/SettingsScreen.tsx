@@ -1,6 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useCallback, useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Section } from "../components/Section";
@@ -14,11 +23,16 @@ import {
   setDiaryReminder,
 } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
-import { colors, fontSizes, spacing } from "../theme/tokens";
+import { useThemeControls } from "../theme/ThemeContext";
+import { THEMES, ThemeColors } from "../theme/themes";
+import { fontSizes, spacing } from "../theme/tokens";
 
 type GoogleStatus = "checking" | "connected" | "notLinked" | "error";
 
 export function SettingsScreen() {
+  const { theme, setThemeId } = useThemeControls();
+  const c = theme.colors;
+  const styles = useMemo(() => createStyles(c), [c]);
   const [email, setEmail] = useState<string>("");
   const [googleStatus, setGoogleStatus] = useState<GoogleStatus>("checking");
   const [reconnecting, setReconnecting] = useState(false);
@@ -107,6 +121,46 @@ export function SettingsScreen() {
         <Text style={styles.headerTitle}>설정</Text>
       </View>
       <ScrollView style={styles.body}>
+        <Section title="테마">
+          <View style={styles.themeRow}>
+            {THEMES.map((t) => {
+              const selected = t.id === theme.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={styles.themeItem}
+                  onPress={() => setThemeId(t.id)}
+                >
+                  <View
+                    style={[
+                      styles.swatch,
+                      { backgroundColor: t.colors.background },
+                      selected && { borderColor: c.primary, borderWidth: 2.5 },
+                    ]}
+                  >
+                    <View
+                      style={[styles.swatchDot, { backgroundColor: t.colors.primary }]}
+                    />
+                    {selected ? (
+                      <View style={[styles.swatchCheck, { backgroundColor: c.primary }]}>
+                        <Ionicons name="checkmark" size={10} color={c.white} />
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text
+                    style={[
+                      styles.themeName,
+                      selected && { color: c.primary, fontWeight: "700" },
+                    ]}
+                  >
+                    {t.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Section>
+
         <Section title="계정">
           <Text style={styles.rowText}>{email || "이메일 정보 없음"}</Text>
         </Section>
@@ -119,7 +173,7 @@ export function SettingsScreen() {
               onValueChange={(enabled) => {
                 if (diaryPref) applyDiaryPref({ ...diaryPref, enabled });
               }}
-              trackColor={{ true: colors.primary }}
+              trackColor={{ true: c.primary }}
             />
           </View>
           {diaryPref?.enabled ? (
@@ -149,8 +203,8 @@ export function SettingsScreen() {
             <Text
               style={[
                 styles.statusText,
-                googleStatus === "connected" && { color: colors.success },
-                googleStatus === "notLinked" && { color: colors.danger },
+                googleStatus === "connected" && { color: c.success },
+                googleStatus === "notLinked" && { color: c.danger },
               ]}
             >
               {statusLabel[googleStatus]}
@@ -179,18 +233,51 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  header: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  headerTitle: { fontSize: fontSizes.title, fontWeight: "800", color: colors.text },
-  body: { flex: 1, padding: spacing.md },
-  rowText: { fontSize: fontSizes.body, color: colors.text },
-  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  statusText: { fontSize: fontSizes.body, fontWeight: "700", color: colors.textMuted },
-  scopeHint: {
-    fontSize: fontSizes.caption,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-    lineHeight: 17,
-  },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    header: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+    headerTitle: {
+      fontSize: fontSizes.title,
+      fontWeight: "900",
+      color: c.text,
+      letterSpacing: -0.5,
+    },
+    body: { flex: 1, padding: spacing.md },
+    rowText: { fontSize: fontSizes.body, color: c.text },
+    statusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    statusText: { fontSize: fontSizes.body, fontWeight: "700", color: c.textMuted },
+    scopeHint: {
+      fontSize: fontSizes.caption,
+      color: c.textMuted,
+      marginTop: spacing.sm,
+      lineHeight: 17,
+    },
+    themeRow: { flexDirection: "row", justifyContent: "space-between" },
+    themeItem: { alignItems: "center", gap: 6 },
+    swatch: {
+      width: 52,
+      height: 52,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    swatchDot: { width: 22, height: 22, borderRadius: 11 },
+    swatchCheck: {
+      position: "absolute",
+      right: -3,
+      top: -3,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    themeName: { fontSize: fontSizes.caption, color: c.textMuted },
+  });

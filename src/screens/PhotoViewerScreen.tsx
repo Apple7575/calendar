@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RootScreenProps } from "../navigation/types";
-import { colors, fontSizes, spacing } from "../theme/tokens";
+import { fontSizes, spacing } from "../theme/tokens";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.md,
   },
-  counter: { color: colors.white, fontSize: fontSizes.body, fontWeight: "700" },
-  close: { color: colors.white, fontSize: fontSizes.body, fontWeight: "700" },
+  counter: { color: "#FFFFFF", fontSize: fontSizes.body, fontWeight: "700" },
+  close: { color: "#FFFFFF", fontSize: fontSizes.body, fontWeight: "700" },
 });

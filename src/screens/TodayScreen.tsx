@@ -1,17 +1,21 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DayOverview } from "../components/DayOverview";
 import { MemoriesRow } from "../components/MemoriesRow";
 import { formatKoreanDate, todayKey } from "../lib/dateUtils";
 import { RootStackParamList } from "../navigation/types";
-import { colors, fontSizes, spacing } from "../theme/tokens";
+import { useTheme } from "../theme/ThemeContext";
+import { ThemeColors } from "../theme/themes";
+import { fontSizes, spacing } from "../theme/tokens";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function TodayScreen() {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => createStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const [dateKey, setDateKey] = useState(todayKey());
 
@@ -46,15 +50,21 @@ export function TodayScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-  },
-  headerTitle: { fontSize: fontSizes.title, fontWeight: "800", color: colors.text },
-  headerDate: { fontSize: fontSizes.small, color: colors.textMuted, marginLeft: spacing.sm },
-});
+const createStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    header: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: c.surface,
+    },
+    headerTitle: {
+      fontSize: fontSizes.title,
+      fontWeight: "900",
+      color: c.text,
+      letterSpacing: -0.5,
+    },
+    headerDate: { fontSize: fontSizes.small, color: c.textMuted, marginLeft: spacing.sm },
+  });
