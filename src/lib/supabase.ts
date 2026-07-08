@@ -28,6 +28,8 @@ export const supabase = createClient(
 
 // ---- DB 로우 타입 ----
 
+export type RepeatFreq = "daily" | "weekly" | "monthly";
+
 export type EventRow = {
   id: string;
   user_id: string;
@@ -37,6 +39,12 @@ export type EventRow = {
   end_at: string;
   all_day: boolean;
   google_event_id: string | null;
+  /** null이면 반복 없음 */
+  repeat_freq: RepeatFreq | null;
+  /** 반복 종료일 "YYYY-MM-DD" (null = 무기한) */
+  repeat_until: string | null;
+  /** 시작 몇 분 전 알림 (null = 알림 없음, 0 = 정시) */
+  reminder_minutes: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -56,6 +64,8 @@ export type DiaryRow = {
   user_id: string;
   date: string;
   content: string;
+  /** 기분 이모지 (null = 미선택) */
+  mood: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -8,18 +8,35 @@ import {
   Switch,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { parseDateKey } from "../lib/dateUtils";
+import { parseDateKey, toDateKey } from "../lib/dateUtils";
 import { createEvent, deleteLocalEvent, EventInput, getEvent, updateEvent } from "../lib/events";
 import { getAccessToken } from "../lib/googleTokens";
 import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
-import { EventRow } from "../lib/supabase";
+import { ensureNotificationPermission } from "../lib/notifications";
+import { EventRow, RepeatFreq } from "../lib/supabase";
 import { RootScreenProps } from "../navigation/types";
 import { colors, fontSizes, radii, spacing } from "../theme/tokens";
 
 const HOUR_MS = 60 * 60 * 1000;
+
+const REPEAT_OPTIONS: { value: RepeatFreq | null; label: string }[] = [
+  { value: null, label: "안 함" },
+  { value: "daily", label: "매일" },
+  { value: "weekly", label: "매주" },
+  { value: "monthly", label: "매월" },
+];
+
+const REMINDER_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null, label: "없음" },
+  { value: 0, label: "정시" },
+  { value: 10, label: "10분 전" },
+  { value: 30, label: "30분 전" },
+  { value: 60, label: "1시간 전" },
+];
 
 function defaultStart(dateKey: string): Date {
   const d = parseDateKey(dateKey);
@@ -39,6 +56,14 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
   const [start, setStart] = useState<Date>(defaultStart(date));
   const [end, setEnd] = useState<Date>(new Date(defaultStart(date).getTime() + HOUR_MS));
   const [pushToGoogle, setPushToGoogle] = useState(false);
+  const [repeatFreq, setRepeatFreq] = useState<RepeatFreq | null>(null);
+  const [hasUntil, setHasUntil] = useState(false);
+  const [repeatUntil, setRepeatUntil] = useState<Date>(() => {
+    const d = parseDateKey(date);
+    d.setMonth(d.getMonth() + 3);
+    return d;
+  });
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {
@@ -61,6 +86,10 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
         setAllDay(r.all_day);
         setStart(new Date(r.start_at));
         setEnd(new Date(r.end_at));
+        setRepeatFreq(r.repeat_freq);
+        setHasUntil(!!r.repeat_until);
+        if (r.repeat_until) setRepeatUntil(parseDateKey(r.repeat_until));
+        setReminderMinutes(r.reminder_minutes);
       })
       .catch((e) => {
         Alert.alert("오류", e instanceof Error ? e.message : "일정을 불러오지 못했어요.", [
@@ -110,7 +139,21 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
       allDay,
+      repeatFreq,
+      repeatUntil: repeatFreq && hasUntil ? toDateKey(repeatUntil) : null,
+      reminderMinutes,
     };
+  };
+
+  const handleSelectReminder = async (value: number | null) => {
+    if (value !== null) {
+      const ok = await ensureNotificationPermission();
+      if (!ok) {
+        Alert.alert("알림 권한 필요", "설정 앱에서 이 앱의 알림을 허용해 주세요.");
+        return;
+      }
+    }
+    setReminderMinutes(value);
   };
 
   const handleSave = async () => {
@@ -227,6 +270,68 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
         )}
       </View>
 
+      <Text style={styles.label}>반복</Text>
+      <View style={styles.chipRow}>
+        {REPEAT_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.label}
+            style={[styles.chip, repeatFreq === opt.value && styles.chipSelected]}
+            onPress={() => setRepeatFreq(opt.value)}
+          >
+            <Text
+              style={[styles.chipText, repeatFreq === opt.value && styles.chipTextSelected]}
+            >
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {repeatFreq ? (
+        <>
+          <View style={styles.switchRow}>
+            <Text style={styles.label}>반복 종료일 지정</Text>
+            <Switch
+              value={hasUntil}
+              onValueChange={setHasUntil}
+              trackColor={{ true: colors.primary }}
+            />
+          </View>
+          {hasUntil ? (
+            <View style={styles.pickerRow}>
+              <DateTimePicker
+                value={repeatUntil}
+                mode="date"
+                locale="ko-KR"
+                onChange={(_, d) => d && setRepeatUntil(d)}
+              />
+            </View>
+          ) : null}
+          {isEdit ? (
+            <Text style={styles.hint}>반복 일정은 시리즈 전체가 수정/삭제돼요.</Text>
+          ) : null}
+        </>
+      ) : null}
+
+      <Text style={styles.label}>알림</Text>
+      <View style={styles.chipRow}>
+        {REMINDER_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.label}
+            style={[styles.chip, reminderMinutes === opt.value && styles.chipSelected]}
+            onPress={() => handleSelectReminder(opt.value)}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                reminderMinutes === opt.value && styles.chipTextSelected,
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <Text style={styles.label}>메모</Text>
       <TextInput
         style={[styles.input, styles.memoInput]}
@@ -307,5 +412,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: fontSizes.small, color: colors.text, fontWeight: "600" },
+  chipTextSelected: { color: colors.white },
   buttons: { marginTop: spacing.lg },
 });

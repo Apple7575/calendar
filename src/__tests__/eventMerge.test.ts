@@ -83,6 +83,24 @@ describe("mergeEvents", () => {
     expect(merged.map((e) => e.id).sort()).toEqual(["g-other", "l1"]);
   });
 
+  it("push된 반복 일정의 구글 인스턴스(recurringEventId)도 제거한다", () => {
+    const local = [localEvent({ id: "l1", googleEventId: "g-series" })];
+    const google: CalendarEvent[] = [
+      {
+        ...localEvent({ id: "g-series_20260708" }),
+        source: "google",
+        googleRecurringEventId: "g-series",
+      },
+      {
+        ...localEvent({ id: "other_20260708", title: "구글 자체 반복" }),
+        source: "google",
+        googleRecurringEventId: "other-series",
+      },
+    ];
+    const merged = mergeEvents(local, google);
+    expect(merged.map((e) => e.id).sort()).toEqual(["l1", "other_20260708"]);
+  });
+
   it("종일 먼저, 그다음 시작 시각 순 정렬", () => {
     const a = localEvent({ id: "a", startAt: new Date(2026, 6, 8, 15).toISOString() });
     const b = localEvent({ id: "b", startAt: new Date(2026, 6, 8, 9).toISOString() });

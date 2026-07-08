@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Text } from "react-native";
 import { CalendarScreen } from "../screens/CalendarScreen";
+import { SearchScreen } from "../screens/SearchScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { TodayScreen } from "../screens/TodayScreen";
 import { colors, fontSizes } from "../theme/tokens";
@@ -34,6 +35,11 @@ export function MainTabs() {
         name="Today"
         component={TodayScreen}
         options={{ title: "오늘", tabBarIcon: tabIcon("☀️") }}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ title: "검색", tabBarIcon: tabIcon("🔍") }}
       />
       <Tab.Screen
         name="Settings"

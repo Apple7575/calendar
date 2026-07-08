@@ -72,6 +72,21 @@ export function addDays(dateKey: string, delta: number): string {
   return toDateKey(d);
 }
 
+/**
+ * n개월 전 같은 날의 dateKey. 그 달에 없는 날(예: 3/31의 1개월 전)은 말일로 클램프.
+ * "과거의 오늘" 추억 기능용.
+ */
+export function monthsAgoKey(dateKey: string, months: number): string {
+  const d = parseDateKey(dateKey);
+  const lastDayOfTarget = new Date(d.getFullYear(), d.getMonth() - months + 1, 0).getDate();
+  const target = new Date(
+    d.getFullYear(),
+    d.getMonth() - months,
+    Math.min(d.getDate(), lastDayOfTarget)
+  );
+  return toDateKey(target);
+}
+
 /** 두 dateKey 사이(양끝 포함)의 모든 dateKey */
 export function dateKeysBetween(startKey: string, endKey: string): string[] {
   const keys: string[] = [];

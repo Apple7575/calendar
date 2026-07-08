@@ -26,11 +26,13 @@ import { RootScreenProps } from "../navigation/types";
 import { colors, fontSizes, radii, spacing } from "../theme/tokens";
 
 const THUMB = 96;
+const MOODS = ["😊", "🙂", "😐", "😢", "😠"] as const;
 
 export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdit">) {
   const { date } = route.params;
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
+  const [mood, setMood] = useState<string | null>(null);
   const [photos, setPhotos] = useState<DiaryPhoto[]>([]);
   const [pendingUris, setPendingUris] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -43,6 +45,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
     getDiaryWithPhotos(date)
       .then(({ diary, photos: rows }) => {
         setContent(diary?.content ?? "");
+        setMood(diary?.mood ?? null);
         setPhotos(rows);
       })
       .catch((e) => {
@@ -50,6 +53,12 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       })
       .finally(() => setLoading(false));
   }, [date]);
+
+  const allPhotoUrls = [...photos.map((p) => p.url), ...pendingUris];
+
+  const openViewer = (index: number) => {
+    navigation.navigate("PhotoViewer", { urls: allPhotoUrls, index });
+  };
 
   const pickPhotos = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -85,13 +94,13 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   };
 
   const handleSave = async () => {
-    if (!content.trim() && photos.length === 0 && pendingUris.length === 0) {
-      Alert.alert("알림", "내용이나 사진을 하나 이상 넣어 주세요.");
+    if (!content.trim() && photos.length === 0 && pendingUris.length === 0 && !mood) {
+      Alert.alert("알림", "내용, 사진, 기분 중 하나 이상을 넣어 주세요.");
       return;
     }
     setSaving(true);
     try {
-      const diary = await upsertDiary(date, content.trim());
+      const diary = await upsertDiary(date, content.trim(), mood);
       let position = photos.length;
       const failed: string[] = [];
       for (const uri of pendingUris) {
@@ -129,6 +138,19 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       keyboardVerticalOffset={90}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.moodRow}>
+          <Text style={styles.moodLabel}>오늘 기분</Text>
+          {MOODS.map((m) => (
+            <TouchableOpacity
+              key={m}
+              style={[styles.moodChip, mood === m && styles.moodChipSelected]}
+              onPress={() => setMood(mood === m ? null : m)}
+            >
+              <Text style={styles.moodEmoji}>{m}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <TextInput
           style={styles.diaryInput}
           placeholder="오늘 하루는 어땠나요?"
@@ -139,13 +161,21 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         />
 
         <View style={styles.photoGrid}>
-          {photos.map((p) => (
-            <TouchableOpacity key={p.id} onLongPress={() => removeSaved(p)}>
+          {photos.map((p, i) => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => openViewer(i)}
+              onLongPress={() => removeSaved(p)}
+            >
               <Image source={{ uri: p.url }} style={styles.thumb} />
             </TouchableOpacity>
           ))}
-          {pendingUris.map((uri) => (
-            <TouchableOpacity key={uri} onLongPress={() => removePending(uri)}>
+          {pendingUris.map((uri, i) => (
+            <TouchableOpacity
+              key={uri}
+              onPress={() => openViewer(photos.length + i)}
+              onLongPress={() => removePending(uri)}
+            >
               <Image source={{ uri }} style={[styles.thumb, styles.thumbPending]} />
             </TouchableOpacity>
           ))}
@@ -155,7 +185,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </TouchableOpacity>
         </View>
         {photos.length > 0 || pendingUris.length > 0 ? (
-          <Text style={styles.hint}>사진을 길게 누르면 삭제할 수 있어요.</Text>
+          <Text style={styles.hint}>사진을 누르면 크게 보고, 길게 누르면 삭제해요.</Text>
         ) : null}
       </ScrollView>
 
@@ -170,6 +200,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: spacing.md },
+  moodRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.sm },
+  moodLabel: {
+    fontSize: fontSizes.small,
+    fontWeight: "700",
+    color: colors.text,
+    marginRight: spacing.sm,
+  },
+  moodChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
+  },
+  moodChipSelected: { backgroundColor: colors.primarySoft, borderWidth: 2, borderColor: colors.primary },
+  moodEmoji: { fontSize: 24 },
   diaryInput: {
     minHeight: 180,
     fontSize: fontSizes.body,

@@ -23,6 +23,7 @@ type Props = {
   onEditEvent: (eventId?: string) => void;
   onEditDiary: () => void;
   onGoSettings?: () => void;
+  onOpenPhotos?: (urls: string[], index: number) => void;
 };
 
 function timeLabel(e: CalendarEvent): string {
@@ -30,7 +31,13 @@ function timeLabel(e: CalendarEvent): string {
   return `${formatTime(e.startAt)} - ${formatTime(e.endAt)}`;
 }
 
-export function DayOverview({ dateKey, onEditEvent, onEditDiary, onGoSettings }: Props) {
+export function DayOverview({
+  dateKey,
+  onEditEvent,
+  onEditDiary,
+  onGoSettings,
+  onOpenPhotos,
+}: Props) {
   const day = useDayData(dateKey);
   const google = useGoogleEvents(monthKeyOf(dateKey));
   const [refreshing, setRefreshing] = useState(false);
@@ -117,7 +124,7 @@ export function DayOverview({ dateKey, onEditEvent, onEditDiary, onGoSettings }:
         ) : (
           dayEvents.map((e) => (
             <TouchableOpacity
-              key={`${e.source}-${e.id}`}
+              key={`${e.source}-${e.id}-${e.startAt}`}
               style={styles.eventRow}
               disabled={e.source === "google"}
               onPress={() => onEditEvent(e.id)}
@@ -189,6 +196,9 @@ export function DayOverview({ dateKey, onEditEvent, onEditDiary, onGoSettings }:
         <TouchableOpacity onPress={onEditDiary} activeOpacity={0.7}>
           {day.diary.diary ? (
             <View>
+              {day.diary.diary.mood ? (
+                <Text style={styles.diaryMood}>{day.diary.diary.mood}</Text>
+              ) : null}
               {day.diary.diary.content ? (
                 <Text style={styles.diaryPreview} numberOfLines={4}>
                   {day.diary.diary.content}
@@ -196,8 +206,16 @@ export function DayOverview({ dateKey, onEditEvent, onEditDiary, onGoSettings }:
               ) : null}
               {day.diary.photos.length > 0 ? (
                 <View style={styles.photoRow}>
-                  {day.diary.photos.slice(0, 4).map((p) => (
-                    <Image key={p.id} source={{ uri: p.url }} style={styles.photoThumb} />
+                  {day.diary.photos.slice(0, 4).map((p, i) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      disabled={!onOpenPhotos}
+                      onPress={() =>
+                        onOpenPhotos?.(day.diary.photos.map((ph) => ph.url), i)
+                      }
+                    >
+                      <Image source={{ uri: p.url }} style={styles.photoThumb} />
+                    </TouchableOpacity>
                   ))}
                   {day.diary.photos.length > 4 ? (
                     <View style={[styles.photoThumb, styles.photoMore]}>
@@ -294,6 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
   },
   taskAddButtonText: { color: colors.white, fontSize: fontSizes.small, fontWeight: "700" },
+  diaryMood: { fontSize: 24, marginBottom: spacing.xs },
   diaryPreview: { fontSize: fontSizes.body, color: colors.text, lineHeight: 24 },
   photoRow: { flexDirection: "row", marginTop: spacing.sm },
   photoThumb: {

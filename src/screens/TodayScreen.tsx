@@ -4,6 +4,7 @@ import React, { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DayOverview } from "../components/DayOverview";
+import { MemoriesRow } from "../components/MemoriesRow";
 import { formatKoreanDate, todayKey } from "../lib/dateUtils";
 import { RootStackParamList } from "../navigation/types";
 import { colors, fontSizes, spacing } from "../theme/tokens";
@@ -27,12 +28,19 @@ export function TodayScreen() {
         <Text style={styles.headerTitle}>오늘</Text>
         <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
       </View>
+      <MemoriesRow
+        todayKey={dateKey}
+        onPressMemory={(date) => navigation.navigate("DayDetail", { date })}
+      />
       <DayOverview
         dateKey={dateKey}
         onEditEvent={(eventId) =>
           navigation.navigate("EventEdit", { date: dateKey, eventId })
         }
         onEditDiary={() => navigation.navigate("DiaryEdit", { date: dateKey })}
+        onOpenPhotos={(urls, index) =>
+          navigation.navigate("PhotoViewer", { urls, index })
+        }
       />
     </SafeAreaView>
   );

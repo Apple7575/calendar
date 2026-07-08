@@ -1,14 +1,23 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar } from "react-native-calendars";
+import { MonthlyStats } from "../components/MonthlyStats";
 import { useGoogleEvents } from "../hooks/useGoogleEvents";
 import { monthBounds, toDateKey, todayKey } from "../lib/dateUtils";
-import { buildMarkedDates, CalendarEvent } from "../lib/eventMerge";
-import { listDiaryDatesInRange } from "../lib/diary";
-import { listLocalEventsInRange, toCalendarEvent } from "../lib/events";
+import { buildMarkedDates, CalendarEvent, mergeEvents } from "../lib/eventMerge";
+import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
+import { listLocalEventsInRange } from "../lib/events";
+import { expandEventRows } from "../lib/recurrence";
 import { listTaskDatesInRange } from "../lib/tasks";
 import { RootStackParamList } from "../navigation/types";
 import { colors, fontSizes, spacing } from "../theme/tokens";
@@ -20,7 +29,7 @@ export function CalendarScreen() {
   const [monthKey, setMonthKey] = useState(todayKey().slice(0, 7));
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [taskDates, setTaskDates] = useState<string[]>([]);
-  const [diaryDates, setDiaryDates] = useState<string[]>([]);
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const google = useGoogleEvents(monthKey);
 
@@ -30,14 +39,14 @@ export function CalendarScreen() {
       const { start, end } = monthBounds(monthKey);
       const startKey = `${monthKey}-01`;
       const endKey = toDateKey(new Date(end.getTime() - 1));
-      const [rows, tDates, dDates] = await Promise.all([
+      const [rows, tDates, dEntries] = await Promise.all([
         listLocalEventsInRange(start, end),
         listTaskDatesInRange(startKey, endKey),
-        listDiaryDatesInRange(startKey, endKey),
+        listDiaryEntriesInRange(startKey, endKey),
       ]);
-      setLocalEvents(rows.map(toCalendarEvent));
+      setLocalEvents(expandEventRows(rows, start, end));
       setTaskDates(tDates);
-      setDiaryDates(dDates);
+      setDiaryEntries(dEntries);
     } catch (e) {
       setError(e instanceof Error ? e.message : "데이터를 불러오지 못했어요.");
     }
@@ -52,9 +61,10 @@ export function CalendarScreen() {
   const markedDates = useMemo(
     () =>
       buildMarkedDates({
-        events: [...localEvents, ...google.events],
+        // 구글에 push한 일정의 구글 사본 dot이 중복되지 않도록 병합 후 사용
+        events: mergeEvents(localEvents, google.events),
         taskDates,
-        diaryDates,
+        diaryDates: diaryEntries.map((e) => e.date),
         colors: {
           event: colors.dotEvent,
           googleEvent: colors.dotGoogle,
@@ -64,7 +74,7 @@ export function CalendarScreen() {
         },
         selectedDate: todayKey(),
       }),
-    [localEvents, google.events, taskDates, diaryDates]
+    [localEvents, google.events, taskDates, diaryEntries]
   );
 
   return (
@@ -87,29 +97,37 @@ export function CalendarScreen() {
         <Text style={styles.error}>{error ?? google.error}</Text>
       ) : null}
 
-      <Calendar
-        current={`${monthKey}-01`}
-        markingType="multi-dot"
-        markedDates={markedDates}
-        onDayPress={(day) => navigation.navigate("DayDetail", { date: day.dateString })}
-        onMonthChange={(m) => setMonthKey(`${m.year}-${String(m.month).padStart(2, "0")}`)}
-        monthFormat="yyyy년 M월"
-        theme={{
-          todayTextColor: colors.primary,
-          arrowColor: colors.primary,
-          textDayFontSize: fontSizes.body,
-          textMonthFontSize: fontSizes.emphasis,
-          textMonthFontWeight: "700",
-          textDayHeaderFontSize: fontSizes.caption,
-        }}
-      />
+      <ScrollView>
+        <Calendar
+          current={`${monthKey}-01`}
+          markingType="multi-dot"
+          markedDates={markedDates}
+          onDayPress={(day) => navigation.navigate("DayDetail", { date: day.dateString })}
+          onMonthChange={(m) => setMonthKey(`${m.year}-${String(m.month).padStart(2, "0")}`)}
+          monthFormat="yyyy년 M월"
+          theme={{
+            todayTextColor: colors.primary,
+            arrowColor: colors.primary,
+            textDayFontSize: fontSizes.body,
+            textMonthFontSize: fontSizes.emphasis,
+            textMonthFontWeight: "700",
+            textDayHeaderFontSize: fontSizes.caption,
+          }}
+        />
 
-      <View style={styles.legend}>
-        <LegendDot color={colors.dotEvent} label="내 일정" />
-        <LegendDot color={colors.dotGoogle} label="구글" />
-        <LegendDot color={colors.dotTask} label="할 일" />
-        <LegendDot color={colors.dotDiary} label="일기" />
-      </View>
+        <View style={styles.legend}>
+          <LegendDot color={colors.dotEvent} label="내 일정" />
+          <LegendDot color={colors.dotGoogle} label="구글" />
+          <LegendDot color={colors.dotTask} label="할 일" />
+          <LegendDot color={colors.dotDiary} label="일기" />
+        </View>
+
+        <MonthlyStats
+          monthKey={monthKey}
+          entries={diaryEntries}
+          onPressDay={(date) => navigation.navigate("DayDetail", { date })}
+        />
+      </ScrollView>
     </SafeAreaView>
   );
 }

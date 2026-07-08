@@ -8,11 +8,14 @@ export type RootStackParamList = {
   /** eventId가 없으면 새 일정 생성 */
   EventEdit: { date: string; eventId?: string };
   DiaryEdit: { date: string };
+  /** 사진 전체화면 보기 */
+  PhotoViewer: { urls: string[]; index: number };
 };
 
 export type MainTabParamList = {
   Calendar: undefined;
   Today: undefined;
+  Search: undefined;
   Settings: undefined;
 };
 

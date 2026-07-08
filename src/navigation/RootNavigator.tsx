@@ -6,6 +6,7 @@ import { DayDetailScreen } from "../screens/DayDetailScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
+import { PhotoViewerScreen } from "../screens/PhotoViewerScreen";
 import { colors } from "../theme/tokens";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
@@ -45,6 +46,11 @@ export function RootNavigator() {
             name="DiaryEdit"
             component={DiaryEditScreen}
             options={{ title: "일기" }}
+          />
+          <Stack.Screen
+            name="PhotoViewer"
+            component={PhotoViewerScreen}
+            options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade" }}
           />
         </>
       ) : (

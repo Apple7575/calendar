@@ -3,7 +3,8 @@ import { useCallback, useState } from "react";
 import { dayBounds } from "../lib/dateUtils";
 import { DiaryWithPhotos, getDiaryWithPhotos } from "../lib/diary";
 import { CalendarEvent } from "../lib/eventMerge";
-import { listLocalEventsInRange, toCalendarEvent } from "../lib/events";
+import { listLocalEventsInRange } from "../lib/events";
+import { expandEventRows } from "../lib/recurrence";
 import { EventRow, supabase, TaskRow } from "../lib/supabase";
 import { listTasks } from "../lib/tasks";
 
@@ -52,8 +53,9 @@ export function useDayData(dateKey: string): DayData {
     }, [reload])
   );
 
+  const { start, end } = dayBounds(dateKey);
   return {
-    localEvents: eventRows.map(toCalendarEvent),
+    localEvents: expandEventRows(eventRows, start, end),
     eventRows,
     tasks,
     diary,

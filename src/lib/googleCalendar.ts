@@ -1,6 +1,8 @@
 import { addDays } from "./dateUtils";
 import { GoogleEventItem } from "./eventMerge";
 import { clearTokenCache, getAccessToken } from "./googleTokens";
+import { buildRRule } from "./recurrence";
+import { RepeatFreq } from "./supabase";
 
 const BASE = "https://www.googleapis.com/calendar/v3/calendars/primary";
 
@@ -11,6 +13,8 @@ export type GoogleEventInput = {
   startAt: string;
   endAt: string;
   allDay: boolean;
+  repeatFreq?: RepeatFreq | null;
+  repeatUntil?: string | null;
 };
 
 async function googleFetch(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
@@ -69,8 +73,15 @@ function toGoogleBody(input: GoogleEventInput): Record<string, unknown> {
     // 구글 종일 일정의 end.date는 exclusive
     body.end = { date: addDays(endDate < startDate ? startDate : endDate, 1) };
   } else {
-    body.start = { dateTime: input.startAt };
-    body.end = { dateTime: input.endAt };
+    // 반복 일정은 구글이 start/end에 timeZone을 요구한다
+    const timeZone = input.repeatFreq
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : undefined;
+    body.start = { dateTime: input.startAt, timeZone };
+    body.end = { dateTime: input.endAt, timeZone };
+  }
+  if (input.repeatFreq) {
+    body.recurrence = [buildRRule(input.repeatFreq, input.repeatUntil ?? null, input.allDay)];
   }
   return body;
 }

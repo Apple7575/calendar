@@ -44,9 +44,10 @@
 ## 4. 데이터베이스 스키마 적용
 
 1. Supabase 대시보드 → **SQL Editor**
-2. 이 레포의 `supabase/migrations/0001_init.sql` 내용 전체를 붙여넣고 **Run**
-   - 테이블(events/tasks/diaries/diary_photos/google_tokens), RLS 정책,
-     `diary-photos` 비공개 Storage 버킷과 정책이 한 번에 만들어집니다.
+2. 이 레포의 `supabase/migrations/` 폴더의 SQL을 **순서대로** 붙여넣고 **Run**:
+   1. `0001_init.sql` — 테이블(events/tasks/diaries/diary_photos/google_tokens),
+      RLS 정책, `diary-photos` 비공개 Storage 버킷과 정책
+   2. `0002_features.sql` — 기분 기록, 반복 일정, 알림 컬럼
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 

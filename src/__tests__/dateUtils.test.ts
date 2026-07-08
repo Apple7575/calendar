@@ -8,6 +8,7 @@ import {
   monthBounds,
   monthFetchRange,
   monthKeyOf,
+  monthsAgoKey,
   parseDateKey,
   toDateKey,
 } from "../lib/dateUtils";
@@ -63,6 +64,13 @@ describe("dateUtils", () => {
   it("addDays 월 경계", () => {
     expect(addDays("2026-07-31", 1)).toBe("2026-08-01");
     expect(addDays("2026-08-01", -1)).toBe("2026-07-31");
+  });
+
+  it("monthsAgoKey: n개월 전 같은 날, 없는 날은 말일로 클램프", () => {
+    expect(monthsAgoKey("2026-07-08", 1)).toBe("2026-06-08");
+    expect(monthsAgoKey("2026-07-08", 12)).toBe("2025-07-08");
+    expect(monthsAgoKey("2026-03-31", 1)).toBe("2026-02-28"); // 2월 클램프
+    expect(monthsAgoKey("2026-01-15", 3)).toBe("2025-10-15"); // 연 경계
   });
 
   it("dateKeysBetween 양끝 포함", () => {

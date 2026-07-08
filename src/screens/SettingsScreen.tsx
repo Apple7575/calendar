@@ -1,11 +1,18 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Section } from "../components/Section";
 import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
 import { signInWithGoogle, signOut } from "../lib/auth";
 import { getAccessToken, GoogleNotLinkedError } from "../lib/googleTokens";
+import {
+  DiaryReminderPref,
+  ensureNotificationPermission,
+  getDiaryReminderPref,
+  setDiaryReminder,
+} from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { colors, fontSizes, spacing } from "../theme/tokens";
 
@@ -15,12 +22,30 @@ export function SettingsScreen() {
   const [email, setEmail] = useState<string>("");
   const [googleStatus, setGoogleStatus] = useState<GoogleStatus>("checking");
   const [reconnecting, setReconnecting] = useState(false);
+  const [diaryPref, setDiaryPref] = useState<DiaryReminderPref | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? "");
     });
+    getDiaryReminderPref().then(setDiaryPref);
   }, []);
+
+  const applyDiaryPref = async (next: DiaryReminderPref) => {
+    if (next.enabled) {
+      const ok = await ensureNotificationPermission();
+      if (!ok) {
+        Alert.alert("알림 권한 필요", "설정 앱에서 이 앱의 알림을 허용해 주세요.");
+        return;
+      }
+    }
+    try {
+      await setDiaryReminder(next);
+      setDiaryPref(next);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "리마인드 설정에 실패했어요.");
+    }
+  };
 
   const checkGoogle = useCallback(async () => {
     setGoogleStatus("checking");
@@ -81,9 +106,41 @@ export function SettingsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>설정</Text>
       </View>
-      <View style={styles.body}>
+      <ScrollView style={styles.body}>
         <Section title="계정">
           <Text style={styles.rowText}>{email || "이메일 정보 없음"}</Text>
+        </Section>
+
+        <Section title="일기 리마인드">
+          <View style={styles.statusRow}>
+            <Text style={styles.rowText}>매일 알림 받기</Text>
+            <Switch
+              value={diaryPref?.enabled ?? false}
+              onValueChange={(enabled) => {
+                if (diaryPref) applyDiaryPref({ ...diaryPref, enabled });
+              }}
+              trackColor={{ true: colors.primary }}
+            />
+          </View>
+          {diaryPref?.enabled ? (
+            <View style={[styles.statusRow, { marginTop: spacing.sm }]}>
+              <Text style={styles.rowText}>알림 시각</Text>
+              <DateTimePicker
+                value={new Date(2000, 0, 1, diaryPref.hour, diaryPref.minute)}
+                mode="time"
+                locale="ko-KR"
+                minuteInterval={5}
+                onChange={(_, d) =>
+                  d &&
+                  applyDiaryPref({
+                    ...diaryPref,
+                    hour: d.getHours(),
+                    minute: d.getMinutes(),
+                  })
+                }
+              />
+            </View>
+          ) : null}
         </Section>
 
         <Section title="구글 캘린더">
@@ -112,7 +169,8 @@ export function SettingsScreen() {
         </Section>
 
         <PrimaryButton title="로그아웃" onPress={handleSignOut} variant="danger" />
-      </View>
+        <View style={{ height: spacing.xl }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -14,6 +14,8 @@ export type CalendarEvent = {
   description?: string;
   /** 로컬 일정이 구글에 등록된 경우 그 구글 이벤트 id */
   googleEventId?: string | null;
+  /** 구글 반복 일정 인스턴스의 시리즈 id (중복 제거용) */
+  googleRecurringEventId?: string;
 };
 
 /** 구글 Calendar API events.list 응답의 개별 item (필요한 필드만) */
@@ -24,6 +26,8 @@ export type GoogleEventItem = {
   description?: string;
   start?: { date?: string; dateTime?: string };
   end?: { date?: string; dateTime?: string };
+  /** singleEvents=true로 펼쳐진 반복 인스턴스가 갖는 시리즈 id */
+  recurringEventId?: string;
 };
 
 /** 구글 이벤트를 CalendarEvent로 정규화. 취소되었거나 시간이 없으면 null */
@@ -43,6 +47,7 @@ export function mapGoogleEvent(item: GoogleEventItem): CalendarEvent | null {
       endAt: `${endKey < start.date ? start.date : endKey}T23:59:59`,
       allDay: true,
       description: item.description,
+      googleRecurringEventId: item.recurringEventId,
     };
   }
   if (start.dateTime) {
@@ -54,6 +59,7 @@ export function mapGoogleEvent(item: GoogleEventItem): CalendarEvent | null {
       endAt: end.dateTime ?? start.dateTime,
       allDay: false,
       description: item.description,
+      googleRecurringEventId: item.recurringEventId,
     };
   }
   return null;
@@ -62,13 +68,22 @@ export function mapGoogleEvent(item: GoogleEventItem): CalendarEvent | null {
 /**
  * 로컬 + 구글 병합.
  * 로컬 일정이 구글에 push된 경우(googleEventId 보유) 구글 쪽 사본은 제외해 중복 표시를 막는다.
+ * 반복 일정을 push한 경우 구글이 돌려주는 개별 인스턴스는 id가 다르지만
+ * recurringEventId가 시리즈 id이므로 그것도 함께 걸러낸다.
  * 정렬: 종일 먼저, 그다음 시작 시각 순.
  */
 export function mergeEvents(local: CalendarEvent[], google: CalendarEvent[]): CalendarEvent[] {
   const pushedIds = new Set(
     local.map((e) => e.googleEventId).filter((id): id is string => !!id)
   );
-  const merged = [...local, ...google.filter((g) => !pushedIds.has(g.id))];
+  const merged = [
+    ...local,
+    ...google.filter(
+      (g) =>
+        !pushedIds.has(g.id) &&
+        !(g.googleRecurringEventId && pushedIds.has(g.googleRecurringEventId))
+    ),
+  ];
   return merged.sort((a, b) => {
     if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
     return new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
