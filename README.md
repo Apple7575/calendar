@@ -1,7 +1,8 @@
 # 나의 캘린더 (calendar-app)
 
 구글 캘린더 연동 + 매일의 할 일/일기(사진 포함)를 한곳에서 관리하는 iPhone용 캘린더 앱.
-React Native + Expo(SDK 57), Supabase(Auth/Postgres/Storage/Edge Functions) 기반.
+React Native + Expo(SDK 54), Supabase(Auth/Postgres/Storage/Edge Functions) 기반.
+(SDK 54 고정 — 사용자 iPhone의 Expo Go가 지원하는 버전. 올리지 말 것.)
 
 ## 기능
 
