@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { InsightsView } from "../components/InsightsView";
 import { PrimaryButton } from "../components/PrimaryButton";
 import {
   generateReport,
@@ -21,7 +22,10 @@ import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
 
-const TYPES: { value: ReportType; label: string }[] = [
+type TabType = ReportType | "metrics";
+
+const TYPES: { value: TabType; label: string }[] = [
+  { value: "metrics", label: "지표" },
   { value: "daily", label: "하루" },
   { value: "weekly", label: "주간" },
   { value: "monthly", label: "월간" },
@@ -71,19 +75,20 @@ function ReportBody({ content, styles }: { content: string; styles: Styles }) {
 export function ReportScreen() {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
-  const [type, setType] = useState<ReportType>("daily");
+  const [type, setType] = useState<TabType>("metrics");
   const [periodKey, setPeriodKey] = useState(defaultPeriod("daily"));
   const [content, setContent] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const changeType = (t: ReportType) => {
+  const changeType = (t: TabType) => {
     setType(t);
-    setPeriodKey(defaultPeriod(t));
+    if (t !== "metrics") setPeriodKey(defaultPeriod(t));
   };
 
   // 기간 변경 시 캐시된 리포트 확인
   const loadCached = useCallback(async () => {
+    if (type === "metrics") return;
     setChecking(true);
     setContent(null);
     try {
@@ -98,6 +103,7 @@ export function ReportScreen() {
   }, [loadCached]);
 
   const handleGenerate = async (force: boolean) => {
+    if (type === "metrics") return;
     setGenerating(true);
     try {
       setContent(await generateReport(type, periodKey, force));
@@ -125,6 +131,12 @@ export function ReportScreen() {
         ))}
       </View>
 
+      {type === "metrics" ? (
+        <View style={[styles.body, { paddingTop: spacing.md }]}>
+          <InsightsView />
+        </View>
+      ) : (
+        <>
       {/* 기간 이동 */}
       <View style={styles.periodRow}>
         <TouchableOpacity onPress={() => setPeriodKey(shiftPeriod(type, periodKey, -1))} hitSlop={8}>
@@ -173,6 +185,8 @@ export function ReportScreen() {
           </View>
         )}
       </ScrollView>
+        </>
+      )}
     </View>
   );
 }
@@ -192,6 +206,7 @@ const createStyles = (c: ThemeColors) =>
       flex: 1,
       alignItems: "center",
       paddingVertical: spacing.sm,
+      paddingHorizontal: 2,
       borderRadius: radii.pill,
       backgroundColor: c.card,
       borderWidth: 1,

@@ -14,8 +14,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MonthGrid } from "../components/MonthGrid";
 import { MonthlyStats } from "../components/MonthlyStats";
+import { QuickEventSheet, SlotSelection } from "../components/QuickEventSheet";
 import { WeekView } from "../components/WeekView";
-import { useGoogleEvents } from "../hooks/useGoogleEvents";
+import { invalidateGoogleCache, useGoogleEvents } from "../hooks/useGoogleEvents";
 import {
   addDays,
   formatTime,
@@ -49,6 +50,7 @@ export function CalendarScreen() {
   const [monthKey, setMonthKey] = useState(todayKey().slice(0, 7));
   const [weekStart, setWeekStart] = useState(weekStartOf(todayKey()));
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const [selection, setSelection] = useState<SlotSelection | null>(null);
 
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [taskDates, setTaskDates] = useState<string[]>([]);
@@ -236,11 +238,28 @@ export function CalendarScreen() {
         <WeekView
           weekStart={weekStart}
           events={mergedEvents}
+          selection={selection}
           onPressDay={(date) => navigation.navigate("DayDetail", { date })}
-          onPressSlot={(date, hour) => navigation.navigate("EventEdit", { date, hour })}
+          onPressSlot={(date, hour) =>
+            setSelection({ dateKey: date, startMin: hour * 60, endMin: hour * 60 + 60 })
+          }
           onPressEvent={handlePressGoogleEvent}
         />
       )}
+
+      <QuickEventSheet
+        selection={selection}
+        onChangeTimes={(startMin, endMin) =>
+          setSelection((prev) => (prev ? { ...prev, startMin, endMin } : prev))
+        }
+        onClose={() => setSelection(null)}
+        onSaved={() => {
+          setSelection(null);
+          invalidateGoogleCache();
+          loadLocal();
+          google.refresh();
+        }}
+      />
     </SafeAreaView>
   );
 }

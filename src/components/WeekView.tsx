@@ -23,6 +23,8 @@ type Props = {
   weekStart: string;
   /** 그 주에 표시할 병합·전개된 이벤트 */
   events: CalendarEvent[];
+  /** 빈 칸 탭으로 만든 선택 영역 (테두리 박스로 표시) */
+  selection?: { dateKey: string; startMin: number; endMin: number } | null;
   onPressDay: (dateKey: string) => void;
   onPressSlot: (dateKey: string, hour: number) => void;
   onPressEvent: (event: CalendarEvent) => void;
@@ -37,7 +39,14 @@ function minutesInDay(e: CalendarEvent, dateKey: string): { start: number; end: 
   return { start: (s - dayStart) / 60000, end: Math.max((en - dayStart) / 60000, (s - dayStart) / 60000 + 20) };
 }
 
-export function WeekView({ weekStart, events, onPressDay, onPressSlot, onPressEvent }: Props) {
+export function WeekView({
+  weekStart,
+  events,
+  selection,
+  onPressDay,
+  onPressSlot,
+  onPressEvent,
+}: Props) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
@@ -192,6 +201,23 @@ export function WeekView({ weekStart, events, onPressDay, onPressSlot, onPressEv
                 );
               })}
 
+              {/* 선택 영역 (구글 캘린더식 테두리 박스) */}
+              {selection && selection.dateKey === d ? (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.selectionBox,
+                    {
+                      top: (selection.startMin / 60) * HOUR_H,
+                      height: Math.max(
+                        ((selection.endMin - selection.startMin) / 60) * HOUR_H,
+                        12
+                      ),
+                    },
+                  ]}
+                />
+              ) : null}
+
               {/* 현재 시각 표시선 */}
               {d === today ? (
                 <View
@@ -262,6 +288,17 @@ const createStyles = (c: ThemeColors) =>
     },
     eventTitle: { fontSize: 10, fontWeight: "700", lineHeight: 12 },
     eventTime: { fontSize: 9, color: c.textMuted, marginTop: 1 },
+    selectionBox: {
+      position: "absolute",
+      left: 1,
+      right: 1,
+      borderWidth: 2,
+      borderColor: c.primary,
+      backgroundColor: c.primarySoft,
+      opacity: 0.9,
+      borderRadius: 6,
+      zIndex: 10,
+    },
     nowLine: {
       position: "absolute",
       left: 0,
