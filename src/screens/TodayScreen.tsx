@@ -35,14 +35,19 @@ export function TodayScreen() {
           <Text style={styles.headerTitle}>오늘</Text>
           <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.aiButton}
-          onPress={() => navigation.navigate("Reports")}
-          hitSlop={8}
-        >
-          <Ionicons name="sparkles" size={14} color={c.primary} />
-          <Text style={styles.aiButtonText}>AI 리포트</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={() => navigation.navigate("Gallery")} hitSlop={8}>
+            <Ionicons name="images-outline" size={20} color={c.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.aiButton}
+            onPress={() => navigation.navigate("Reports")}
+            hitSlop={8}
+          >
+            <Ionicons name="sparkles" size={14} color={c.primary} />
+            <Text style={styles.aiButtonText}>AI 리포트</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <BriefingCard dateKey={dateKey} />
       <MemoriesRow
@@ -83,6 +88,7 @@ const createStyles = (c: ThemeColors) =>
       letterSpacing: -0.5,
     },
     headerDate: { fontSize: fontSizes.small, color: c.textMuted, marginLeft: spacing.sm },
+    headerButtons: { flexDirection: "row", alignItems: "center", gap: spacing.sm + 4 },
     aiButton: {
       flexDirection: "row",
       alignItems: "center",

@@ -72,6 +72,7 @@ export function QuickAddScreen({ navigation }: RootScreenProps<"QuickAdd">) {
           repeatFreq: parsed.repeat,
           repeatUntil: null,
           reminderMinutes: parsed.reminderMinutes,
+          color: null,
         },
         pushToGoogle
       );

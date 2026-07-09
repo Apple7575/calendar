@@ -11,8 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { parseDateKey, toDateKey } from "../lib/dateUtils";
+import { EVENT_COLOR_KEYS, EVENT_COLORS } from "../lib/eventColors";
 import { createEvent, deleteLocalEvent, EventInput, getEvent, updateEvent } from "../lib/events";
 import { getAccessToken } from "../lib/googleTokens";
 import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
@@ -74,6 +76,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
   const [reminderMinutes, setReminderMinutes] = useState<number | null>(
     prefill?.reminderMinutes ?? null
   );
+  const [color, setColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {
@@ -100,6 +103,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
         setHasUntil(!!r.repeat_until);
         if (r.repeat_until) setRepeatUntil(parseDateKey(r.repeat_until));
         setReminderMinutes(r.reminder_minutes);
+        setColor(r.color);
       })
       .catch((e) => {
         Alert.alert("오류", e instanceof Error ? e.message : "일정을 불러오지 못했어요.", [
@@ -152,6 +156,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
       repeatFreq,
       repeatUntil: repeatFreq && hasUntil ? toDateKey(repeatUntil) : null,
       reminderMinutes,
+      color,
     };
   };
 
@@ -281,6 +286,26 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
             onChange={(_, d) => d && setEnd(mergeTime(end, d))}
           />
         )}
+      </View>
+
+      <Text style={styles.label}>색상</Text>
+      <View style={styles.colorRow}>
+        {EVENT_COLOR_KEYS.map((key) => {
+          const selected = color === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.colorDot,
+                { backgroundColor: EVENT_COLORS[key].hex },
+                selected && styles.colorDotSelected,
+              ]}
+              onPress={() => setColor(selected ? null : key)}
+            >
+              {selected ? <Ionicons name="checkmark" size={14} color="#FFF" /> : null}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={styles.label}>반복</Text>
@@ -420,6 +445,15 @@ const createStyles = (c: ThemeColors) =>
       marginTop: spacing.sm,
     },
     pickerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    colorRow: { flexDirection: "row", gap: spacing.sm + 2 },
+    colorDot: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    colorDotSelected: { borderWidth: 2, borderColor: c.text },
     chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     chip: {
       borderWidth: 1,

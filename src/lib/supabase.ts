@@ -45,6 +45,8 @@ export type EventRow = {
   repeat_until: string | null;
   /** 시작 몇 분 전 알림 (null = 알림 없음, 0 = 정시) */
   reminder_minutes: number | null;
+  /** 일정 색상 키 (null = 테마 기본색) */
+  color: string | null;
   created_at: string;
   updated_at: string;
 };

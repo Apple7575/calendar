@@ -192,7 +192,10 @@ function WeekSummary({
                 <View
                   style={[
                     styles.summaryEventDot,
-                    { backgroundColor: e.source === "google" ? c.dotGoogle : c.dotEvent },
+                    {
+                      backgroundColor:
+                        e.colorHex ?? (e.source === "google" ? c.dotGoogle : c.dotEvent),
+                    },
                   ]}
                 />
                 <Text style={styles.summaryEventTitle} numberOfLines={1}>

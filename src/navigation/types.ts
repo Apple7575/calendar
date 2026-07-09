@@ -29,6 +29,8 @@ export type RootStackParamList = {
   Routines: undefined;
   /** AI 리포트 */
   Reports: undefined;
+  /** 사진첩 */
+  Gallery: undefined;
 };
 
 export type MainTabParamList = {

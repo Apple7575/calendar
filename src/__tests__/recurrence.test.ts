@@ -16,6 +16,7 @@ function row(overrides: Partial<EventRow> = {}): EventRow {
     repeat_freq: null,
     repeat_until: null,
     reminder_minutes: null,
+    color: null,
     created_at: "",
     updated_at: "",
     ...overrides,

@@ -6,6 +6,7 @@
 // - 수정/삭제는 시리즈 전체 단위 (개별 회차 편집은 MVP 제외).
 
 import { parseDateKey } from "./dateUtils";
+import { eventColorHex } from "./eventColors";
 import { CalendarEvent } from "./eventMerge";
 import { EventRow, RepeatFreq } from "./supabase";
 
@@ -22,6 +23,7 @@ function toCalendarEvent(row: EventRow, startAt: string, endAt: string): Calenda
     allDay: row.all_day,
     description: row.description ?? undefined,
     googleEventId: row.google_event_id,
+    colorHex: eventColorHex(row.color),
   };
 }
 

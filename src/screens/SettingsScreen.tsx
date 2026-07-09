@@ -15,6 +15,7 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { Section } from "../components/Section";
 import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
 import { signInWithGoogle, signOut } from "../lib/auth";
+import { exportDiariesAsMarkdown } from "../lib/exportData";
 import { getAccessToken, GoogleNotLinkedError } from "../lib/googleTokens";
 import {
   BriefingReminderPref,
@@ -41,6 +42,18 @@ export function SettingsScreen() {
   const [reconnecting, setReconnecting] = useState(false);
   const [diaryPref, setDiaryPref] = useState<DiaryReminderPref | null>(null);
   const [briefingPref, setBriefingPref] = useState<BriefingReminderPref | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportDiariesAsMarkdown();
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "내보내기에 실패했어요.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -280,6 +293,19 @@ export function SettingsScreen() {
               </Text>
             </View>
           ) : null}
+        </Section>
+
+        <Section title="데이터">
+          <PrimaryButton
+            title="일기 백업 내보내기 (마크다운)"
+            variant="secondary"
+            onPress={handleExport}
+            loading={exporting}
+          />
+          <Text style={styles.scopeHint}>
+            모든 일기(기분·에너지·수면·사람·감사 포함)를 텍스트 파일로 내보내요.
+            사진은 앱과 서버에 안전하게 보관됩니다.
+          </Text>
         </Section>
 
         <PrimaryButton title="로그아웃" onPress={handleSignOut} variant="danger" />

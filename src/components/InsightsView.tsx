@@ -16,6 +16,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 import { MetricLineChart, WeekdayBarChart } from "./MetricCharts";
+import { YearHeatmap } from "./YearHeatmap";
 
 const RANGES = [
   { days: 30, label: "30일" },
@@ -29,6 +30,7 @@ export function InsightsView() {
   const styles = useMemo(() => createStyles(c), [c]);
   const [days, setDays] = useState<number>(30);
   const [rows, setRows] = useState<DiaryMetricRow[]>([]);
+  const [yearEntries, setYearEntries] = useState<Map<string, string | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   const end = todayKey();
@@ -36,17 +38,29 @@ export function InsightsView() {
 
   const load = useCallback(async () => {
     setError(null);
-    const { data, error: qError } = await supabase
-      .from("diaries")
-      .select("date, mood, energy, sleep_hours")
-      .gte("date", start)
-      .lte("date", end)
-      .order("date");
+    const [{ data, error: qError }, { data: yearData }] = await Promise.all([
+      supabase
+        .from("diaries")
+        .select("date, mood, energy, sleep_hours")
+        .gte("date", start)
+        .lte("date", end)
+        .order("date"),
+      supabase
+        .from("diaries")
+        .select("date, mood")
+        .gte("date", addDays(end, -370))
+        .lte("date", end),
+    ]);
     if (qError) {
       setError(`데이터를 불러오지 못했어요: ${qError.message}`);
       return;
     }
     setRows((data ?? []) as DiaryMetricRow[]);
+    setYearEntries(
+      new Map(
+        ((yearData ?? []) as { date: string; mood: string | null }[]).map((r) => [r.date, r.mood])
+      )
+    );
   }, [start, end]);
 
   useFocusEffect(
@@ -162,6 +176,15 @@ export function InsightsView() {
           </View>
         );
       })}
+
+      {/* 지난 1년 잔디 */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>지난 1년</Text>
+          <Text style={styles.avgText}>일기 {yearEntries.size}일</Text>
+        </View>
+        <YearHeatmap entries={yearEntries} />
+      </View>
 
       {/* 요일 리듬 */}
       <View style={styles.card}>

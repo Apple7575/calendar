@@ -16,7 +16,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.newblueday.mycalendar",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "수면 시간을 일기에 자동으로 기록하기 위해 건강 데이터를 읽습니다.",
+        "NSHealthUpdateUsageDescription": "건강 데이터를 수정하지 않습니다."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true
       }
     },
     "android": {

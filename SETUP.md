@@ -51,6 +51,7 @@
    3. `0003_routines_reports.sql` — 루틴, AI 리포트 캐시
    4. `0004_mood_report.sql` — 기분 트렌드 리포트 타입
    5. `0005_diary_fields.sql` — 오늘의 한 줄/에너지/수면/사람/감사
+   6. `0006_event_color.sql` — 일정 색상
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 

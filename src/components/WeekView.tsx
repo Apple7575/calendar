@@ -172,6 +172,12 @@ export function WeekView({
                 const height = Math.max(((end - start) / 60) * HOUR_H - 2, 18);
                 const widthPct = 100 / lanes;
                 const isGoogle = e.source === "google";
+                const accent = e.colorHex ?? (isGoogle ? c.dotGoogle : c.primary);
+                const fill = e.colorHex
+                  ? `${e.colorHex}26` // 사용자 색 + 15% 투명 배경
+                  : isGoogle
+                    ? c.successSoft
+                    : c.primarySoft;
                 return (
                   <TouchableOpacity
                     key={`${e.source}-${e.id}-${e.startAt}`}
@@ -182,14 +188,14 @@ export function WeekView({
                         height,
                         left: `${lane * widthPct}%`,
                         width: `${widthPct}%`,
-                        backgroundColor: isGoogle ? c.successSoft : c.primarySoft,
-                        borderLeftColor: isGoogle ? c.dotGoogle : c.primary,
+                        backgroundColor: fill,
+                        borderLeftColor: accent,
                       },
                     ]}
                     onPress={() => onPressEvent(e)}
                   >
                     <Text
-                      style={[styles.eventTitle, { color: isGoogle ? c.dotGoogle : c.primary }]}
+                      style={[styles.eventTitle, { color: accent }]}
                       numberOfLines={height > 34 ? 2 : 1}
                     >
                       {e.title}

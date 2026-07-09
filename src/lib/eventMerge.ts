@@ -16,6 +16,8 @@ export type CalendarEvent = {
   googleEventId?: string | null;
   /** 구글 반복 일정 인스턴스의 시리즈 id (중복 제거용) */
   googleRecurringEventId?: string;
+  /** 일정 색상 hex (로컬 일정의 사용자 지정 색) */
+  colorHex?: string | null;
 };
 
 /** 구글 Calendar API events.list 응답의 개별 item (필요한 필드만) */

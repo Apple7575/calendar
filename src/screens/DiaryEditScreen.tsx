@@ -25,6 +25,7 @@ import {
   recentPeople,
   upsertDiary,
 } from "../lib/diary";
+import { fetchSleepHours, isHealthAvailable } from "../lib/health";
 import { RootScreenProps } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -280,7 +281,31 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             </View>
           </View>
           <View style={styles.metaCol}>
-            <Text style={styles.metaLabel}>수면</Text>
+            <View style={styles.sleepLabelRow}>
+              <Text style={styles.metaLabel}>수면</Text>
+              {isHealthAvailable() ? (
+                <TouchableOpacity
+                  hitSlop={6}
+                  onPress={async () => {
+                    try {
+                      const hours = await fetchSleepHours(date);
+                      if (hours === null) {
+                        Alert.alert("알림", "건강 앱에 그날 수면 기록이 없어요.");
+                      } else {
+                        setSleepHours(hours);
+                      }
+                    } catch (e) {
+                      Alert.alert(
+                        "오류",
+                        e instanceof Error ? e.message : "건강 데이터를 읽지 못했어요."
+                      );
+                    }
+                  }}
+                >
+                  <Ionicons name="heart-circle" size={18} color={c.danger} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
             <View style={styles.sleepRow}>
               <TouchableOpacity
                 onPress={() =>
@@ -556,6 +581,7 @@ const createStyles = (c: ThemeColors) =>
     metaCol: { flex: 1, gap: 4 },
     metaLabel: { fontSize: fontSizes.caption, fontWeight: "700", color: c.textMuted },
     energyRow: { flexDirection: "row", gap: 2 },
+    sleepLabelRow: { flexDirection: "row", alignItems: "center", gap: 4 },
     sleepRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     sleepText: { fontSize: fontSizes.small, fontWeight: "700", color: c.text, minWidth: 66, textAlign: "center" },
     fieldLabel: {

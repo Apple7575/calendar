@@ -153,7 +153,10 @@ export function DayOverview({
               <View
                 style={[
                   styles.eventBar,
-                  { backgroundColor: e.source === "google" ? c.dotGoogle : c.dotEvent },
+                  {
+                    backgroundColor:
+                      e.colorHex ?? (e.source === "google" ? c.dotGoogle : c.dotEvent),
+                  },
                 ]}
               />
               <View style={styles.eventBody}>

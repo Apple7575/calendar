@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { formatKoreanDate, parseDateKey, toDateKey } from "../lib/dateUtils";
+import { EVENT_COLOR_KEYS, EVENT_COLORS } from "../lib/eventColors";
 import { createEvent } from "../lib/events";
 import { getAccessToken } from "../lib/googleTokens";
 import { ensureNotificationPermission } from "../lib/notifications";
@@ -77,6 +78,7 @@ export function QuickEventSheet({ selection, onChangeTimes, onClose, onSaved }: 
   const [hasUntil, setHasUntil] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState<Date>(new Date());
   const [reminderMinutes, setReminderMinutes] = useState<number | null>(null);
+  const [color, setColor] = useState<string | null>(null);
   const [pushToGoogle, setPushToGoogle] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -96,6 +98,7 @@ export function QuickEventSheet({ selection, onChangeTimes, onClose, onSaved }: 
       setRepeatFreq(null);
       setHasUntil(false);
       setReminderMinutes(null);
+      setColor(null);
       setSaving(false);
       const until = parseDateKey(selection.dateKey);
       until.setMonth(until.getMonth() + 3);
@@ -178,6 +181,7 @@ export function QuickEventSheet({ selection, onChangeTimes, onClose, onSaved }: 
           repeatFreq,
           repeatUntil: repeatFreq && hasUntil ? toDateKey(repeatUntil) : null,
           reminderMinutes,
+          color,
         },
         pushToGoogle
       );
@@ -249,6 +253,28 @@ export function QuickEventSheet({ selection, onChangeTimes, onClose, onSaved }: 
               {/* 확장 영역: 새 일정 페이지의 나머지 옵션 */}
               {expanded ? (
                 <View style={styles.expandedArea}>
+                  <Text style={styles.label}>색상</Text>
+                  <View style={styles.colorRow}>
+                    {EVENT_COLOR_KEYS.map((key) => {
+                      const selected = color === key;
+                      return (
+                        <TouchableOpacity
+                          key={key}
+                          style={[
+                            styles.colorDot,
+                            { backgroundColor: EVENT_COLORS[key].hex },
+                            selected && styles.colorDotSelected,
+                          ]}
+                          onPress={() => setColor(selected ? null : key)}
+                        >
+                          {selected ? (
+                            <Ionicons name="checkmark" size={13} color="#FFF" />
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
                   <View style={styles.switchRow}>
                     <Text style={styles.label}>종일</Text>
                     <Switch
@@ -443,6 +469,15 @@ const createStyles = (c: ThemeColors) =>
       justifyContent: "space-between",
       marginTop: spacing.sm,
     },
+    colorRow: { flexDirection: "row", gap: spacing.sm + 2 },
+    colorDot: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    colorDotSelected: { borderWidth: 2, borderColor: c.text },
     chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     chip: {
       borderWidth: 1,

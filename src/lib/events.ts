@@ -1,3 +1,4 @@
+import { eventColorHex } from "./eventColors";
 import { CalendarEvent } from "./eventMerge";
 import * as googleCalendar from "./googleCalendar";
 import { cancelEventReminder, syncEventReminder } from "./notifications";
@@ -14,6 +15,8 @@ export type EventInput = {
   repeatUntil: string | null;
   /** 시작 몇 분 전 알림 (null = 없음) */
   reminderMinutes: number | null;
+  /** 일정 색상 키 (null = 기본) */
+  color: string | null;
 };
 
 export function toCalendarEvent(row: EventRow): CalendarEvent {
@@ -26,6 +29,7 @@ export function toCalendarEvent(row: EventRow): CalendarEvent {
     allDay: row.all_day,
     description: row.description ?? undefined,
     googleEventId: row.google_event_id,
+    colorHex: eventColorHex(row.color),
   };
 }
 
@@ -78,6 +82,7 @@ function toDbFields(input: EventInput) {
     repeat_freq: input.repeatFreq,
     repeat_until: input.repeatFreq ? input.repeatUntil : null,
     reminder_minutes: input.reminderMinutes,
+    color: input.color,
   };
 }
 

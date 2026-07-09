@@ -78,3 +78,6 @@ npx eas-cli submit --platform ios --latest
   Ad Hoc 배포(기기 등록, 1년 유효)도 가능합니다
 - 이제 개발 빌드가 생겼으니 **홈 화면 위젯** 같은 네이티브 기능도
   추가할 수 있는 길이 열렸습니다
+- **HealthKit 수면 가져오기**는 TestFlight/개발 빌드에서만 동작합니다
+  (Expo Go에서는 버튼이 숨겨짐). HealthKit이 추가된 뒤 처음 빌드할 때
+  기능(entitlement)이 자동 등록됩니다
