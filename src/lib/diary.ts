@@ -48,22 +48,56 @@ async function withSignedUrls(rows: DiaryPhotoRow[]): Promise<DiaryPhoto[]> {
   return rows.map((r) => ({ ...r, url: urlByPath.get(r.storage_path) ?? "" }));
 }
 
-export async function upsertDiary(
-  dateKey: string,
-  content: string,
-  mood: string | null
-): Promise<DiaryRow> {
+export type DiaryInput = {
+  content: string;
+  mood: string | null;
+  highlight: string | null;
+  energy: number | null;
+  sleepHours: number | null;
+  people: string[];
+  gratitude: string | null;
+};
+
+export async function upsertDiary(dateKey: string, input: DiaryInput): Promise<DiaryRow> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("diaries")
     .upsert(
-      { user_id: userId, date: dateKey, content, mood, updated_at: new Date().toISOString() },
+      {
+        user_id: userId,
+        date: dateKey,
+        content: input.content,
+        mood: input.mood,
+        highlight: input.highlight,
+        energy: input.energy,
+        sleep_hours: input.sleepHours,
+        people: input.people,
+        gratitude: input.gratitude,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: "user_id,date" }
     )
     .select()
     .single();
   if (error) throw new Error(`일기 저장에 실패했어요: ${error.message}`);
   return data as DiaryRow;
+}
+
+/** 최근 일기들에서 자주 등장한 사람 태그 (입력 추천용) */
+export async function recentPeople(limit = 12): Promise<string[]> {
+  const { data } = await supabase
+    .from("diaries")
+    .select("people")
+    .order("date", { ascending: false })
+    .limit(30);
+  const counts = new Map<string, number>();
+  for (const row of (data ?? []) as { people: string[] }[]) {
+    for (const p of row.people ?? []) counts.set(p, (counts.get(p) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([p]) => p);
 }
 
 function contentTypeOf(uri: string): { contentType: string; ext: string } {
@@ -178,7 +212,8 @@ export async function getMemories(todayKey: string): Promise<Memory[]> {
     .map((d) => ({
       label: keyToLabel.get(d.date) ?? "",
       date: d.date,
-      content: d.content,
+      // 추억 카드에는 하이라이트가 있으면 그걸 먼저 보여준다
+      content: d.highlight || d.content,
       mood: d.mood,
       photoUrl: urlByDiary.get(d.id) ?? null,
     }))

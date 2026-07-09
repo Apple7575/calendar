@@ -152,6 +152,16 @@ Deno.serve(async (req) => {
       return json({ result: JSON.parse(text) }, 200);
     }
 
+    if (task === "highlight") {
+      const text = await callOpenAI({
+        system:
+          "너는 일기에서 '오늘의 한 줄'을 뽑는 도우미야. 일기 내용에서 그날을 가장 잘 요약하는 한 줄(30자 이내, 1인칭, 마침표 없이)을 한국어로 만들어. 일기에 있는 내용만 쓰고, 문장 하나만 출력해.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 200,
+      });
+      return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
+    }
+
     return json({ error: "unknown_task" }, 400);
   } catch (e) {
     console.error("ai-helper error:", e);

@@ -144,7 +144,15 @@ async function buildPayload(
         tasks: (taskRows ?? []) as { title: string; done: boolean }[],
         routines: routineStats,
         diary: diary.diary
-          ? { mood: diary.diary.mood, content: diary.diary.content.slice(0, 2000) }
+          ? {
+              mood: diary.diary.mood,
+              content: diary.diary.content.slice(0, 2000),
+              highlight: diary.diary.highlight,
+              energy: diary.diary.energy,
+              sleepHours: diary.diary.sleep_hours,
+              people: diary.diary.people,
+              gratitude: diary.diary.gratitude,
+            }
           : null,
         photoCount: diary.photos.length,
       },
@@ -157,11 +165,22 @@ async function buildPayload(
     const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
     const rangeStart = parseDateKey(start);
     const rangeEnd = parseDateKey(addDays(end, 1));
-    const [entries, routineStats, rows] = await Promise.all([
-      listDiaryEntriesInRange(start, end),
+    const [{ data: entryRows }, routineStats, rows] = await Promise.all([
+      supabase
+        .from("diaries")
+        .select("date, mood, energy, sleep_hours")
+        .gte("date", start)
+        .lte("date", end)
+        .order("date"),
       collectRoutineStats(start, end),
       listLocalEventsInRange(rangeStart, rangeEnd),
     ]);
+    const entries = (entryRows ?? []) as {
+      date: string;
+      mood: string | null;
+      energy: number | null;
+      sleep_hours: number | null;
+    }[];
     const localEvents = expandEventRows(rows, rangeStart, rangeEnd);
     const eventCountByDate: Record<string, number> = {};
     for (const e of localEvents) {
@@ -176,6 +195,8 @@ async function buildPayload(
           date: d.date,
           weekday: WEEKDAYS_KO[parseDateKey(d.date).getDay()],
           mood: d.mood,
+          energy: d.energy,
+          sleepHours: d.sleep_hours != null ? Number(d.sleep_hours) : null,
           eventCount: eventCountByDate[d.date] ?? 0,
         })),
         moodCounts,
@@ -228,10 +249,20 @@ async function buildPayload(
   const contentLimit = type === "weekly" ? 300 : 120;
   const { data: diaryContents } = await supabase
     .from("diaries")
-    .select("date, mood, content")
+    .select("date, mood, content, highlight, energy, sleep_hours, people, gratitude")
     .gte("date", start)
     .lte("date", end)
     .order("date");
+  type DiaryDetail = {
+    date: string;
+    mood: string | null;
+    content: string;
+    highlight: string | null;
+    energy: number | null;
+    sleep_hours: number | null;
+    people: string[];
+    gratitude: string | null;
+  };
   return {
     payload: {
       events: events.slice(0, 60).map(eventLine),
@@ -239,9 +270,16 @@ async function buildPayload(
       googleIncluded,
       tasks: { done: tasks.filter((t) => t.done).length, total: tasks.length },
       routines: routineStats,
-      diaries: ((diaryContents ?? []) as { date: string; mood: string | null; content: string }[]).map(
-        (d) => ({ date: d.date, mood: d.mood, content: d.content.slice(0, contentLimit) })
-      ),
+      diaries: ((diaryContents ?? []) as DiaryDetail[]).map((d) => ({
+        date: d.date,
+        mood: d.mood,
+        highlight: d.highlight,
+        energy: d.energy,
+        sleepHours: d.sleep_hours != null ? Number(d.sleep_hours) : null,
+        people: d.people,
+        gratitude: d.gratitude,
+        content: d.content.slice(0, contentLimit),
+      })),
       moodCounts,
     },
     photoUrls: [],

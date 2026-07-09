@@ -108,6 +108,15 @@ export async function generateBriefing(dateKey: string): Promise<string> {
   return invokeHelper<string>("briefing", context);
 }
 
+// ===== 오늘의 한 줄 (일기에서 AI 추출) =====
+
+export async function generateHighlight(
+  content: string,
+  mood: string | null
+): Promise<string> {
+  return invokeHelper<string>("highlight", { content: content.slice(0, 3000), mood });
+}
+
 // ===== 일기 회고 질문 =====
 
 export type DiaryQuestion = { question: string; options: string[] };

@@ -15,13 +15,14 @@ import {
   View,
 } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { DiaryQuestion, generateDiaryQuestions } from "../lib/aiHelper";
+import { DiaryQuestion, generateDiaryQuestions, generateHighlight } from "../lib/aiHelper";
 import { formatKoreanDate } from "../lib/dateUtils";
 import {
   addPhoto,
   deletePhoto,
   DiaryPhoto,
   getDiaryWithPhotos,
+  recentPeople,
   upsertDiary,
 } from "../lib/diary";
 import { RootScreenProps } from "../navigation/types";
@@ -50,6 +51,16 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [customAnswer, setCustomAnswer] = useState("");
 
+  // 추가 기록 필드
+  const [highlight, setHighlight] = useState("");
+  const [generatingHighlight, setGeneratingHighlight] = useState(false);
+  const [energy, setEnergy] = useState<number | null>(null);
+  const [sleepHours, setSleepHours] = useState<number | null>(null);
+  const [people, setPeople] = useState<string[]>([]);
+  const [peopleInput, setPeopleInput] = useState("");
+  const [peopleSuggestions, setPeopleSuggestions] = useState<string[]>([]);
+  const [gratitude, setGratitude] = useState("");
+
   useLayoutEffect(() => {
     navigation.setOptions({ title: formatKoreanDate(date) });
   }, [navigation, date]);
@@ -59,13 +70,41 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       .then(({ diary, photos: rows }) => {
         setContent(diary?.content ?? "");
         setMood(diary?.mood ?? null);
+        setHighlight(diary?.highlight ?? "");
+        setEnergy(diary?.energy ?? null);
+        setSleepHours(diary?.sleep_hours != null ? Number(diary.sleep_hours) : null);
+        setPeople(diary?.people ?? []);
+        setGratitude(diary?.gratitude ?? "");
         setPhotos(rows);
       })
       .catch((e) => {
         Alert.alert("오류", e instanceof Error ? e.message : "일기를 불러오지 못했어요.");
       })
       .finally(() => setLoading(false));
+    recentPeople().then(setPeopleSuggestions).catch(() => {});
   }, [date]);
+
+  const addPerson = (name: string) => {
+    const trimmed = name.trim().replace(/,$/, "");
+    if (!trimmed) return;
+    setPeople((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    setPeopleInput("");
+  };
+
+  const handleGenerateHighlight = async () => {
+    if (!content.trim()) {
+      Alert.alert("알림", "일기 내용을 먼저 써 주세요.");
+      return;
+    }
+    setGeneratingHighlight(true);
+    try {
+      setHighlight(await generateHighlight(content, mood));
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "한 줄 요약에 실패했어요.");
+    } finally {
+      setGeneratingHighlight(false);
+    }
+  };
 
   const allPhotoUrls = [...photos.map((p) => p.url), ...pendingUris];
 
@@ -151,7 +190,25 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
     }
     setSaving(true);
     try {
-      const diary = await upsertDiary(date, content.trim(), mood);
+      // 한 줄이 비어 있으면 AI로 자동 추출 (실패해도 저장은 진행)
+      let finalHighlight = highlight.trim();
+      if (!finalHighlight && content.trim()) {
+        try {
+          finalHighlight = await generateHighlight(content, mood);
+          setHighlight(finalHighlight);
+        } catch {
+          // AI 미설정/실패 시 하이라이트 없이 저장
+        }
+      }
+      const diary = await upsertDiary(date, {
+        content: content.trim(),
+        mood,
+        highlight: finalHighlight || null,
+        energy,
+        sleepHours,
+        people,
+        gratitude: gratitude.trim() || null,
+      });
       let position = photos.length;
       const failed: string[] = [];
       for (const uri of pendingUris) {
@@ -200,6 +257,52 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
               <Text style={styles.moodEmoji}>{m}</Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* 에너지 / 수면 */}
+        <View style={styles.metaRow}>
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>에너지</Text>
+            <View style={styles.energyRow}>
+              {[1, 2, 3, 4, 5].map((v) => (
+                <TouchableOpacity
+                  key={v}
+                  onPress={() => setEnergy(energy === v ? null : v)}
+                  hitSlop={4}
+                >
+                  <Ionicons
+                    name="flash"
+                    size={22}
+                    color={energy !== null && v <= energy ? c.dotTask : c.border}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>수면</Text>
+            <View style={styles.sleepRow}>
+              <TouchableOpacity
+                onPress={() =>
+                  setSleepHours(sleepHours === null ? 7 : Math.max(0, sleepHours - 0.5))
+                }
+                hitSlop={6}
+              >
+                <Ionicons name="remove-circle-outline" size={22} color={c.primary} />
+              </TouchableOpacity>
+              <Text style={styles.sleepText}>
+                {sleepHours === null ? "기록 안 함" : `${sleepHours}시간`}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  setSleepHours(sleepHours === null ? 7 : Math.min(24, sleepHours + 0.5))
+                }
+                hitSlop={6}
+              >
+                <Ionicons name="add-circle-outline" size={22} color={c.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* 작성 모드 토글 */}
@@ -301,6 +404,80 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           multiline
         />
 
+        {/* 오늘의 한 줄 */}
+        <Text style={styles.fieldLabel}>
+          오늘의 한 줄 <Text style={styles.fieldHint}>(비워두면 저장할 때 AI가 뽑아줘요)</Text>
+        </Text>
+        <View style={styles.highlightRow}>
+          <TextInput
+            style={styles.fieldInput}
+            placeholder="오늘을 한 줄로 남긴다면?"
+            placeholderTextColor={c.textMuted}
+            value={highlight}
+            onChangeText={setHighlight}
+          />
+          <TouchableOpacity
+            style={styles.highlightButton}
+            onPress={handleGenerateHighlight}
+            disabled={generatingHighlight}
+          >
+            {generatingHighlight ? (
+              <ActivityIndicator size="small" color={c.white} />
+            ) : (
+              <Ionicons name="sparkles" size={16} color={c.white} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* 감사 한 가지 */}
+        <Text style={styles.fieldLabel}>감사 한 가지</Text>
+        <TextInput
+          style={styles.fieldInput}
+          placeholder="오늘 고마웠던 것 하나"
+          placeholderTextColor={c.textMuted}
+          value={gratitude}
+          onChangeText={setGratitude}
+        />
+
+        {/* 함께한 사람 */}
+        <Text style={styles.fieldLabel}>함께한 사람</Text>
+        <View style={styles.peopleWrap}>
+          {people.map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={styles.personChip}
+              onPress={() => setPeople((prev) => prev.filter((x) => x !== p))}
+            >
+              <Text style={styles.personChipText}>{p}</Text>
+              <Ionicons name="close" size={12} color={c.primary} />
+            </TouchableOpacity>
+          ))}
+          <TextInput
+            style={styles.personInput}
+            placeholder={people.length === 0 ? "이름 입력 후 엔터" : "+ 추가"}
+            placeholderTextColor={c.textMuted}
+            value={peopleInput}
+            onChangeText={(t) => {
+              if (t.endsWith(",") || t.endsWith(" ")) addPerson(t);
+              else setPeopleInput(t);
+            }}
+            onSubmitEditing={() => addPerson(peopleInput)}
+            returnKeyType="done"
+          />
+        </View>
+        {peopleSuggestions.filter((s) => !people.includes(s)).length > 0 ? (
+          <View style={styles.peopleSuggestRow}>
+            {peopleSuggestions
+              .filter((s) => !people.includes(s))
+              .slice(0, 6)
+              .map((s) => (
+                <TouchableOpacity key={s} style={styles.suggestChip} onPress={() => addPerson(s)}>
+                  <Text style={styles.suggestChipText}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+        ) : null}
+
         <View style={styles.photoGrid}>
           {photos.map((p, i) => (
             <TouchableOpacity
@@ -368,6 +545,84 @@ const createStyles = (c: ThemeColors) =>
       borderColor: c.primary,
     },
     moodEmoji: { fontSize: 24 },
+    metaRow: {
+      flexDirection: "row",
+      gap: spacing.md,
+      marginBottom: spacing.sm,
+      backgroundColor: c.surface,
+      borderRadius: radii.button,
+      padding: spacing.sm + 2,
+    },
+    metaCol: { flex: 1, gap: 4 },
+    metaLabel: { fontSize: fontSizes.caption, fontWeight: "700", color: c.textMuted },
+    energyRow: { flexDirection: "row", gap: 2 },
+    sleepRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    sleepText: { fontSize: fontSizes.small, fontWeight: "700", color: c.text, minWidth: 66, textAlign: "center" },
+    fieldLabel: {
+      fontSize: fontSizes.small,
+      fontWeight: "700",
+      color: c.text,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    fieldHint: { fontWeight: "400", fontSize: fontSizes.caption, color: c.textMuted },
+    fieldInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+      fontSize: fontSizes.body,
+      color: c.text,
+      backgroundColor: c.inputBg,
+    },
+    highlightRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    highlightButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: c.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    peopleWrap: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      backgroundColor: c.inputBg,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs + 2,
+    },
+    personChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      backgroundColor: c.primarySoft,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 4,
+    },
+    personChipText: { fontSize: fontSizes.small, color: c.primary, fontWeight: "600" },
+    personInput: {
+      minWidth: 110,
+      flex: 1,
+      fontSize: fontSizes.small,
+      color: c.text,
+      paddingVertical: 4,
+    },
+    peopleSuggestRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2, marginTop: spacing.xs + 2 },
+    suggestChip: {
+      backgroundColor: c.surface,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: 3,
+    },
+    suggestChipText: { fontSize: fontSizes.caption, color: c.textMuted },
     modeRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm },
     modeChip: {
       flexDirection: "row",

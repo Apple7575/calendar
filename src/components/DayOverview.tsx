@@ -266,8 +266,29 @@ export function DayOverview({
         <TouchableOpacity onPress={onEditDiary} activeOpacity={0.7}>
           {day.diary.diary ? (
             <View>
-              {day.diary.diary.mood ? (
+              {day.diary.diary.highlight ? (
+                <Text style={styles.diaryHighlight}>
+                  {day.diary.diary.mood ? `${day.diary.diary.mood} ` : ""}
+                  {day.diary.diary.highlight}
+                </Text>
+              ) : day.diary.diary.mood ? (
                 <Text style={styles.diaryMood}>{day.diary.diary.mood}</Text>
+              ) : null}
+              {day.diary.diary.energy || day.diary.diary.sleep_hours != null ||
+              day.diary.diary.people.length > 0 ? (
+                <Text style={styles.diaryMeta}>
+                  {[
+                    day.diary.diary.energy ? `에너지 ${"⚡".repeat(day.diary.diary.energy)}` : null,
+                    day.diary.diary.sleep_hours != null
+                      ? `수면 ${Number(day.diary.diary.sleep_hours)}시간`
+                      : null,
+                    day.diary.diary.people.length > 0
+                      ? `함께: ${day.diary.diary.people.join(", ")}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </Text>
               ) : null}
               {day.diary.diary.content ? (
                 <Text style={styles.diaryPreview} numberOfLines={4}>
@@ -398,6 +419,17 @@ const createStyles = (c: ThemeColors) =>
       justifyContent: "center",
     },
     diaryMood: { fontSize: 24, marginBottom: spacing.xs },
+    diaryHighlight: {
+      fontSize: fontSizes.body,
+      fontWeight: "800",
+      color: c.text,
+      marginBottom: 2,
+    },
+    diaryMeta: {
+      fontSize: fontSizes.caption,
+      color: c.textMuted,
+      marginBottom: spacing.xs,
+    },
     diaryPreview: { fontSize: fontSizes.body, color: c.text, lineHeight: 24 },
     photoRow: { flexDirection: "row", marginTop: spacing.sm },
     photoThumb: {

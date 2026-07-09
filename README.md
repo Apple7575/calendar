@@ -24,7 +24,8 @@ React Native + Expo(SDK 54), Supabase(Auth/Postgres/Storage/Edge Functions) 기�
 - **일정 알림**: 정시/10분/30분/1시간 전 로컬 알림 (반복 일정은 반복 알림)
 - **할 일**: 날짜별 체크리스트
 - **일기**: 날짜당 1개, 텍스트 + 기분 이모지 + 사진 여러 장 (Supabase Storage),
-  사진 전체화면 뷰어
+  사진 전체화면 뷰어. **오늘의 한 줄**(비워두면 AI가 추출, 수정 가능),
+  에너지(1~5)·수면 시간·함께한 사람 태그·감사 한 가지 기록
 - **오늘 탭**: 오늘의 일정/할 일/일기 + "그날의 기록" (1달/3달/6달/1년/2년 전 같은 날 일기)
 - **일기 리마인드**: 매일 원하는 시각에 알림 (설정 탭)
 - **스트릭/통계**: 연속 작성일, 이번 달 일기 수, 기분 모아보기 (캘린더 탭 하단)
@@ -33,6 +34,7 @@ React Native + Expo(SDK 54), Supabase(Auth/Postgres/Storage/Edge Functions) 기�
 ## 시작하기
 
 처음이라면 **[SETUP.md](./SETUP.md)** 를 따라 Google Cloud / Supabase 설정부터 하세요.
+터미널 없이 일반 앱처럼 쓰려면 **[BUILD.md](./BUILD.md)** (TestFlight 빌드)를 보세요.
 
 ```bash
 npm install

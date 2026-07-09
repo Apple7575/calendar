@@ -66,6 +66,16 @@ export type DiaryRow = {
   content: string;
   /** 기분 이모지 (null = 미선택) */
   mood: string | null;
+  /** 오늘의 한 줄 (AI 추출 후 사용자 수정 가능) */
+  highlight: string | null;
+  /** 에너지/컨디션 1~5 */
+  energy: number | null;
+  /** 수면 시간 (0.5 단위) */
+  sleep_hours: number | null;
+  /** 함께한 사람 태그 */
+  people: string[];
+  /** 감사 한 가지 */
+  gratitude: string | null;
   created_at: string;
   updated_at: string;
 };
