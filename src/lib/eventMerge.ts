@@ -113,7 +113,7 @@ export type MarkedDates = Record<
 >;
 
 /**
- * react-native-calendars markingType="multi-dot"용 마커 맵.
+ * 월간 그리드 dot 마커 맵.
  * 일정(로컬/구글 색 구분), 할 일, 일기 순으로 dot을 쌓는다 (날짜당 최대 3종).
  */
 export function buildMarkedDates(params: {

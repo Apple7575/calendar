@@ -70,6 +70,25 @@ export type DiaryRow = {
   updated_at: string;
 };
 
+export type RoutineRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  /** 빈 배열 = 매일, 아니면 요일 배열 (0=일 … 6=토) */
+  repeat_days: number[];
+  active: boolean;
+  position: number;
+  created_at: string;
+};
+
+export type RoutineCheckRow = {
+  id: string;
+  user_id: string;
+  routine_id: string;
+  date: string;
+  created_at: string;
+};
+
 export type DiaryPhotoRow = {
   id: string;
   user_id: string;

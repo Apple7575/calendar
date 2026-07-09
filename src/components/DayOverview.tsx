@@ -15,6 +15,7 @@ import { useDayData } from "../hooks/useDayData";
 import { useGoogleEvents } from "../hooks/useGoogleEvents";
 import { formatTime, monthKeyOf } from "../lib/dateUtils";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
+import * as routineLib from "../lib/routines";
 import * as taskLib from "../lib/tasks";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -27,6 +28,7 @@ type Props = {
   onEditDiary: () => void;
   onGoSettings?: () => void;
   onOpenPhotos?: (urls: string[], index: number) => void;
+  onManageRoutines?: () => void;
 };
 
 function timeLabel(e: CalendarEvent): string {
@@ -40,6 +42,7 @@ export function DayOverview({
   onEditDiary,
   onGoSettings,
   onOpenPhotos,
+  onManageRoutines,
 }: Props) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
@@ -69,6 +72,15 @@ export function DayOverview({
       Alert.alert("오류", e instanceof Error ? e.message : "할 일 추가에 실패했어요.");
     } finally {
       setAddingTask(false);
+    }
+  };
+
+  const handleToggleRoutine = async (routineId: string, checked: boolean) => {
+    try {
+      await routineLib.setRoutineChecked(routineId, dateKey, checked);
+      await day.reload();
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "루틴 체크에 실패했어요.");
     }
   };
 
@@ -161,6 +173,53 @@ export function DayOverview({
           ))
         )}
       </Section>
+
+      {day.routines.length > 0 || onManageRoutines ? (
+        <Section
+          title="루틴"
+          right={
+            onManageRoutines ? (
+              <TouchableOpacity onPress={onManageRoutines} hitSlop={8}>
+                <Text style={styles.addLinkText}>관리</Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        >
+          {day.routines.length === 0 ? (
+            <Text style={styles.emptyText}>루틴이 없어요. '관리'에서 만들어 보세요.</Text>
+          ) : (
+            day.routines.map((r) => {
+              const checked = day.checkedRoutineIds.has(r.id);
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  style={styles.taskRow}
+                  onPress={() => handleToggleRoutine(r.id, !checked)}
+                >
+                  <View style={styles.taskToggle}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        styles.routineCheckbox,
+                        checked && styles.routineCheckboxDone,
+                      ]}
+                    >
+                      {checked ? <Ionicons name="checkmark" size={15} color={c.white} /> : null}
+                    </View>
+                    <Text
+                      style={[styles.taskTitle, checked && styles.taskTitleDone]}
+                      numberOfLines={1}
+                    >
+                      {r.title}
+                    </Text>
+                  </View>
+                  <Ionicons name="repeat" size={14} color={c.textMuted} />
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </Section>
+      ) : null}
 
       <Section title="할 일">
         {day.tasks.map((t) => (
@@ -313,6 +372,8 @@ const createStyles = (c: ThemeColors) =>
       marginRight: spacing.sm + 2,
     },
     checkboxDone: { backgroundColor: c.dotTask, borderColor: c.dotTask },
+    routineCheckbox: { borderRadius: 12 },
+    routineCheckboxDone: { backgroundColor: c.success, borderColor: c.success },
     taskTitle: { fontSize: fontSizes.body, color: c.text, flex: 1 },
     taskTitleDone: { color: c.textMuted, textDecorationLine: "line-through" },
     taskInputRow: { flexDirection: "row", alignItems: "center", marginTop: spacing.sm },

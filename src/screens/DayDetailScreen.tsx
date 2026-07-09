@@ -17,6 +17,7 @@ export function DayDetailScreen({ route, navigation }: RootScreenProps<"DayDetai
       onEditDiary={() => navigation.navigate("DiaryEdit", { date })}
       onGoSettings={() => navigation.navigate("Main")}
       onOpenPhotos={(urls, index) => navigation.navigate("PhotoViewer", { urls, index })}
+      onManageRoutines={() => navigation.navigate("Routines")}
     />
   );
 }

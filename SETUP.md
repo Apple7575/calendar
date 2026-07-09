@@ -48,6 +48,7 @@
    1. `0001_init.sql` — 테이블(events/tasks/diaries/diary_photos/google_tokens),
       RLS 정책, `diary-photos` 비공개 Storage 버킷과 정책
    2. `0002_features.sql` — 기분 기록, 반복 일정, 알림 컬럼
+   3. `0003_routines_reports.sql` — 루틴, AI 리포트 캐시
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 
@@ -59,6 +60,20 @@ npx supabase link --project-ref <프로젝트ref>
 npx supabase secrets set GOOGLE_CLIENT_ID=<클라이언트ID> GOOGLE_CLIENT_SECRET=<클라이언트secret>
 npx supabase functions deploy google-token-refresh
 ```
+
+## 5-1. AI 리포트 설정 (Anthropic API 키)
+
+AI 하루/주간/월간/연간 리포트는 Claude API를 사용합니다.
+
+1. https://console.anthropic.com 가입 → **API Keys**에서 키 발급 (사용한 만큼 과금,
+   개인용 리포트 기준 1회 수십 원 수준)
+2. 이 폴더에서:
+   ```bash
+   npx supabase secrets set ANTHROPIC_API_KEY=<발급받은 키>
+   npx supabase functions deploy ai-report
+   ```
+키는 서버(Edge Function)에만 저장되고 앱에는 들어가지 않습니다.
+AI 리포트를 안 쓸 거면 이 단계는 건너뛰어도 됩니다(리포트 화면에서만 오류 표시).
 
 ## 6. 앱에 키 입력
 

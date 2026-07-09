@@ -40,16 +40,16 @@ const REMINDER_OPTIONS: { value: number | null; label: string }[] = [
   { value: 60, label: "1시간 전" },
 ];
 
-function defaultStart(dateKey: string): Date {
+function defaultStart(dateKey: string, hour = 9): Date {
   const d = parseDateKey(dateKey);
-  d.setHours(9, 0, 0, 0);
+  d.setHours(hour, 0, 0, 0);
   return d;
 }
 
 export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdit">) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
-  const { date, eventId } = route.params;
+  const { date, eventId, hour } = route.params;
   const isEdit = !!eventId;
 
   const [row, setRow] = useState<EventRow | null>(null);
@@ -57,8 +57,8 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [allDay, setAllDay] = useState(false);
-  const [start, setStart] = useState<Date>(defaultStart(date));
-  const [end, setEnd] = useState<Date>(new Date(defaultStart(date).getTime() + HOUR_MS));
+  const [start, setStart] = useState<Date>(defaultStart(date, hour));
+  const [end, setEnd] = useState<Date>(new Date(defaultStart(date, hour).getTime() + HOUR_MS));
   const [pushToGoogle, setPushToGoogle] = useState(false);
   const [repeatFreq, setRepeatFreq] = useState<RepeatFreq | null>(null);
   const [hasUntil, setHasUntil] = useState(false);

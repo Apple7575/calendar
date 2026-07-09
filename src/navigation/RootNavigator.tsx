@@ -7,6 +7,8 @@ import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { PhotoViewerScreen } from "../screens/PhotoViewerScreen";
+import { ReportScreen } from "../screens/ReportScreen";
+import { RoutineManageScreen } from "../screens/RoutineManageScreen";
 import { useTheme } from "../theme/ThemeContext";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
@@ -61,6 +63,16 @@ export function RootNavigator() {
             name="PhotoViewer"
             component={PhotoViewerScreen}
             options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade" }}
+          />
+          <Stack.Screen
+            name="Routines"
+            component={RoutineManageScreen}
+            options={{ title: "루틴 관리" }}
+          />
+          <Stack.Screen
+            name="Reports"
+            component={ReportScreen}
+            options={{ title: "AI 리포트" }}
           />
         </>
       ) : (

@@ -72,6 +72,36 @@ export function addDays(dateKey: string, delta: number): string {
   return toDateKey(d);
 }
 
+/** 그 주(일요일 시작)의 시작 dateKey */
+export function weekStartOf(dateKey: string): string {
+  const d = parseDateKey(dateKey);
+  d.setDate(d.getDate() - d.getDay());
+  return toDateKey(d);
+}
+
+/** weekStart부터 7일의 dateKey */
+export function weekDays(weekStartKey: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => addDays(weekStartKey, i));
+}
+
+/**
+ * 월간 그리드: 해당 월을 포함하는 주(일~토)들의 dateKey 2차원 배열.
+ * 인접 월 날짜도 포함해 각 주는 항상 7일.
+ */
+export function monthWeeks(monthKey: string): string[][] {
+  const firstKey = `${monthKey}-01`;
+  let cursor = weekStartOf(firstKey);
+  const weeks: string[][] = [];
+  // 최대 6주
+  for (let w = 0; w < 6; w++) {
+    const days = weekDays(cursor);
+    weeks.push(days);
+    cursor = addDays(cursor, 7);
+    if (!cursor.startsWith(monthKey)) break;
+  }
+  return weeks;
+}
+
 /**
  * n개월 전 같은 날의 dateKey. 그 달에 없는 날(예: 3/31의 1개월 전)은 말일로 클램프.
  * "과거의 오늘" 추억 기능용.

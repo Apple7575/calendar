@@ -1,7 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DayOverview } from "../components/DayOverview";
 import { MemoriesRow } from "../components/MemoriesRow";
@@ -29,8 +30,18 @@ export function TodayScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>오늘</Text>
-        <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>오늘</Text>
+          <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.aiButton}
+          onPress={() => navigation.navigate("Reports")}
+          hitSlop={8}
+        >
+          <Ionicons name="sparkles" size={14} color={c.primary} />
+          <Text style={styles.aiButtonText}>AI 리포트</Text>
+        </TouchableOpacity>
       </View>
       <MemoriesRow
         todayKey={dateKey}
@@ -45,6 +56,7 @@ export function TodayScreen() {
         onOpenPhotos={(urls, index) =>
           navigation.navigate("PhotoViewer", { urls, index })
         }
+        onManageRoutines={() => navigation.navigate("Routines")}
       />
     </SafeAreaView>
   );
@@ -55,11 +67,13 @@ const createStyles = (c: ThemeColors) =>
     container: { flex: 1, backgroundColor: c.surface },
     header: {
       flexDirection: "row",
-      alignItems: "baseline",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       backgroundColor: c.surface,
     },
+    headerLeft: { flexDirection: "row", alignItems: "baseline" },
     headerTitle: {
       fontSize: fontSizes.title,
       fontWeight: "900",
@@ -67,4 +81,14 @@ const createStyles = (c: ThemeColors) =>
       letterSpacing: -0.5,
     },
     headerDate: { fontSize: fontSizes.small, color: c.textMuted, marginLeft: spacing.sm },
+    aiButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: c.primarySoft,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 2,
+    },
+    aiButtonText: { color: c.primary, fontSize: fontSizes.caption, fontWeight: "700" },
   });

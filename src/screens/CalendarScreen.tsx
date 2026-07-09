@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,10 +12,20 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Calendar } from "react-native-calendars";
+import { MonthGrid } from "../components/MonthGrid";
 import { MonthlyStats } from "../components/MonthlyStats";
+import { WeekView } from "../components/WeekView";
 import { useGoogleEvents } from "../hooks/useGoogleEvents";
-import { monthBounds, toDateKey, todayKey } from "../lib/dateUtils";
+import {
+  addDays,
+  formatTime,
+  monthBounds,
+  monthKeyOf,
+  parseDateKey,
+  toDateKey,
+  todayKey,
+  weekStartOf,
+} from "../lib/dateUtils";
 import { buildMarkedDates, CalendarEvent, mergeEvents } from "../lib/eventMerge";
 import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
 import { listLocalEventsInRange } from "../lib/events";
@@ -26,37 +37,55 @@ import { ThemeColors } from "../theme/themes";
 import { fontSizes, spacing } from "../theme/tokens";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type ViewMode = "month" | "week";
 
 export function CalendarScreen() {
   const theme = useTheme();
   const c = theme.colors;
   const styles = useMemo(() => createStyles(c), [c]);
   const navigation = useNavigation<Nav>();
+
+  const [mode, setMode] = useState<ViewMode>("month");
   const [monthKey, setMonthKey] = useState(todayKey().slice(0, 7));
+  const [weekStart, setWeekStart] = useState(weekStartOf(todayKey()));
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [taskDates, setTaskDates] = useState<string[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const google = useGoogleEvents(monthKey);
+
+  // 주간 모드에서도 그 주가 속한 달 기준으로 구글 fetch (±1개월 커버)
+  const googleMonthKey = mode === "month" ? monthKey : monthKeyOf(weekStart);
+  const google = useGoogleEvents(googleMonthKey);
 
   const loadLocal = useCallback(async () => {
     setError(null);
     try {
-      const { start, end } = monthBounds(monthKey);
-      const startKey = `${monthKey}-01`;
-      const endKey = toDateKey(new Date(end.getTime() - 1));
+      let rangeStart: Date;
+      let rangeEnd: Date;
+      if (mode === "month") {
+        const b = monthBounds(monthKey);
+        rangeStart = b.start;
+        rangeEnd = b.end;
+      } else {
+        rangeStart = parseDateKey(weekStart);
+        rangeEnd = parseDateKey(addDays(weekStart, 7));
+      }
+      const startKey = toDateKey(rangeStart);
+      const endKey = toDateKey(new Date(rangeEnd.getTime() - 1));
       const [rows, tDates, dEntries] = await Promise.all([
-        listLocalEventsInRange(start, end),
+        listLocalEventsInRange(rangeStart, rangeEnd),
         listTaskDatesInRange(startKey, endKey),
         listDiaryEntriesInRange(startKey, endKey),
       ]);
-      setLocalEvents(expandEventRows(rows, start, end));
+      setLocalEvents(expandEventRows(rows, rangeStart, rangeEnd));
       setTaskDates(tDates);
       setDiaryEntries(dEntries);
     } catch (e) {
       setError(e instanceof Error ? e.message : "데이터를 불러오지 못했어요.");
     }
-  }, [monthKey]);
+  }, [mode, monthKey, weekStart]);
 
   useFocusEffect(
     useCallback(() => {
@@ -64,11 +93,15 @@ export function CalendarScreen() {
     }, [loadLocal])
   );
 
+  const mergedEvents = useMemo(
+    () => mergeEvents(localEvents, google.events),
+    [localEvents, google.events]
+  );
+
   const markedDates = useMemo(
     () =>
       buildMarkedDates({
-        // 구글에 push한 일정의 구글 사본 dot이 중복되지 않도록 병합 후 사용
-        events: mergeEvents(localEvents, google.events),
+        events: mergedEvents,
         taskDates,
         diaryDates: diaryEntries.map((e) => e.date),
         colors: {
@@ -76,32 +109,91 @@ export function CalendarScreen() {
           googleEvent: c.dotGoogle,
           task: c.dotTask,
           diary: c.dotDiary,
-          selected: c.primary,
         },
-        selectedDate: todayKey(),
       }),
-    [localEvents, google.events, taskDates, diaryEntries, c]
+    [mergedEvents, taskDates, diaryEntries, c]
   );
+
+  const changeMonth = (delta: number) => {
+    const [y, m] = monthKey.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMonthKey(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    setExpandedWeek(null);
+  };
+
+  const changeWeek = (delta: number) => setWeekStart(addDays(weekStart, delta * 7));
+
+  const goToday = () => {
+    setMonthKey(todayKey().slice(0, 7));
+    setWeekStart(weekStartOf(todayKey()));
+    setExpandedWeek(null);
+  };
+
+  const handlePressGoogleEvent = (e: CalendarEvent) => {
+    if (e.source === "local") {
+      navigation.navigate("EventEdit", {
+        date: toDateKey(new Date(e.startAt)),
+        eventId: e.id,
+      });
+    } else {
+      Alert.alert(
+        e.title,
+        `${e.allDay ? "종일" : `${formatTime(e.startAt)} - ${formatTime(e.endAt)}`}\n구글 캘린더 일정이에요. 수정은 구글 캘린더에서 해주세요.`
+      );
+    }
+  };
+
+  const periodLabel =
+    mode === "month"
+      ? `${Number(monthKey.slice(0, 4))}년 ${Number(monthKey.slice(5, 7))}월`
+      : `${Number(weekStart.slice(5, 7))}/${Number(weekStart.slice(8, 10))} - ${Number(
+          addDays(weekStart, 6).slice(5, 7)
+        )}/${Number(addDays(weekStart, 6).slice(8, 10))}`;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* 상단 헤더: 기간 이동 + 모드 토글 + 구글 새로고침 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>캘린더</Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={google.refresh}
-          hitSlop={8}
-          disabled={google.loading}
-        >
-          {google.loading ? (
-            <ActivityIndicator size="small" color={c.primary} />
-          ) : (
-            <>
-              <Ionicons name="sync-outline" size={15} color={c.primary} />
-              <Text style={styles.refreshText}>구글</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        <View style={styles.periodNav}>
+          <TouchableOpacity
+            onPress={() => (mode === "month" ? changeMonth(-1) : changeWeek(-1))}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={20} color={c.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={goToday}>
+            <Text style={styles.periodLabel}>{periodLabel}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => (mode === "month" ? changeMonth(1) : changeWeek(1))}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-forward" size={20} color={c.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerRight}>
+          <View style={styles.modeToggle}>
+            {(["month", "week"] as const).map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[styles.modeButton, mode === m && styles.modeButtonActive]}
+                onPress={() => setMode(m)}
+              >
+                <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>
+                  {m === "month" ? "월" : "주"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity onPress={google.refresh} hitSlop={8} disabled={google.loading}>
+            {google.loading ? (
+              <ActivityIndicator size="small" color={c.primary} />
+            ) : (
+              <Ionicons name="sync-outline" size={18} color={c.primary} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {google.notLinked ? (
@@ -111,45 +203,41 @@ export function CalendarScreen() {
         <Text style={styles.error}>{error ?? google.error}</Text>
       ) : null}
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Calendar
-          key={theme.id} // 테마 변경 시 캘린더 내부 테마 재적용
-          current={`${monthKey}-01`}
-          markingType="multi-dot"
-          markedDates={markedDates}
-          onDayPress={(day) => navigation.navigate("DayDetail", { date: day.dateString })}
-          onMonthChange={(m) => setMonthKey(`${m.year}-${String(m.month).padStart(2, "0")}`)}
-          monthFormat="yyyy년 M월"
-          theme={{
-            calendarBackground: c.background,
-            dayTextColor: c.text,
-            monthTextColor: c.text,
-            textSectionTitleColor: c.textMuted,
-            textDisabledColor: theme.isDark ? "#4A4F63" : "#C9CCD9",
-            todayTextColor: c.primary,
-            selectedDayBackgroundColor: c.primary,
-            selectedDayTextColor: c.white,
-            arrowColor: c.primary,
-            textDayFontSize: fontSizes.body,
-            textMonthFontSize: fontSizes.emphasis,
-            textMonthFontWeight: "800",
-            textDayHeaderFontSize: fontSizes.caption,
-          }}
-        />
+      {mode === "month" ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <MonthGrid
+            monthKey={monthKey}
+            markedDates={markedDates}
+            events={mergedEvents}
+            taskDates={taskDates}
+            diaryDates={diaryEntries.map((e) => e.date)}
+            expandedWeek={expandedWeek}
+            onToggleWeek={(i) => setExpandedWeek(expandedWeek === i ? null : i)}
+            onPressDay={(date) => navigation.navigate("DayDetail", { date })}
+          />
 
-        <View style={styles.legend}>
-          <LegendDot color={c.dotEvent} label="내 일정" styles={styles} />
-          <LegendDot color={c.dotGoogle} label="구글" styles={styles} />
-          <LegendDot color={c.dotTask} label="할 일" styles={styles} />
-          <LegendDot color={c.dotDiary} label="일기" styles={styles} />
-        </View>
+          <View style={styles.legend}>
+            <LegendDot color={c.dotEvent} label="내 일정" styles={styles} />
+            <LegendDot color={c.dotGoogle} label="구글" styles={styles} />
+            <LegendDot color={c.dotTask} label="할 일" styles={styles} />
+            <LegendDot color={c.dotDiary} label="일기" styles={styles} />
+          </View>
 
-        <MonthlyStats
-          monthKey={monthKey}
-          entries={diaryEntries}
+          <MonthlyStats
+            monthKey={monthKey}
+            entries={diaryEntries}
+            onPressDay={(date) => navigation.navigate("DayDetail", { date })}
+          />
+        </ScrollView>
+      ) : (
+        <WeekView
+          weekStart={weekStart}
+          events={mergedEvents}
           onPressDay={(date) => navigation.navigate("DayDetail", { date })}
+          onPressSlot={(date, hour) => navigation.navigate("EventEdit", { date, hour })}
+          onPressEvent={handlePressGoogleEvent}
         />
-      </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -181,22 +269,30 @@ const createStyles = (c: ThemeColors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
     },
-    headerTitle: {
-      fontSize: fontSizes.title,
+    periodNav: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    periodLabel: {
+      fontSize: fontSizes.emphasis,
       fontWeight: "900",
       color: c.text,
-      letterSpacing: -0.5,
+      letterSpacing: -0.4,
+      minWidth: 110,
+      textAlign: "center",
     },
-    refreshButton: {
+    headerRight: { flexDirection: "row", alignItems: "center", gap: spacing.sm + 2 },
+    modeToggle: {
       flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: c.primarySoft,
+      backgroundColor: c.surface,
       borderRadius: 999,
-      paddingHorizontal: spacing.sm + 4,
-      paddingVertical: spacing.xs + 2,
+      padding: 2,
     },
-    refreshText: { color: c.primary, fontSize: fontSizes.caption, fontWeight: "700" },
+    modeButton: {
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 1,
+      borderRadius: 999,
+    },
+    modeButtonActive: { backgroundColor: c.primary },
+    modeText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.textMuted },
+    modeTextActive: { color: c.white },
     notice: {
       color: c.textMuted,
       fontSize: fontSizes.caption,
