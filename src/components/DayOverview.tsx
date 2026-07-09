@@ -17,6 +17,7 @@ import { formatTime, monthKeyOf } from "../lib/dateUtils";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
 import * as routineLib from "../lib/routines";
 import * as taskLib from "../lib/tasks";
+import { updateWidget } from "../lib/widget";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, minTouch, radii, spacing } from "../theme/tokens";
@@ -79,6 +80,7 @@ export function DayOverview({
     try {
       await routineLib.setRoutineChecked(routineId, dateKey, checked);
       await day.reload();
+      void updateWidget();
     } catch (e) {
       Alert.alert("오류", e instanceof Error ? e.message : "루틴 체크에 실패했어요.");
     }
@@ -88,6 +90,7 @@ export function DayOverview({
     try {
       await taskLib.setTaskDone(id, done);
       await day.reload();
+      void updateWidget();
     } catch (e) {
       Alert.alert("오류", e instanceof Error ? e.message : "할 일 상태 변경에 실패했어요.");
     }

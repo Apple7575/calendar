@@ -20,6 +20,7 @@ import { getAccessToken } from "../lib/googleTokens";
 import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
 import { ensureNotificationPermission } from "../lib/notifications";
 import { EventRow, RepeatFreq } from "../lib/supabase";
+import { updateWidget } from "../lib/widget";
 import { RootScreenProps } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -180,6 +181,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
         ? await updateEvent(row, input)
         : await createEvent(input, pushToGoogle);
       invalidateGoogleCache();
+      void updateWidget();
       if (result.googleWarning) {
         Alert.alert("안내", result.googleWarning, [
           { text: "확인", onPress: () => navigation.goBack() },
@@ -206,6 +208,7 @@ export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdi
           try {
             const { googleWarning } = await deleteLocalEvent(row);
             invalidateGoogleCache();
+            void updateWidget();
             if (googleWarning) {
               Alert.alert("안내", googleWarning, [
                 { text: "확인", onPress: () => navigation.goBack() },

@@ -32,6 +32,7 @@ import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
 import { listLocalEventsInRange } from "../lib/events";
 import { expandEventRows } from "../lib/recurrence";
 import { listTaskDatesInRange } from "../lib/tasks";
+import { updateWidget } from "../lib/widget";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -258,6 +259,7 @@ export function CalendarScreen() {
           invalidateGoogleCache();
           loadLocal();
           google.refresh();
+          void updateWidget();
         }}
       />
     </SafeAreaView>

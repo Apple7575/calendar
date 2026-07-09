@@ -81,3 +81,25 @@ npx eas-cli submit --platform ios --latest
 - **HealthKit 수면 가져오기**는 TestFlight/개발 빌드에서만 동작합니다
   (Expo Go에서는 버튼이 숨겨짐). HealthKit이 추가된 뒤 처음 빌드할 때
   기능(entitlement)이 자동 등록됩니다
+
+## 6. 홈 화면 위젯 (⚠️ 빌드 전에 Team ID 입력 필수)
+
+위젯이 추가된 뒤 처음 빌드하기 전에 **Apple Team ID**를 넣어야 합니다:
+
+1. https://developer.apple.com/account 접속 → **Membership details**에서
+   **Team ID** 확인 (10자리 영숫자, 예: AB12CD34EF)
+2. `app.json`의 `"appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"`를 실제 값으로 교체
+3. 평소처럼 빌드 + 제출:
+   ```bash
+   npx eas-cli build --platform ios --profile production
+   npx eas-cli submit --platform ios --latest
+   ```
+   위젯 확장 타겟의 서명/프로비저닝은 EAS가 자동 처리합니다
+   (처음 빌드 시 위젯용 번들 ID `...mycalendar.widget` 등록을 물어보면 Yes)
+
+설치 후 사용법: 홈 화면 길게 누르기 → 왼쪽 위 **+** (또는 편집) →
+"나의 캘린더" 검색 → **오늘** 위젯(작게/중간) 추가.
+
+- 위젯에는 오늘의 일정(색상 포함)·할 일·루틴 진행이 표시됩니다
+- 데이터는 앱을 열거나 일정/할일/루틴을 수정할 때 갱신되고,
+  30분마다 iOS가 새로 그립니다

@@ -8,6 +8,7 @@ import { BriefingCard } from "../components/BriefingCard";
 import { DayOverview } from "../components/DayOverview";
 import { MemoriesRow } from "../components/MemoriesRow";
 import { formatKoreanDate, todayKey } from "../lib/dateUtils";
+import { updateWidget } from "../lib/widget";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -21,10 +22,11 @@ export function TodayScreen() {
   const navigation = useNavigation<Nav>();
   const [dateKey, setDateKey] = useState(todayKey());
 
-  // 자정을 넘겨 다시 열었을 때 오늘 날짜 갱신
+  // 자정을 넘겨 다시 열었을 때 오늘 날짜 갱신 + 홈 위젯 데이터 갱신
   useFocusEffect(
     useCallback(() => {
       setDateKey(todayKey());
+      void updateWidget();
     }, [])
   );
 
