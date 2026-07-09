@@ -173,6 +173,9 @@ export function CalendarScreen() {
         </View>
 
         <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => navigation.navigate("QuickAdd")} hitSlop={8}>
+            <Ionicons name="sparkles-outline" size={18} color={c.primary} />
+          </TouchableOpacity>
           <View style={styles.modeToggle}>
             {(["month", "week"] as const).map((m) => (
               <TouchableOpacity

@@ -49,6 +49,7 @@
       RLS 정책, `diary-photos` 비공개 Storage 버킷과 정책
    2. `0002_features.sql` — 기분 기록, 반복 일정, 알림 컬럼
    3. `0003_routines_reports.sql` — 루틴, AI 리포트 캐시
+   4. `0004_mood_report.sql` — 기분 트렌드 리포트 타입
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 
@@ -61,19 +62,22 @@ npx supabase secrets set GOOGLE_CLIENT_ID=<클라이언트ID> GOOGLE_CLIENT_SECR
 npx supabase functions deploy google-token-refresh
 ```
 
-## 5-1. AI 리포트 설정 (Anthropic API 키)
+## 5-1. AI 기능 설정 (OpenAI API 키)
 
-AI 하루/주간/월간/연간 리포트는 Claude API를 사용합니다.
+AI 리포트(하루/주간/월간/연간/기분), 자연어 일정 등록, 아침 브리핑,
+일기 회고 질문은 OpenAI API를 사용합니다.
 
-1. https://console.anthropic.com 가입 → **API Keys**에서 키 발급 (사용한 만큼 과금,
-   개인용 리포트 기준 1회 수십 원 수준)
+1. https://platform.openai.com 에서 **API Keys** 발급 (사용한 만큼 과금 —
+   가벼운 기능은 gpt-5-mini, 긴 리포트는 gpt-5를 쓰며 개인용 기준 1회 수십 원 이하)
 2. 이 폴더에서:
    ```bash
-   npx supabase secrets set ANTHROPIC_API_KEY=<발급받은 키>
+   npx supabase secrets set OPENAI_API_KEY=<발급받은 키>
    npx supabase functions deploy ai-report
+   npx supabase functions deploy ai-helper
    ```
 키는 서버(Edge Function)에만 저장되고 앱에는 들어가지 않습니다.
-AI 리포트를 안 쓸 거면 이 단계는 건너뛰어도 됩니다(리포트 화면에서만 오류 표시).
+AI 기능을 안 쓸 거면 건너뛰어도 됩니다 — AI 화면에서만 오류가 표시되고
+브리핑 카드는 조용히 숨겨집니다.
 
 ## 6. 앱에 키 입력
 

@@ -49,25 +49,31 @@ function defaultStart(dateKey: string, hour = 9): Date {
 export function EventEditScreen({ route, navigation }: RootScreenProps<"EventEdit">) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
-  const { date, eventId, hour } = route.params;
+  const { date, eventId, hour, prefill } = route.params;
   const isEdit = !!eventId;
 
   const [row, setRow] = useState<EventRow | null>(null);
   const [loading, setLoading] = useState(isEdit);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(prefill?.title ?? "");
   const [description, setDescription] = useState("");
-  const [allDay, setAllDay] = useState(false);
-  const [start, setStart] = useState<Date>(defaultStart(date, hour));
-  const [end, setEnd] = useState<Date>(new Date(defaultStart(date, hour).getTime() + HOUR_MS));
+  const [allDay, setAllDay] = useState(prefill?.allDay ?? false);
+  const [start, setStart] = useState<Date>(
+    prefill ? new Date(prefill.startISO) : defaultStart(date, hour)
+  );
+  const [end, setEnd] = useState<Date>(
+    prefill ? new Date(prefill.endISO) : new Date(defaultStart(date, hour).getTime() + HOUR_MS)
+  );
   const [pushToGoogle, setPushToGoogle] = useState(false);
-  const [repeatFreq, setRepeatFreq] = useState<RepeatFreq | null>(null);
+  const [repeatFreq, setRepeatFreq] = useState<RepeatFreq | null>(prefill?.repeatFreq ?? null);
   const [hasUntil, setHasUntil] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState<Date>(() => {
     const d = parseDateKey(date);
     d.setMonth(d.getMonth() + 3);
     return d;
   });
-  const [reminderMinutes, setReminderMinutes] = useState<number | null>(null);
+  const [reminderMinutes, setReminderMinutes] = useState<number | null>(
+    prefill?.reminderMinutes ?? null
+  );
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {

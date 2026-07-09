@@ -7,6 +7,7 @@ import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { PhotoViewerScreen } from "../screens/PhotoViewerScreen";
+import { QuickAddScreen } from "../screens/QuickAddScreen";
 import { ReportScreen } from "../screens/ReportScreen";
 import { RoutineManageScreen } from "../screens/RoutineManageScreen";
 import { useTheme } from "../theme/ThemeContext";
@@ -73,6 +74,11 @@ export function RootNavigator() {
             name="Reports"
             component={ReportScreen}
             options={{ title: "AI 리포트" }}
+          />
+          <Stack.Screen
+            name="QuickAdd"
+            component={QuickAddScreen}
+            options={{ title: "빠른 일정 등록" }}
           />
         </>
       ) : (

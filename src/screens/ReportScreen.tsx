@@ -26,20 +26,21 @@ const TYPES: { value: ReportType; label: string }[] = [
   { value: "weekly", label: "주간" },
   { value: "monthly", label: "월간" },
   { value: "yearly", label: "연간" },
+  { value: "mood", label: "기분" },
 ];
 
 function defaultPeriod(type: ReportType): string {
   const today = todayKey();
   if (type === "daily") return today;
   if (type === "weekly") return weekStartOf(today);
-  if (type === "monthly") return today.slice(0, 7);
+  if (type === "monthly" || type === "mood") return today.slice(0, 7);
   return today.slice(0, 4);
 }
 
 function shiftPeriod(type: ReportType, periodKey: string, delta: number): string {
   if (type === "daily") return addDays(periodKey, delta);
   if (type === "weekly") return addDays(periodKey, delta * 7);
-  if (type === "monthly") return addMonths(periodKey, delta);
+  if (type === "monthly" || type === "mood") return addMonths(periodKey, delta);
   return String(Number(periodKey) + delta);
 }
 
@@ -160,8 +161,11 @@ export function ReportScreen() {
           <View style={styles.emptyWrap}>
             <Ionicons name="sparkles-outline" size={36} color={c.textMuted} />
             <Text style={styles.emptyText}>
-              이 기간의 일정, 할 일, 루틴, 일기{type === "daily" ? ", 사진" : ""}을 모아{"\n"}
-              AI가 회고 리포트를 써드려요.
+              {type === "mood"
+                ? "최근 3개월의 기분 기록을 분석해서\n기분 흐름과 패턴을 알려드려요."
+                : `이 기간의 일정, 할 일, 루틴, 일기${
+                    type === "daily" ? ", 사진" : ""
+                  }을 모아\nAI가 회고 리포트를 써드려요.`}
             </Text>
             <View style={{ alignSelf: "stretch" }}>
               <PrimaryButton title="리포트 생성" onPress={() => handleGenerate(false)} />

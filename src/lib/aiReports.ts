@@ -18,7 +18,7 @@ import { expandEventRows } from "./recurrence";
 import { listChecksInRange, listRoutines, routinesForDate } from "./routines";
 import { supabase } from "./supabase";
 
-export type ReportType = "daily" | "weekly" | "monthly" | "yearly";
+export type ReportType = "daily" | "weekly" | "monthly" | "yearly" | "mood";
 
 export function periodRange(type: ReportType, periodKey: string): { start: string; end: string } {
   if (type === "daily") return { start: periodKey, end: periodKey };
@@ -26,6 +26,11 @@ export function periodRange(type: ReportType, periodKey: string): { start: strin
   if (type === "monthly") {
     const [y, m] = periodKey.split("-").map(Number);
     return { start: `${periodKey}-01`, end: toDateKey(new Date(y, m, 0)) };
+  }
+  if (type === "mood") {
+    // 해당 월 포함 최근 3개월
+    const [y, m] = periodKey.split("-").map(Number);
+    return { start: toDateKey(new Date(y, m - 3, 1)), end: toDateKey(new Date(y, m, 0)) };
   }
   return { start: `${periodKey}-01-01`, end: `${periodKey}-12-31` };
 }
@@ -38,6 +43,8 @@ export function periodLabel(type: ReportType, periodKey: string): string {
       end.slice(5, 7)
     )}/${Number(end.slice(8, 10))}`;
   if (type === "monthly") return `${Number(periodKey.slice(0, 4))}년 ${Number(periodKey.slice(5, 7))}월`;
+  if (type === "mood")
+    return `~${Number(periodKey.slice(0, 4))}년 ${Number(periodKey.slice(5, 7))}월 (3개월)`;
   return `${periodKey}년`;
 }
 
@@ -145,6 +152,40 @@ async function buildPayload(
     };
   }
 
+  if (type === "mood") {
+    // 기분 트렌드: 3개월 일기(날짜/요일/기분) + 루틴 달성 + 날짜별 일정 수(로컬)
+    const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
+    const rangeStart = parseDateKey(start);
+    const rangeEnd = parseDateKey(addDays(end, 1));
+    const [entries, routineStats, rows] = await Promise.all([
+      listDiaryEntriesInRange(start, end),
+      collectRoutineStats(start, end),
+      listLocalEventsInRange(rangeStart, rangeEnd),
+    ]);
+    const localEvents = expandEventRows(rows, rangeStart, rangeEnd);
+    const eventCountByDate: Record<string, number> = {};
+    for (const e of localEvents) {
+      const key = toDateKey(new Date(e.startAt));
+      eventCountByDate[key] = (eventCountByDate[key] ?? 0) + 1;
+    }
+    const moodCounts: Record<string, number> = {};
+    for (const d of entries) if (d.mood) moodCounts[d.mood] = (moodCounts[d.mood] ?? 0) + 1;
+    return {
+      payload: {
+        entries: entries.map((d) => ({
+          date: d.date,
+          weekday: WEEKDAYS_KO[parseDateKey(d.date).getDay()],
+          mood: d.mood,
+          eventCount: eventCountByDate[d.date] ?? 0,
+        })),
+        moodCounts,
+        routines: routineStats,
+        note: "mood가 null이면 기분을 기록하지 않은 일기",
+      },
+      photoUrls: [],
+    };
+  }
+
   // weekly / monthly / yearly
   const [diaries, routineStats, { data: taskRows }] = await Promise.all([
     listDiaryEntriesInRange(start, end),
@@ -225,7 +266,7 @@ export async function generateReport(
     },
   });
   if (error) {
-    throw new Error("리포트 생성에 실패했어요. ai-report 함수 배포와 ANTHROPIC_API_KEY 설정을 확인해 주세요.");
+    throw new Error("리포트 생성에 실패했어요. ai-report 함수 배포와 OPENAI_API_KEY 설정을 확인해 주세요.");
   }
   if (!data?.content) throw new Error("리포트 응답이 비어 있어요.");
   return data.content;

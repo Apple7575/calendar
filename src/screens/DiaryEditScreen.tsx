@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { DiaryQuestion, generateDiaryQuestions } from "../lib/aiHelper";
 import { formatKoreanDate } from "../lib/dateUtils";
 import {
   addPhoto,
@@ -42,6 +43,13 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const [pendingUris, setPendingUris] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // 질문-답변 모드
+  const [writeMode, setWriteMode] = useState<"free" | "qa">("free");
+  const [questions, setQuestions] = useState<DiaryQuestion[] | null>(null);
+  const [qIndex, setQIndex] = useState(0);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [customAnswer, setCustomAnswer] = useState("");
+
   useLayoutEffect(() => {
     navigation.setOptions({ title: formatKoreanDate(date) });
   }, [navigation, date]);
@@ -60,6 +68,44 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   }, [date]);
 
   const allPhotoUrls = [...photos.map((p) => p.url), ...pendingUris];
+
+  const enterQaMode = async () => {
+    setWriteMode("qa");
+    if (questions !== null) return;
+    setLoadingQuestions(true);
+    try {
+      const qs = await generateDiaryQuestions(date, mood);
+      setQuestions(qs);
+      setQIndex(0);
+    } catch (e) {
+      setWriteMode("free");
+      Alert.alert(
+        "오류",
+        e instanceof Error ? e.message : "질문을 만들지 못했어요. 자유 작성으로 써 주세요."
+      );
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  const appendAnswer = (question: string, answer: string) => {
+    const block = `Q. ${question}\n${answer.trim()}\n\n`;
+    setContent((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${block}` : block));
+    setCustomAnswer("");
+    if (questions && qIndex + 1 < questions.length) {
+      setQIndex(qIndex + 1);
+    } else {
+      setWriteMode("free");
+    }
+  };
+
+  const skipQuestion = () => {
+    if (questions && qIndex + 1 < questions.length) {
+      setQIndex(qIndex + 1);
+    } else {
+      setWriteMode("free");
+    }
+  };
 
   const openViewer = (index: number) => {
     navigation.navigate("PhotoViewer", { urls: allPhotoUrls, index });
@@ -156,9 +202,99 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           ))}
         </View>
 
+        {/* 작성 모드 토글 */}
+        <View style={styles.modeRow}>
+          <TouchableOpacity
+            style={[styles.modeChip, writeMode === "free" && styles.modeChipActive]}
+            onPress={() => setWriteMode("free")}
+          >
+            <Ionicons
+              name="create-outline"
+              size={13}
+              color={writeMode === "free" ? c.white : c.textMuted}
+            />
+            <Text style={[styles.modeChipText, writeMode === "free" && styles.modeChipTextActive]}>
+              자유 작성
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeChip, writeMode === "qa" && styles.modeChipActive]}
+            onPress={enterQaMode}
+          >
+            <Ionicons
+              name="chatbubbles-outline"
+              size={13}
+              color={writeMode === "qa" ? c.white : c.textMuted}
+            />
+            <Text style={[styles.modeChipText, writeMode === "qa" && styles.modeChipTextActive]}>
+              질문으로 쓰기
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 질문-답변 카드 */}
+        {writeMode === "qa" ? (
+          <View style={styles.qaCard}>
+            {loadingQuestions || !questions ? (
+              <View style={styles.qaLoading}>
+                <ActivityIndicator color={c.primary} />
+                <Text style={styles.qaLoadingText}>오늘에 맞는 질문을 만드는 중…</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.qaProgress}>
+                  질문 {qIndex + 1} / {questions.length}
+                </Text>
+                <Text style={styles.qaQuestion}>{questions[qIndex].question}</Text>
+                <View style={styles.qaOptions}>
+                  {questions[qIndex].options.map((opt) => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={styles.qaOption}
+                      onPress={() => appendAnswer(questions[qIndex].question, opt)}
+                    >
+                      <Text style={styles.qaOptionText}>{opt}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.qaCustomRow}>
+                  <TextInput
+                    style={styles.qaCustomInput}
+                    placeholder="직접 답하기"
+                    placeholderTextColor={c.textMuted}
+                    value={customAnswer}
+                    onChangeText={setCustomAnswer}
+                    onSubmitEditing={() =>
+                      customAnswer.trim() &&
+                      appendAnswer(questions[qIndex].question, customAnswer)
+                    }
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity
+                    style={[styles.qaCustomSend, !customAnswer.trim() && { opacity: 0.4 }]}
+                    disabled={!customAnswer.trim()}
+                    onPress={() => appendAnswer(questions[qIndex].question, customAnswer)}
+                  >
+                    <Ionicons name="arrow-up" size={16} color={c.white} />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={skipQuestion} hitSlop={8}>
+                  <Text style={styles.qaSkip}>
+                    {qIndex + 1 < questions.length ? "건너뛰기" : "질문 끝내기"}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        ) : null}
+
         <TextInput
           style={styles.diaryInput}
-          placeholder="오늘 하루는 어땠나요?"
+          placeholder={
+            writeMode === "qa"
+              ? "답변을 고르면 여기에 일기가 쌓여요."
+              : "오늘 하루는 어땠나요?"
+          }
           placeholderTextColor={c.textMuted}
           value={content}
           onChangeText={setContent}
@@ -232,6 +368,71 @@ const createStyles = (c: ThemeColors) =>
       borderColor: c.primary,
     },
     moodEmoji: { fontSize: 24 },
+    modeRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm },
+    modeChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 2,
+      backgroundColor: c.surface,
+    },
+    modeChipActive: { backgroundColor: c.primary },
+    modeChipText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.textMuted },
+    modeChipTextActive: { color: c.white },
+    qaCard: {
+      backgroundColor: c.surface,
+      borderRadius: radii.card,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      gap: spacing.sm,
+    },
+    qaLoading: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    qaLoadingText: { color: c.textMuted, fontSize: fontSizes.small },
+    qaProgress: { fontSize: fontSizes.caption, fontWeight: "700", color: c.primary },
+    qaQuestion: {
+      fontSize: fontSizes.emphasis,
+      fontWeight: "700",
+      color: c.text,
+      lineHeight: 25,
+    },
+    qaOptions: { gap: spacing.xs + 2 },
+    qaOption: {
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+    },
+    qaOptionText: { fontSize: fontSizes.body, color: c.text },
+    qaCustomRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    qaCustomInput: {
+      flex: 1,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm,
+      fontSize: fontSizes.body,
+      color: c.text,
+    },
+    qaCustomSend: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: c.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qaSkip: {
+      fontSize: fontSizes.small,
+      color: c.textMuted,
+      textAlign: "center",
+      paddingVertical: 2,
+    },
     diaryInput: {
       minHeight: 180,
       fontSize: fontSizes.body,

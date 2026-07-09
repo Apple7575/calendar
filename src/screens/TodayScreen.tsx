@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BriefingCard } from "../components/BriefingCard";
 import { DayOverview } from "../components/DayOverview";
 import { MemoriesRow } from "../components/MemoriesRow";
 import { formatKoreanDate, todayKey } from "../lib/dateUtils";
@@ -43,6 +44,7 @@ export function TodayScreen() {
           <Text style={styles.aiButtonText}>AI 리포트</Text>
         </TouchableOpacity>
       </View>
+      <BriefingCard dateKey={dateKey} />
       <MemoriesRow
         todayKey={dateKey}
         onPressMemory={(date) => navigation.navigate("DayDetail", { date })}

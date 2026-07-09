@@ -17,9 +17,12 @@ import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
 import { signInWithGoogle, signOut } from "../lib/auth";
 import { getAccessToken, GoogleNotLinkedError } from "../lib/googleTokens";
 import {
+  BriefingReminderPref,
   DiaryReminderPref,
   ensureNotificationPermission,
+  getBriefingReminderPref,
   getDiaryReminderPref,
+  setBriefingReminder,
   setDiaryReminder,
 } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
@@ -37,13 +40,31 @@ export function SettingsScreen() {
   const [googleStatus, setGoogleStatus] = useState<GoogleStatus>("checking");
   const [reconnecting, setReconnecting] = useState(false);
   const [diaryPref, setDiaryPref] = useState<DiaryReminderPref | null>(null);
+  const [briefingPref, setBriefingPref] = useState<BriefingReminderPref | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? "");
     });
     getDiaryReminderPref().then(setDiaryPref);
+    getBriefingReminderPref().then(setBriefingPref);
   }, []);
+
+  const applyBriefingPref = async (next: BriefingReminderPref) => {
+    if (next.enabled) {
+      const ok = await ensureNotificationPermission();
+      if (!ok) {
+        Alert.alert("알림 권한 필요", "설정 앱에서 이 앱의 알림을 허용해 주세요.");
+        return;
+      }
+    }
+    try {
+      await setBriefingReminder(next);
+      setBriefingPref(next);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "브리핑 알림 설정에 실패했어요.");
+    }
+  };
 
   const applyDiaryPref = async (next: DiaryReminderPref) => {
     if (next.enabled) {
@@ -163,6 +184,41 @@ export function SettingsScreen() {
 
         <Section title="계정">
           <Text style={styles.rowText}>{email || "이메일 정보 없음"}</Text>
+        </Section>
+
+        <Section title="아침 브리핑 알림">
+          <View style={styles.statusRow}>
+            <Text style={styles.rowText}>매일 아침 알림 받기</Text>
+            <Switch
+              value={briefingPref?.enabled ?? false}
+              onValueChange={(enabled) => {
+                if (briefingPref) applyBriefingPref({ ...briefingPref, enabled });
+              }}
+              trackColor={{ true: c.primary }}
+            />
+          </View>
+          {briefingPref?.enabled ? (
+            <View style={[styles.statusRow, { marginTop: spacing.sm }]}>
+              <Text style={styles.rowText}>알림 시각</Text>
+              <DateTimePicker
+                value={new Date(2000, 0, 1, briefingPref.hour, briefingPref.minute)}
+                mode="time"
+                locale="ko-KR"
+                minuteInterval={5}
+                onChange={(_, d) =>
+                  d &&
+                  applyBriefingPref({
+                    ...briefingPref,
+                    hour: d.getHours(),
+                    minute: d.getMinutes(),
+                  })
+                }
+              />
+            </View>
+          ) : null}
+          <Text style={styles.scopeHint}>
+            알림을 열고 오늘 탭에 들어오면 AI 브리핑이 준비돼 있어요.
+          </Text>
         </Section>
 
         <Section title="일기 리마인드">

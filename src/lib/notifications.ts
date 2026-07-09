@@ -100,6 +100,48 @@ export async function cancelEventReminder(eventId: string): Promise<void> {
   await AsyncStorage.removeItem(eventKey(eventId));
 }
 
+// ===== 아침 브리핑 알림 (매일 반복, 고정 문구 — 내용은 앱을 열면 AI가 생성) =====
+
+const BRIEFING_NOTIF_ID_KEY = "notif.briefing.id";
+const BRIEFING_PREF_KEY = "notif.briefing.pref";
+
+export type BriefingReminderPref = { enabled: boolean; hour: number; minute: number };
+const DEFAULT_BRIEFING_PREF: BriefingReminderPref = { enabled: false, hour: 8, minute: 0 };
+
+export async function getBriefingReminderPref(): Promise<BriefingReminderPref> {
+  const raw = await AsyncStorage.getItem(BRIEFING_PREF_KEY);
+  if (!raw) return DEFAULT_BRIEFING_PREF;
+  try {
+    return { ...DEFAULT_BRIEFING_PREF, ...(JSON.parse(raw) as Partial<BriefingReminderPref>) };
+  } catch {
+    return DEFAULT_BRIEFING_PREF;
+  }
+}
+
+export async function setBriefingReminder(pref: BriefingReminderPref): Promise<void> {
+  const oldId = await AsyncStorage.getItem(BRIEFING_NOTIF_ID_KEY);
+  if (oldId) {
+    await Notifications.cancelScheduledNotificationAsync(oldId);
+    await AsyncStorage.removeItem(BRIEFING_NOTIF_ID_KEY);
+  }
+  await AsyncStorage.setItem(BRIEFING_PREF_KEY, JSON.stringify(pref));
+  if (!pref.enabled) return;
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "오늘의 아침 브리핑 ☀️",
+      body: "오늘 일정과 할 일을 AI가 정리해 뒀어요. 열어서 확인해 보세요.",
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: pref.hour,
+      minute: pref.minute,
+    },
+  });
+  await AsyncStorage.setItem(BRIEFING_NOTIF_ID_KEY, id);
+}
+
 // ===== 일기 리마인드 (매일 반복) =====
 
 export async function getDiaryReminderPref(): Promise<DiaryReminderPref> {

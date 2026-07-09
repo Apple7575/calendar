@@ -1,21 +1,30 @@
-// AI 리포트 생성 Edge Function.
-// 클라이언트가 기간 데이터를 모아 보내면 Claude로 회고 리포트를 생성하고
-// ai_reports 테이블에 캐시한다. Anthropic API 키는 이 함수의 secrets에만 존재.
+// AI 리포트 생성 Edge Function (OpenAI).
+// 클라이언트가 기간 데이터를 모아 보내면 리포트를 생성하고 ai_reports에 캐시한다.
+// OpenAI API 키는 이 함수의 secrets에만 존재.
 //
 // 배포:
-//   supabase secrets set ANTHROPIC_API_KEY=...
+//   supabase secrets set OPENAI_API_KEY=...
 //   supabase functions deploy ai-report
 
-import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type ReportType = "daily" | "weekly" | "monthly" | "yearly";
+type ReportType = "daily" | "weekly" | "monthly" | "yearly" | "mood";
+
+// 기능별 모델: 가벼운 요약은 mini, 긴 분석·글쓰기는 gpt-5
+const MODELS: Record<ReportType, string> = {
+  daily: "gpt-5-mini",
+  weekly: "gpt-5-mini",
+  monthly: "gpt-5",
+  yearly: "gpt-5",
+  mood: "gpt-5",
+};
 
 const MAX_TOKENS: Record<ReportType, number> = {
-  daily: 1200,
-  weekly: 1500,
-  monthly: 1800,
-  yearly: 2200,
+  daily: 2500,
+  weekly: 3000,
+  monthly: 3500,
+  yearly: 4000,
+  mood: 3500,
 };
 
 const INSTRUCTIONS: Record<ReportType, string> = {
@@ -27,6 +36,8 @@ const INSTRUCTIONS: Record<ReportType, string> = {
     "아래 데이터는 사용자의 한 달 기록이야. '이달의 하이라이트', '기분과 리듬'(기분 분포와 루틴/일기 습관), '다음 달을 위한 제안' 세 부분으로 월간 리포트를 써줘.",
   yearly:
     "아래 데이터는 사용자의 일 년 기록 요약이야. '올해의 발자취', '숫자로 보는 일 년', '내년을 향해' 세 부분으로 연간 회고 리포트를 써줘. 월별 흐름의 변화가 보이면 짚어줘.",
+  mood:
+    "아래 데이터는 사용자의 최근 3개월 기분 기록과 생활 데이터야. '기분 흐름'(시간에 따른 변화), '패턴 발견'(요일/루틴/일정과 기분의 관계, 데이터에 근거가 있을 때만), '기분을 위한 제안' 세 부분으로 기분 트렌드 분석을 써줘. 데이터가 부족하면 부족하다고 솔직히 말하고 무리한 해석은 하지 마.",
 };
 
 const SYSTEM_PROMPT = `너는 개인 캘린더/일기 앱의 회고 도우미야.
@@ -41,6 +52,38 @@ function json(body: Record<string, unknown>, status: number): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+async function callOpenAI(
+  model: string,
+  maxTokens: number,
+  userContent: ContentPart[]
+): Promise<string> {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
+    },
+    body: JSON.stringify({
+      model,
+      max_completion_tokens: maxTokens,
+      reasoning_effort: "low",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContent },
+      ],
+    }),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body?.error?.message ?? `openai_http_${res.status}`);
+  }
+  return body?.choices?.[0]?.message?.content ?? "";
 }
 
 Deno.serve(async (req) => {
@@ -70,7 +113,7 @@ Deno.serve(async (req) => {
     return json({ error: "bad_request" }, 400);
   }
   const { type, periodKey, label, payload, photoUrls, force } = body;
-  if (!type || !periodKey || !payload || !(type in MAX_TOKENS)) {
+  if (!type || !periodKey || !payload || !(type in MODELS)) {
     return json({ error: "bad_request" }, 400);
   }
 
@@ -86,11 +129,9 @@ Deno.serve(async (req) => {
     if (cached) return json({ content: cached.content, cached: true }, 200);
   }
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) return json({ error: "server_not_configured" }, 500);
-  const anthropic = new Anthropic({ apiKey });
+  if (!Deno.env.get("OPENAI_API_KEY")) return json({ error: "server_not_configured" }, 500);
 
-  const content: Anthropic.ContentBlockParam[] = [
+  const content: ContentPart[] = [
     {
       type: "text",
       text: `${INSTRUCTIONS[type]}\n\n[기간] ${label ?? periodKey}\n[데이터]\n${JSON.stringify(
@@ -102,26 +143,16 @@ Deno.serve(async (req) => {
   ];
   // 하루 리포트에는 일기 사진(최대 4장)을 함께 보여준다
   for (const url of (photoUrls ?? []).slice(0, 4)) {
-    content.push({ type: "image", source: { type: "url", url } });
+    content.push({ type: "image_url", image_url: { url } });
   }
 
   let text: string;
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: MAX_TOKENS[type],
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content }],
-    });
-    if (response.stop_reason === "refusal") {
-      return json({ error: "refused" }, 502);
-    }
-    const textBlock = response.content.find((b) => b.type === "text");
-    text = textBlock && "text" in textBlock ? textBlock.text : "";
+    text = await callOpenAI(MODELS[type], MAX_TOKENS[type], content);
     if (!text) return json({ error: "empty_response" }, 502);
   } catch (e) {
-    console.error("anthropic error:", e);
-    return json({ error: "ai_error" }, 502);
+    console.error("openai error:", e);
+    return json({ error: "ai_error", detail: e instanceof Error ? e.message : String(e) }, 502);
   }
 
   await admin.from("ai_reports").upsert(

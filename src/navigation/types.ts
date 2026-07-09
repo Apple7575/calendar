@@ -6,7 +6,22 @@ export type RootStackParamList = {
   /** date: "YYYY-MM-DD" */
   DayDetail: { date: string };
   /** eventId가 없으면 새 일정 생성. hour는 주간 보기 빈 칸 탭 시 시작 시각 */
-  EventEdit: { date: string; eventId?: string; hour?: number };
+  EventEdit: {
+    date: string;
+    eventId?: string;
+    hour?: number;
+    /** 자연어 일정 등록(AI 파싱) 결과 프리필 */
+    prefill?: {
+      title: string;
+      startISO: string;
+      endISO: string;
+      allDay: boolean;
+      repeatFreq: "daily" | "weekly" | "monthly" | null;
+      reminderMinutes: number | null;
+    };
+  };
+  /** 자연어 일정 등록 */
+  QuickAdd: undefined;
   DiaryEdit: { date: string };
   /** 사진 전체화면 보기 */
   PhotoViewer: { urls: string[]; index: number };
