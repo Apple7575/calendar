@@ -52,6 +52,7 @@
    4. `0004_mood_report.sql` — 기분 트렌드 리포트 타입
    5. `0005_diary_fields.sql` — 오늘의 한 줄/에너지/수면/사람/감사
    6. `0006_event_color.sql` — 일정 색상
+   7. `0007_photolog_lang.sql` — 사진 촬영시각/좋아요/원본 보관, 일기 번역 캐시, 표현 카드
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 
@@ -67,7 +68,9 @@ npx supabase functions deploy google-token-refresh
 ## 5-1. AI 기능 설정 (OpenAI API 키)
 
 AI 리포트(하루/주간/월간/연간/기분), 자연어 일정 등록, 아침 브리핑,
-일기 회고 질문은 OpenAI API를 사용합니다.
+일기 회고 질문, 일기 번역(한/영/일)·첨삭·표현 카드는 OpenAI API를 사용합니다.
+
+> 이미 배포한 적이 있다면, 일기 번역 기능을 위해 `ai-helper`를 **다시 배포**해야 합니다.
 
 1. https://platform.openai.com 에서 **API Keys** 발급 (사용한 만큼 과금 —
    가벼운 기능은 gpt-5-mini, 긴 리포트는 gpt-5를 쓰며 개인용 기준 1회 수십 원 이하)

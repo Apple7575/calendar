@@ -13,6 +13,14 @@ struct WidgetEventItem: Codable, Identifiable {
   var id: String { time + title }
 }
 
+struct WidgetMonthData: Codable {
+  let title: String        // "2026년 7월"
+  let firstWeekday: Int    // 1일의 요일 (0=일 … 6=토)
+  let daysInMonth: Int
+  let today: Int           // 오늘 날짜 (1-based)
+  let eventDays: [Int]     // 일정이 있는 날짜들
+}
+
 struct TodayWidgetData: Codable {
   let dateLabel: String
   let events: [WidgetEventItem]
@@ -20,6 +28,8 @@ struct TodayWidgetData: Codable {
   let tasksTotal: Int
   let routinesDone: Int
   let routinesTotal: Int
+  // 이전 버전 JSON에는 없을 수 있어 optional
+  let month: WidgetMonthData?
 }
 
 func loadWidgetData() -> TodayWidgetData? {
@@ -39,7 +49,14 @@ let sampleWidgetData = TodayWidgetData(
   tasksDone: 2,
   tasksTotal: 3,
   routinesDone: 1,
-  routinesTotal: 2
+  routinesTotal: 2,
+  month: WidgetMonthData(
+    title: "2026년 7월",
+    firstWeekday: 3,
+    daysInMonth: 31,
+    today: 10,
+    eventDays: [3, 10, 14, 22, 28]
+  )
 )
 
 // MARK: - Timeline
@@ -84,7 +101,7 @@ extension Color {
   }
 }
 
-// MARK: - 뷰
+// MARK: - 오늘 위젯 뷰 (홈 화면)
 
 struct EventRowView: View {
   let event: WidgetEventItem
@@ -106,14 +123,14 @@ struct EventRowView: View {
   }
 }
 
-struct TodayWidgetView: View {
-  var entry: TodayEntry
-  @Environment(\.widgetFamily) var family
+struct HomeTodayView: View {
+  let data: TodayWidgetData?
+  let family: WidgetFamily
 
   private var maxEvents: Int { family == .systemSmall ? 3 : 4 }
 
   var body: some View {
-    if let data = entry.data {
+    if let data = data {
       VStack(alignment: .leading, spacing: 5) {
         HStack {
           Text(data.dateLabel)
@@ -152,14 +169,145 @@ struct TodayWidgetView: View {
         }
       }
     } else {
-      VStack(spacing: 4) {
-        Text("나의 캘린더")
+      PlaceholderView()
+    }
+  }
+}
+
+struct PlaceholderView: View {
+  var body: some View {
+    VStack(spacing: 4) {
+      Text("나의 캘린더")
+        .font(.system(size: 12, weight: .bold))
+      Text("앱을 열면 오늘 일정이\n여기에 표시돼요")
+        .font(.system(size: 10))
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+    }
+  }
+}
+
+// MARK: - 잠금 화면 뷰
+
+struct LockRectView: View {
+  let data: TodayWidgetData?
+
+  var body: some View {
+    if let data = data {
+      VStack(alignment: .leading, spacing: 1) {
+        Text(data.dateLabel)
           .font(.system(size: 12, weight: .bold))
-        Text("앱을 열면 오늘 일정이\n여기에 표시돼요")
-          .font(.system(size: 10))
+        if let first = data.events.first {
+          Text("\(first.time) \(first.title)")
+            .font(.system(size: 12))
+            .lineLimit(1)
+        } else {
+          Text("일정 없는 하루 ☀️")
+            .font(.system(size: 12))
+        }
+        Text("할 일 \(data.tasksDone)/\(data.tasksTotal) · 루틴 \(data.routinesDone)/\(data.routinesTotal)")
+          .font(.system(size: 11))
           .foregroundStyle(.secondary)
-          .multilineTextAlignment(.center)
       }
+    } else {
+      Text("나의 캘린더")
+        .font(.system(size: 12, weight: .bold))
+    }
+  }
+}
+
+struct LockCircleView: View {
+  let data: TodayWidgetData?
+
+  var body: some View {
+    if let data = data, data.tasksTotal > 0 {
+      Gauge(value: Double(data.tasksDone), in: 0...Double(data.tasksTotal)) {
+        Image(systemName: "checklist")
+      } currentValueLabel: {
+        Text("\(data.tasksDone)/\(data.tasksTotal)")
+          .font(.system(size: 12, weight: .bold))
+      }
+      .gaugeStyle(.accessoryCircularCapacity)
+    } else {
+      ZStack {
+        Circle().stroke(.secondary, lineWidth: 4).opacity(0.4)
+        Image(systemName: "calendar")
+          .font(.system(size: 18, weight: .semibold))
+      }
+    }
+  }
+}
+
+struct TodayWidgetView: View {
+  var entry: TodayEntry
+  @Environment(\.widgetFamily) var family
+
+  var body: some View {
+    switch family {
+    case .accessoryRectangular:
+      LockRectView(data: entry.data)
+    case .accessoryCircular:
+      LockCircleView(data: entry.data)
+    default:
+      HomeTodayView(data: entry.data, family: family)
+    }
+  }
+}
+
+// MARK: - 월간 달력 위젯 뷰 (systemLarge)
+
+struct MonthWidgetView: View {
+  var entry: TodayEntry
+
+  private let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
+
+  var body: some View {
+    if let data = entry.data, let month = data.month {
+      VStack(spacing: 6) {
+        HStack(alignment: .firstTextBaseline) {
+          Text(month.title)
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(.tint)
+          Spacer()
+          Text("할 일 \(data.tasksDone)/\(data.tasksTotal)")
+            .font(.system(size: 10))
+            .foregroundStyle(.secondary)
+        }
+
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+        LazyVGrid(columns: columns, spacing: 5) {
+          ForEach(0..<7, id: \.self) { i in
+            Text(weekdays[i])
+              .font(.system(size: 10, weight: .bold))
+              .foregroundStyle(i == 0 ? Color.red.opacity(0.75) : (i == 6 ? Color.blue.opacity(0.75) : Color.secondary))
+          }
+          ForEach(0..<month.firstWeekday, id: \.self) { _ in
+            Text("")
+          }
+          ForEach(1...month.daysInMonth, id: \.self) { day in
+            let isToday = day == month.today
+            let weekday = (month.firstWeekday + day - 1) % 7
+            VStack(spacing: 1) {
+              Text("\(day)")
+                .font(.system(size: 12, weight: isToday ? .bold : .medium))
+                .monospacedDigit()
+                .foregroundStyle(
+                  isToday ? Color.white
+                    : (weekday == 0 ? Color.red.opacity(0.85)
+                       : (weekday == 6 ? Color.blue.opacity(0.85) : Color.primary))
+                )
+                .frame(width: 22, height: 22)
+                .background(isToday ? Circle().fill(Color.accentColor) : nil)
+              Circle()
+                .fill(month.eventDays.contains(day) ? Color.accentColor.opacity(0.8) : Color.clear)
+                .frame(width: 4, height: 4)
+            }
+          }
+        }
+        Spacer(minLength: 0)
+      }
+    } else {
+      PlaceholderView()
     }
   }
 }
@@ -178,7 +326,23 @@ struct TodayWidget: Widget {
     }
     .configurationDisplayName("오늘")
     .description("오늘의 일정과 할 일, 루틴을 보여줘요.")
-    .supportedFamilies([.systemSmall, .systemMedium])
+    .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
+  }
+}
+
+struct MonthWidget: Widget {
+  let kind: String = "MonthWidget"
+
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: TodayProvider()) { entry in
+      MonthWidgetView(entry: entry)
+        .containerBackground(for: .widget) {
+          Color(uiColor: .systemBackground)
+        }
+    }
+    .configurationDisplayName("월간 달력")
+    .description("이번 달 전체와 일정 있는 날을 한눈에 보여줘요.")
+    .supportedFamilies([.systemLarge])
   }
 }
 
@@ -186,5 +350,6 @@ struct TodayWidget: Widget {
 struct ExportedWidgets: WidgetBundle {
   var body: some Widget {
     TodayWidget()
+    MonthWidget()
   }
 }

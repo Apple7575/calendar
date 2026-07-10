@@ -38,6 +38,9 @@ export function TodayScreen() {
           <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
         </View>
         <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={() => navigation.navigate("Expressions")} hitSlop={8}>
+            <Ionicons name="book-outline" size={20} color={c.primary} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("Gallery")} hitSlop={8}>
             <Ionicons name="images-outline" size={20} color={c.primary} />
           </TouchableOpacity>
@@ -62,8 +65,8 @@ export function TodayScreen() {
           navigation.navigate("EventEdit", { date: dateKey, eventId })
         }
         onEditDiary={() => navigation.navigate("DiaryEdit", { date: dateKey })}
-        onOpenPhotos={(urls, index) =>
-          navigation.navigate("PhotoViewer", { urls, index })
+        onOpenPhotos={(photos, index) =>
+          navigation.navigate("PhotoViewer", { photos, index })
         }
         onManageRoutines={() => navigation.navigate("Routines")}
       />

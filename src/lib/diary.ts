@@ -1,5 +1,6 @@
 import * as Crypto from "expo-crypto";
 import { File } from "expo-file-system";
+import { ViewerPhoto } from "../navigation/types";
 import { monthsAgoKey } from "./dateUtils";
 import { DiaryPhotoRow, DiaryRow, supabase } from "./supabase";
 
@@ -109,33 +110,142 @@ function contentTypeOf(uri: string): { contentType: string; ext: string } {
   return { contentType: "image/jpeg", ext: "jpg" };
 }
 
+/** EXIF "YYYY:MM:DD HH:MM:SS" → ISO (기기 로컬 시간대 기준). 없거나 못 읽으면 null */
+export function parseExifTakenAt(
+  exif: Record<string, unknown> | null | undefined
+): string | null {
+  const raw = (exif?.DateTimeOriginal ?? exif?.DateTime) as string | undefined;
+  if (typeof raw !== "string") return null;
+  const m = /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(raw);
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/**
+ * 그 날짜의 일기 행을 보장한다 (없으면 빈 일기 생성).
+ * 카메라 등 일기 화면 밖에서 사진을 붙일 때 사용 — 기존 내용은 건드리지 않는다.
+ */
+export async function ensureDiary(dateKey: string): Promise<DiaryRow> {
+  const { data: existing, error: selectError } = await supabase
+    .from("diaries")
+    .select("*")
+    .eq("date", dateKey)
+    .maybeSingle();
+  if (selectError) throw new Error(`일기를 확인하지 못했어요: ${selectError.message}`);
+  if (existing) return existing as DiaryRow;
+
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("diaries")
+    .insert({ user_id: userId, date: dateKey, content: "" })
+    .select()
+    .single();
+  if (!error) return data as DiaryRow;
+  // 동시 생성 경합(unique user_id,date) — 다시 조회
+  const { data: retry, error: retryError } = await supabase
+    .from("diaries")
+    .select("*")
+    .eq("date", dateKey)
+    .maybeSingle();
+  if (retryError || !retry) throw new Error(`일기 생성에 실패했어요: ${error.message}`);
+  return retry as DiaryRow;
+}
+
+/** 일기에 이미 붙은 사진 수 — 새 사진의 position 계산용 */
+export async function countPhotos(diaryId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("diary_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("diary_id", diaryId);
+  if (error) throw new Error(`사진 수를 확인하지 못했어요: ${error.message}`);
+  return count ?? 0;
+}
+
+async function uploadImage(userId: string, diaryId: string, localUri: string): Promise<string> {
+  const { contentType, ext } = contentTypeOf(localUri);
+  const path = `${userId}/${diaryId}/${Crypto.randomUUID()}.${ext}`;
+  const bytes = await new File(localUri).arrayBuffer();
+  const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, { contentType });
+  if (error) throw new Error(`사진 업로드에 실패했어요: ${error.message}`);
+  return path;
+}
+
+export type AddPhotoOptions = {
+  /** 촬영 시각 ISO (EXIF 또는 카메라 촬영 순간) */
+  takenAt?: string | null;
+  /** 시각 오버레이 합성본을 올릴 때 함께 보관할 원본 사진 URI */
+  originalUri?: string | null;
+};
+
 /** 기기 사진을 Storage에 올리고 diary_photos 행을 만든다 */
 export async function addPhoto(
   diary: DiaryRow,
   localUri: string,
-  position: number
+  position: number,
+  opts: AddPhotoOptions = {}
 ): Promise<DiaryPhotoRow> {
   const userId = await requireUserId();
-  const { contentType, ext } = contentTypeOf(localUri);
-  const path = `${userId}/${diary.id}/${Crypto.randomUUID()}.${ext}`;
+  const path = await uploadImage(userId, diary.id, localUri);
+  const uploaded = [path];
 
-  const bytes = await new File(localUri).arrayBuffer();
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, bytes, { contentType });
-  if (uploadError) throw new Error(`사진 업로드에 실패했어요: ${uploadError.message}`);
+  let originalPath: string | null = null;
+  if (opts.originalUri) {
+    try {
+      originalPath = await uploadImage(userId, diary.id, opts.originalUri);
+      uploaded.push(originalPath);
+    } catch {
+      // 원본 업로드 실패는 치명적이지 않음 — 합성본만 보관
+      originalPath = null;
+    }
+  }
 
   const { data, error } = await supabase
     .from("diary_photos")
-    .insert({ user_id: userId, diary_id: diary.id, storage_path: path, position })
+    .insert({
+      user_id: userId,
+      diary_id: diary.id,
+      storage_path: path,
+      position,
+      taken_at: opts.takenAt ?? null,
+      original_path: originalPath,
+    })
     .select()
     .single();
   if (error) {
     // DB 기록 실패 시 고아 파일 정리 (best-effort)
-    await supabase.storage.from(BUCKET).remove([path]);
+    await supabase.storage.from(BUCKET).remove(uploaded);
     throw new Error(`사진 정보 저장에 실패했어요: ${error.message}`);
   }
   return data as DiaryPhotoRow;
+}
+
+/** 사진 좋아요(하트) 토글 */
+export async function setPhotoLiked(photoId: string, liked: boolean): Promise<void> {
+  const { error } = await supabase.from("diary_photos").update({ liked }).eq("id", photoId);
+  if (error) throw new Error(`좋아요 저장에 실패했어요: ${error.message}`);
+}
+
+/** 원본 사진 storage 경로의 signed URL */
+export async function getOriginalUrl(originalPath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(originalPath, SIGNED_URL_TTL_SEC);
+  if (error || !data?.signedUrl) {
+    throw new Error(`원본 주소 발급에 실패했어요: ${error?.message ?? "unknown"}`);
+  }
+  return data.signedUrl;
+}
+
+/** DiaryPhoto → 사진 뷰어 파라미터 */
+export function toViewerPhoto(p: DiaryPhoto): ViewerPhoto {
+  return {
+    url: p.url,
+    id: p.id,
+    takenAt: p.taken_at,
+    liked: p.liked,
+    originalPath: p.original_path,
+  };
 }
 
 export async function deletePhoto(photo: DiaryPhotoRow): Promise<void> {

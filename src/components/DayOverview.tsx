@@ -14,13 +14,16 @@ import {
 import { useDayData } from "../hooks/useDayData";
 import { useGoogleEvents } from "../hooks/useGoogleEvents";
 import { formatTime, monthKeyOf } from "../lib/dateUtils";
+import { toViewerPhoto } from "../lib/diary";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
 import * as routineLib from "../lib/routines";
 import * as taskLib from "../lib/tasks";
 import { updateWidget } from "../lib/widget";
+import { ViewerPhoto } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, minTouch, radii, spacing } from "../theme/tokens";
+import { DiaryTranslationCard } from "./DiaryTranslationCard";
 import { Section } from "./Section";
 
 type Props = {
@@ -28,7 +31,7 @@ type Props = {
   onEditEvent: (eventId?: string) => void;
   onEditDiary: () => void;
   onGoSettings?: () => void;
-  onOpenPhotos?: (urls: string[], index: number) => void;
+  onOpenPhotos?: (photos: ViewerPhoto[], index: number) => void;
   onManageRoutines?: () => void;
 };
 
@@ -308,7 +311,7 @@ export function DayOverview({
                       key={p.id}
                       disabled={!onOpenPhotos}
                       onPress={() =>
-                        onOpenPhotos?.(day.diary.photos.map((ph) => ph.url), i)
+                        onOpenPhotos?.(day.diary.photos.map(toViewerPhoto), i)
                       }
                     >
                       <Image source={{ uri: p.url }} style={styles.photoThumb} />
@@ -329,6 +332,9 @@ export function DayOverview({
             </View>
           )}
         </TouchableOpacity>
+        {day.diary.diary?.content?.trim() ? (
+          <DiaryTranslationCard diary={day.diary.diary} />
+        ) : null}
       </Section>
     </ScrollView>
   );

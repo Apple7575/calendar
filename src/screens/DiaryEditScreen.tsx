@@ -22,7 +22,9 @@ import {
   deletePhoto,
   DiaryPhoto,
   getDiaryWithPhotos,
+  parseExifTakenAt,
   recentPeople,
+  toViewerPhoto,
   upsertDiary,
 } from "../lib/diary";
 import { fetchSleepHours, isHealthAvailable } from "../lib/health";
@@ -42,7 +44,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<string | null>(null);
   const [photos, setPhotos] = useState<DiaryPhoto[]>([]);
-  const [pendingUris, setPendingUris] = useState<string[]>([]);
+  const [pending, setPending] = useState<{ uri: string; takenAt: string | null }[]>([]);
   const [saving, setSaving] = useState(false);
 
   // 질문-답변 모드
@@ -107,7 +109,10 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
     }
   };
 
-  const allPhotoUrls = [...photos.map((p) => p.url), ...pendingUris];
+  const allViewerPhotos = [
+    ...photos.map(toViewerPhoto),
+    ...pending.map((p) => ({ url: p.uri, takenAt: p.takenAt })),
+  ];
 
   const enterQaMode = async () => {
     setWriteMode("qa");
@@ -148,7 +153,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   };
 
   const openViewer = (index: number) => {
-    navigation.navigate("PhotoViewer", { urls: allPhotoUrls, index });
+    navigation.navigate("PhotoViewer", { photos: allViewerPhotos, index });
   };
 
   const pickPhotos = async () => {
@@ -157,13 +162,17 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       allowsMultipleSelection: true,
       selectionLimit: 10,
       quality: 0.7,
+      exif: true,
     });
     if (result.canceled) return;
-    setPendingUris((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+    setPending((prev) => [
+      ...prev,
+      ...result.assets.map((a) => ({ uri: a.uri, takenAt: parseExifTakenAt(a.exif) })),
+    ]);
   };
 
   const removePending = (uri: string) => {
-    setPendingUris((prev) => prev.filter((u) => u !== uri));
+    setPending((prev) => prev.filter((p) => p.uri !== uri));
   };
 
   const removeSaved = (photo: DiaryPhoto) => {
@@ -185,7 +194,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   };
 
   const handleSave = async () => {
-    if (!content.trim() && photos.length === 0 && pendingUris.length === 0 && !mood) {
+    if (!content.trim() && photos.length === 0 && pending.length === 0 && !mood) {
       Alert.alert("알림", "내용, 사진, 기분 중 하나 이상을 넣어 주세요.");
       return;
     }
@@ -211,16 +220,16 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         gratitude: gratitude.trim() || null,
       });
       let position = photos.length;
-      const failed: string[] = [];
-      for (const uri of pendingUris) {
+      const failed: { uri: string; takenAt: string | null }[] = [];
+      for (const p of pending) {
         try {
-          await addPhoto(diary, uri, position++);
+          await addPhoto(diary, p.uri, position++, { takenAt: p.takenAt });
         } catch {
-          failed.push(uri);
+          failed.push(p);
         }
       }
       if (failed.length > 0) {
-        setPendingUris(failed);
+        setPending(failed);
         Alert.alert("안내", `사진 ${failed.length}장은 업로드하지 못했어요. 다시 저장해 보세요.`);
       } else {
         navigation.goBack();
@@ -513,13 +522,13 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
               <Image source={{ uri: p.url }} style={styles.thumb} />
             </TouchableOpacity>
           ))}
-          {pendingUris.map((uri, i) => (
+          {pending.map((p, i) => (
             <TouchableOpacity
-              key={uri}
+              key={p.uri}
               onPress={() => openViewer(photos.length + i)}
-              onLongPress={() => removePending(uri)}
+              onLongPress={() => removePending(p.uri)}
             >
-              <Image source={{ uri }} style={[styles.thumb, styles.thumbPending]} />
+              <Image source={{ uri: p.uri }} style={[styles.thumb, styles.thumbPending]} />
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.addThumb} onPress={pickPhotos}>
@@ -527,7 +536,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             <Text style={styles.addThumbLabel}>사진</Text>
           </TouchableOpacity>
         </View>
-        {photos.length > 0 || pendingUris.length > 0 ? (
+        {photos.length > 0 || pending.length > 0 ? (
           <Text style={styles.hint}>사진을 누르면 크게 보고, 길게 누르면 삭제해요.</Text>
         ) : null}
       </ScrollView>

@@ -1,9 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { generateBriefing } from "../lib/aiHelper";
+import { randomExpression } from "../lib/diaryLang";
+import { ExpressionRow } from "../lib/supabase";
+import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
@@ -14,7 +18,9 @@ const cacheKey = (dateKey: string) => `briefing.${dateKey}`;
 export function BriefingCard({ dateKey }: { dateKey: string }) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [text, setText] = useState<string | null>(null);
+  const [expression, setExpression] = useState<ExpressionRow | null>(null);
   const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState(false);
   const inFlight = useRef(false);
@@ -50,6 +56,8 @@ export function BriefingCard({ dateKey }: { dateKey: string }) {
   useFocusEffect(
     useCallback(() => {
       load(false);
+      // 복습 표현 하나 (없으면 조용히 생략)
+      randomExpression().then(setExpression).catch(() => {});
     }, [load])
   );
 
@@ -74,6 +82,24 @@ export function BriefingCard({ dateKey }: { dateKey: string }) {
       ) : (
         <Text style={styles.body}>{text}</Text>
       )}
+      {expression ? (
+        <TouchableOpacity
+          style={styles.expressionRow}
+          onPress={() => navigation.navigate("Expressions")}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.expressionFlag}>{expression.lang === "en" ? "🇺🇸" : "🇯🇵"}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.expressionText} numberOfLines={1}>
+              {expression.expression}
+            </Text>
+            <Text style={styles.expressionMeaning} numberOfLines={1}>
+              {expression.meaning}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={c.textMuted} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -101,4 +127,16 @@ const createStyles = (c: ThemeColors) =>
     loadingRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     loadingText: { fontSize: fontSizes.small, color: c.textMuted },
     body: { fontSize: fontSizes.body, color: c.text, lineHeight: 23 },
+    expressionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.border,
+    },
+    expressionFlag: { fontSize: 16 },
+    expressionText: { fontSize: fontSizes.small, fontWeight: "700", color: c.text },
+    expressionMeaning: { fontSize: fontSizes.caption, color: c.textMuted },
   });

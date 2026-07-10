@@ -23,8 +23,11 @@ import {
   ensureNotificationPermission,
   getBriefingReminderPref,
   getDiaryReminderPref,
+  getMomentReminderPref,
+  MomentReminderPref,
   setBriefingReminder,
   setDiaryReminder,
+  setMomentReminder,
 } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { useThemeControls } from "../theme/ThemeContext";
@@ -42,6 +45,7 @@ export function SettingsScreen() {
   const [reconnecting, setReconnecting] = useState(false);
   const [diaryPref, setDiaryPref] = useState<DiaryReminderPref | null>(null);
   const [briefingPref, setBriefingPref] = useState<BriefingReminderPref | null>(null);
+  const [momentPref, setMomentPref] = useState<MomentReminderPref | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -61,7 +65,24 @@ export function SettingsScreen() {
     });
     getDiaryReminderPref().then(setDiaryPref);
     getBriefingReminderPref().then(setBriefingPref);
+    getMomentReminderPref().then(setMomentPref);
   }, []);
+
+  const applyMomentPref = async (next: MomentReminderPref) => {
+    if (next.enabled) {
+      const ok = await ensureNotificationPermission();
+      if (!ok) {
+        Alert.alert("알림 권한 필요", "설정 앱에서 이 앱의 알림을 허용해 주세요.");
+        return;
+      }
+    }
+    try {
+      await setMomentReminder(next);
+      setMomentPref(next);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "순간 찍기 알림 설정에 실패했어요.");
+    }
+  };
 
   const applyBriefingPref = async (next: BriefingReminderPref) => {
     if (next.enabled) {
@@ -231,6 +252,23 @@ export function SettingsScreen() {
           ) : null}
           <Text style={styles.scopeHint}>
             알림을 열고 오늘 탭에 들어오면 AI 브리핑이 준비돼 있어요.
+          </Text>
+        </Section>
+
+        <Section title="순간 찍기 알림">
+          <View style={styles.statusRow}>
+            <Text style={styles.rowText}>매일 깜짝 알림 받기</Text>
+            <Switch
+              value={momentPref?.enabled ?? false}
+              onValueChange={(enabled) => {
+                if (momentPref !== null) applyMomentPref({ enabled });
+              }}
+              trackColor={{ true: c.primary }}
+            />
+          </View>
+          <Text style={styles.scopeHint}>
+            매일 10시~21시 사이 랜덤한 시각에 "지금 이 순간"을 찍자고 알려드려요. 알림을
+            누르면 바로 카메라가 열려요.
           </Text>
         </Section>
 

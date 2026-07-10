@@ -107,5 +107,42 @@ export type DiaryPhotoRow = {
   diary_id: string;
   storage_path: string;
   position: number;
+  /** 촬영 시각 (EXIF 또는 카메라 촬영 순간, null = 알 수 없음) */
+  taken_at: string | null;
+  /** 좋아요(하트) */
+  liked: boolean;
+  /** 시각 오버레이 합성 사진일 때 원본 파일 경로 */
+  original_path: string | null;
+  created_at: string;
+};
+
+export type DiaryLang = "ko" | "en" | "ja";
+
+export type DiaryCorrection = { original: string; corrected: string; note: string };
+
+export type DiaryTranslationRow = {
+  id: string;
+  user_id: string;
+  diary_id: string;
+  lang: DiaryLang;
+  content: string;
+  /** 번역 당시 원문 해시 — 원문이 바뀌면 캐시 무효 */
+  source_hash: string;
+  /** AI가 감지한 원문 언어 */
+  detected_lang: DiaryLang;
+  /** 외국어 일기 첨삭 — 원문 언어 행에만 채워짐 */
+  corrections: DiaryCorrection[];
+  created_at: string;
+};
+
+export type ExpressionRow = {
+  id: string;
+  user_id: string;
+  diary_id: string | null;
+  date: string;
+  lang: "en" | "ja";
+  expression: string;
+  meaning: string;
+  example: string;
   created_at: string;
 };

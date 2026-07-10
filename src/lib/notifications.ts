@@ -3,7 +3,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { formatTime } from "./dateUtils";
+import { addDays, formatTime, parseDateKey, todayKey } from "./dateUtils";
 import { EventRow } from "./supabase";
 
 const eventKey = (eventId: string) => `notif.event.${eventId}`;
@@ -140,6 +140,92 @@ export async function setBriefingReminder(pref: BriefingReminderPref): Promise<v
     },
   });
   await AsyncStorage.setItem(BRIEFING_NOTIF_ID_KEY, id);
+}
+
+// ===== 순간 찍기 알림 (매일 랜덤 시각 1회, 7일치 예약) =====
+// 반복 트리거는 시각이 고정이라 못 쓰고, 날짜별 DATE 트리거를 미리 깔아둔다.
+// 앱을 열 때마다 topUpMomentReminders()가 지난 날짜를 정리하고 7일치를 채운다.
+
+const MOMENT_PREF_KEY = "notif.moment.pref";
+const MOMENT_IDS_KEY = "notif.moment.ids"; // { "YYYY-MM-DD": notificationId }
+
+export type MomentReminderPref = { enabled: boolean };
+
+/** 랜덤 시각: 10:00 ~ 20:59 사이 */
+function randomMomentTime(dateKey: string): Date {
+  const d = parseDateKey(dateKey);
+  const minutes = Math.floor(Math.random() * 11 * 60);
+  return new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    10 + Math.floor(minutes / 60),
+    minutes % 60
+  );
+}
+
+export async function getMomentReminderPref(): Promise<MomentReminderPref> {
+  const raw = await AsyncStorage.getItem(MOMENT_PREF_KEY);
+  if (!raw) return { enabled: false };
+  try {
+    return { enabled: !!(JSON.parse(raw) as MomentReminderPref).enabled };
+  } catch {
+    return { enabled: false };
+  }
+}
+
+async function readMomentIds(): Promise<Record<string, string>> {
+  const raw = await AsyncStorage.getItem(MOMENT_IDS_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+export async function setMomentReminder(pref: MomentReminderPref): Promise<void> {
+  await AsyncStorage.setItem(MOMENT_PREF_KEY, JSON.stringify(pref));
+  if (pref.enabled) {
+    await topUpMomentReminders();
+    return;
+  }
+  const ids = await readMomentIds();
+  await Promise.all(
+    Object.values(ids).map((id) =>
+      Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
+    )
+  );
+  await AsyncStorage.removeItem(MOMENT_IDS_KEY);
+}
+
+/** 지난 날짜 정리 + 오늘부터 7일치 랜덤 시각 알림 예약 채우기 (앱 실행 시 호출) */
+export async function topUpMomentReminders(): Promise<void> {
+  const pref = await getMomentReminderPref();
+  if (!pref.enabled) return;
+
+  const map = await readMomentIds();
+  const today = todayKey();
+  for (const key of Object.keys(map)) {
+    if (key < today) delete map[key]; // 이미 울렸거나 지난 예약
+  }
+  for (let i = 0; i < 7; i++) {
+    const dateKey = addDays(today, i);
+    if (map[dateKey]) continue;
+    const at = randomMomentTime(dateKey);
+    if (at.getTime() <= Date.now()) continue; // 오늘 몫의 랜덤 시각이 이미 지남
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "지금 이 순간 📸",
+        body: "잠깐, 오늘의 한 장면을 남겨볼까요? 가운데 카메라 버튼 하나면 돼요.",
+        sound: true,
+        data: { screen: "Camera" },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at },
+    });
+    map[dateKey] = id;
+  }
+  await AsyncStorage.setItem(MOMENT_IDS_KEY, JSON.stringify(map));
 }
 
 // ===== 일기 리마인드 (매일 반복) =====

@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +21,8 @@ import {
   ReportType,
 } from "../lib/aiReports";
 import { addDays, addMonths, todayKey, weekStartOf } from "../lib/dateUtils";
+import { GalleryPhoto, galleryPhotoToViewer, listLikedPhotos } from "../lib/gallery";
+import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
@@ -75,11 +80,30 @@ function ReportBody({ content, styles }: { content: string; styles: Styles }) {
 export function ReportScreen() {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [type, setType] = useState<TabType>("metrics");
   const [periodKey, setPeriodKey] = useState(defaultPeriod("daily"));
   const [content, setContent] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [likedInMonth, setLikedInMonth] = useState<GalleryPhoto[]>([]);
+
+  // 월간 탭: 그 달의 ♥ 사진 하이라이트
+  useEffect(() => {
+    if (type !== "monthly") {
+      setLikedInMonth([]);
+      return;
+    }
+    let cancelled = false;
+    listLikedPhotos()
+      .then((all) => {
+        if (!cancelled) setLikedInMonth(all.filter((p) => p.date.startsWith(periodKey)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [type, periodKey]);
 
   const changeType = (t: TabType) => {
     setType(t);
@@ -149,6 +173,31 @@ export function ReportScreen() {
       </View>
 
       <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+        {type === "monthly" && likedInMonth.length > 0 ? (
+          <View style={styles.likedBlock}>
+            <View style={styles.likedHeader}>
+              <Ionicons name="heart" size={13} color="#FF5A79" />
+              <Text style={styles.likedTitle}>이달의 좋아요 {likedInMonth.length}장</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.likedRow}>
+                {likedInMonth.map((p, i) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() =>
+                      navigation.navigate("PhotoViewer", {
+                        photos: likedInMonth.map(galleryPhotoToViewer),
+                        index: i,
+                      })
+                    }
+                  >
+                    <Image source={{ uri: p.url }} style={styles.likedThumb} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        ) : null}
         {checking ? (
           <ActivityIndicator style={{ marginTop: spacing.xl }} color={c.primary} />
         ) : generating ? (
@@ -259,4 +308,19 @@ const createStyles = (c: ThemeColors) =>
       marginBottom: spacing.xs,
     },
     reportText: { fontSize: fontSizes.body, color: c.text, lineHeight: 25 },
+    likedBlock: { marginBottom: spacing.md },
+    likedHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginBottom: spacing.sm,
+    },
+    likedTitle: { fontSize: fontSizes.small, fontWeight: "800", color: c.text },
+    likedRow: { flexDirection: "row", gap: spacing.sm },
+    likedThumb: {
+      width: 84,
+      height: 84,
+      borderRadius: radii.button,
+      backgroundColor: c.card,
+    },
   });

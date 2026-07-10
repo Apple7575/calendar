@@ -2,6 +2,7 @@
 //  - parse_event: 자연어 → 일정 JSON
 //  - briefing: 오늘 데이터 → 아침 브리핑 문장
 //  - diary_questions: 그날 데이터 → 회고 질문 3개 + 답변 예시 칩
+//  - translate_diary: 일기 → 한/영/일 자연스러운 번역 + 외국어 첨삭 + 학습 표현 추출
 //
 // 배포:
 //   supabase secrets set OPENAI_API_KEY=...   (ai-report와 공유)
@@ -96,6 +97,50 @@ const DIARY_QUESTIONS_SCHEMA = {
   },
 };
 
+const TRANSLATE_DIARY_SCHEMA = {
+  name: "diary_translation",
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      detected: { type: "string", enum: ["ko", "en", "ja"], description: "원문 언어" },
+      ko: { type: "string" },
+      en: { type: "string" },
+      ja: { type: "string" },
+      corrections: {
+        type: "array",
+        description: "원문이 영어/일본어일 때만: 어색한 문장 첨삭 (최대 5개). 한국어 원문이면 빈 배열.",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            original: { type: "string" },
+            corrected: { type: "string" },
+            note: { type: "string", description: "왜 그런지 한국어 한 줄 설명" },
+          },
+          required: ["original", "corrected", "note"],
+        },
+      },
+      expressions: {
+        type: "array",
+        description: "일기에서 뽑은 학습 표현: 영어 3개 + 일본어 3개",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            lang: { type: "string", enum: ["en", "ja"] },
+            expression: { type: "string" },
+            meaning: { type: "string", description: "한국어 뜻" },
+            example: { type: "string", description: "그 언어로 된 짧은 예문 (일기 맥락 반영)" },
+          },
+          required: ["lang", "expression", "meaning", "example"],
+        },
+      },
+    },
+    required: ["detected", "ko", "en", "ja", "corrections", "expressions"],
+  },
+};
+
 Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
   const jwt = authHeader.replace(/^Bearer\s+/i, "");
@@ -160,6 +205,21 @@ Deno.serve(async (req) => {
         maxTokens: 200,
       });
       return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
+    }
+
+    if (task === "translate_diary") {
+      const text = await callOpenAI({
+        system:
+          "너는 한국어·영어·일본어에 능통한 번역가이자 언어 선생님이야. 언어 공부 중인 사용자의 일기를 받아 다음을 만들어. " +
+          "(1) detected: 원문 언어 감지 (ko/en/ja — 섞여 있으면 가장 많이 쓴 언어). " +
+          "(2) ko/en/ja: 세 언어 버전. 원문 언어는 원문을 그대로 두고, 나머지 두 언어는 직역이 아니라 그 언어 원어민이 자기 일기에 실제로 쓸 법한 자연스러운 구어체로 옮겨. 관용구·뉘앙스를 살리고 문화적으로 어색한 표현은 의역해. 일본어는 일기체(だ・である体 또는 편한 반말체)로. " +
+          "(3) corrections: 원문이 영어나 일본어면 어색하거나 틀린 문장을 최대 5개 골라 자연스럽게 고치고 이유를 한국어 한 줄로 설명해. 원문이 한국어면 빈 배열. " +
+          "(4) expressions: 이 일기에서 사용자가 실제로 말하고 싶었을 핵심 표현을 영어 3개, 일본어 3개 뽑아. 각각 원어민이 쓰는 자연스러운 구어 표현 + 한국어 뜻 + 일기 맥락에 맞는 그 언어 예문.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 6000,
+        jsonSchema: TRANSLATE_DIARY_SCHEMA,
+      });
+      return json({ result: JSON.parse(text) }, 200);
     }
 
     return json({ error: "unknown_task" }, 400);

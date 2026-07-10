@@ -11,7 +11,7 @@ import { RepeatFreq, supabase } from "./supabase";
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
-async function invokeHelper<T>(task: string, input: Record<string, unknown>): Promise<T> {
+export async function invokeHelper<T>(task: string, input: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke<{ result: T }>("ai-helper", {
     body: { task, input },
   });

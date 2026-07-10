@@ -2,7 +2,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useSession } from "../hooks/useSession";
+import { CameraScreen } from "../screens/CameraScreen";
 import { DayDetailScreen } from "../screens/DayDetailScreen";
+import { ExpressionsScreen } from "../screens/ExpressionsScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -85,6 +87,16 @@ export function RootNavigator() {
             name="Gallery"
             component={GalleryScreen}
             options={{ title: "사진첩" }}
+          />
+          <Stack.Screen
+            name="Camera"
+            component={CameraScreen}
+            options={{ headerShown: false, presentation: "fullScreenModal", animation: "fade" }}
+          />
+          <Stack.Screen
+            name="Expressions"
+            component={ExpressionsScreen}
+            options={{ title: "표현 카드" }}
           />
         </>
       ) : (
