@@ -1,7 +1,9 @@
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 module.exports = (config) => ({
   type: "widget",
-  name: "나의 캘린더 위젯",
+  // 주의: 한글 이름을 쓰면 Xcode 타겟명(한글)과 EAS 서명 타겟명('widget')이
+  // 어긋나 빌드가 실패한다. 반드시 ASCII로 유지할 것.
+  name: "widget",
   deploymentTarget: "17.0",
   colors: {
     $accent: "#8B72E8",

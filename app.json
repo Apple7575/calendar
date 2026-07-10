@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.newblueday.mycalendar",
-      "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID",
+      "appleTeamId": "NR4Y2WD2S7",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "수면 시간을 일기에 자동으로 기록하기 위해 건강 데이터를 읽습니다.",
