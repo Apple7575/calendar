@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useSession } from "../hooks/useSession";
+import { AnniversariesScreen } from "../screens/AnniversariesScreen";
 import { CameraScreen } from "../screens/CameraScreen";
 import { DayDetailScreen } from "../screens/DayDetailScreen";
 import { ExpressionsScreen } from "../screens/ExpressionsScreen";
@@ -97,6 +98,11 @@ export function RootNavigator() {
             name="Expressions"
             component={ExpressionsScreen}
             options={{ title: "표현 카드" }}
+          />
+          <Stack.Screen
+            name="Anniversaries"
+            component={AnniversariesScreen}
+            options={{ title: "D-day · 기념일" }}
           />
         </>
       ) : (

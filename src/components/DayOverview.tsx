@@ -23,6 +23,7 @@ import { ViewerPhoto } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, minTouch, radii, spacing } from "../theme/tokens";
+import { Confetti } from "./cute/Confetti";
 import { DiaryTranslationCard } from "./DiaryTranslationCard";
 import { Section } from "./Section";
 
@@ -55,6 +56,23 @@ export function DayOverview({
   const [refreshing, setRefreshing] = useState(false);
   const [newTask, setNewTask] = useState("");
   const [addingTask, setAddingTask] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+
+  /** 방금의 토글로 오늘 할 일+루틴이 전부 끝났으면 컨페티 */
+  const maybeCelebrate = (kind: "task" | "routine", id: string, nowDone: boolean) => {
+    if (!nowDone) return;
+    const tasksAllDone =
+      day.tasks.length === 0 ||
+      day.tasks.every((t) => (kind === "task" && t.id === id ? true : t.done));
+    const routinesAllDone =
+      day.routines.length === 0 ||
+      day.routines.every((r) =>
+        kind === "routine" && r.id === id ? true : day.checkedRoutineIds.has(r.id)
+      );
+    if (tasksAllDone && routinesAllDone && day.tasks.length + day.routines.length > 0) {
+      setCelebrate(true);
+    }
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -82,6 +100,7 @@ export function DayOverview({
   const handleToggleRoutine = async (routineId: string, checked: boolean) => {
     try {
       await routineLib.setRoutineChecked(routineId, dateKey, checked);
+      maybeCelebrate("routine", routineId, checked);
       await day.reload();
       void updateWidget();
     } catch (e) {
@@ -92,6 +111,7 @@ export function DayOverview({
   const handleToggleTask = async (id: string, done: boolean) => {
     try {
       await taskLib.setTaskDone(id, done);
+      maybeCelebrate("task", id, done);
       await day.reload();
       void updateWidget();
     } catch (e) {
@@ -118,6 +138,7 @@ export function DayOverview({
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -337,6 +358,8 @@ export function DayOverview({
         ) : null}
       </Section>
     </ScrollView>
+    <Confetti visible={celebrate} onDone={() => setCelebrate(false)} />
+    </View>
   );
 }
 

@@ -110,6 +110,26 @@ function contentTypeOf(uri: string): { contentType: string; ext: string } {
   return { contentType: "image/jpeg", ext: "jpg" };
 }
 
+/**
+ * EXIF에서 GPS 좌표를 읽는다. iOS는 평평한 GPSLatitude 키 또는
+ * "{GPS}" 중첩 딕셔너리 두 형태가 있어 둘 다 처리한다.
+ */
+export function parseExifGps(
+  exif: Record<string, unknown> | null | undefined
+): { lat: number; lng: number } | null {
+  if (!exif) return null;
+  const nested = (exif["{GPS}"] ?? null) as Record<string, unknown> | null;
+  const rawLat = (exif.GPSLatitude ?? nested?.Latitude) as number | undefined;
+  const rawLng = (exif.GPSLongitude ?? nested?.Longitude) as number | undefined;
+  if (typeof rawLat !== "number" || typeof rawLng !== "number") return null;
+  const latRef = (exif.GPSLatitudeRef ?? nested?.LatitudeRef) as string | undefined;
+  const lngRef = (exif.GPSLongitudeRef ?? nested?.LongitudeRef) as string | undefined;
+  const lat = latRef === "S" ? -Math.abs(rawLat) : rawLat;
+  const lng = lngRef === "W" ? -Math.abs(rawLng) : rawLng;
+  if (lat === 0 && lng === 0) return null;
+  return { lat, lng };
+}
+
 /** EXIF "YYYY:MM:DD HH:MM:SS" → ISO (기기 로컬 시간대 기준). 없거나 못 읽으면 null */
 export function parseExifTakenAt(
   exif: Record<string, unknown> | null | undefined
@@ -176,6 +196,8 @@ export type AddPhotoOptions = {
   takenAt?: string | null;
   /** 시각 오버레이 합성본을 올릴 때 함께 보관할 원본 사진 URI */
   originalUri?: string | null;
+  /** 촬영 위치 */
+  location?: { lat: number; lng: number; place: string | null } | null;
 };
 
 /** 기기 사진을 Storage에 올리고 diary_photos 행을 만든다 */
@@ -209,6 +231,9 @@ export async function addPhoto(
       position,
       taken_at: opts.takenAt ?? null,
       original_path: originalPath,
+      lat: opts.location?.lat ?? null,
+      lng: opts.location?.lng ?? null,
+      place: opts.location?.place ?? null,
     })
     .select()
     .single();
@@ -245,6 +270,9 @@ export function toViewerPhoto(p: DiaryPhoto): ViewerPhoto {
     takenAt: p.taken_at,
     liked: p.liked,
     originalPath: p.original_path,
+    lat: p.lat,
+    lng: p.lng,
+    place: p.place,
   };
 }
 

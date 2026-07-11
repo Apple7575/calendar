@@ -62,6 +62,12 @@
           "savePhotosPermission": "카메라로 찍은 원본 사진을 사진 보관함에 저장합니다."
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "사진에 찍은 장소를 기록하기 위해 촬영 순간의 위치를 사용합니다."
+        }
+      ],
       "expo-font",
       "@bacons/apple-targets"
     ],

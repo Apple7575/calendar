@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FloatingStars } from "../components/cute/FloatingStars";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { signInWithGoogle } from "../lib/auth";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -38,6 +39,7 @@ export function LoginScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient colors={c.gradient} style={styles.hero}>
+        <FloatingStars />
         <SafeAreaView edges={["top"]} style={styles.heroInner}>
           <View style={styles.logoCircle}>
             <Ionicons name="calendar" size={44} color={c.gradient[1]} />

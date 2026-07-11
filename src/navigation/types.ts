@@ -10,6 +10,10 @@ export type ViewerPhoto = {
   liked?: boolean;
   /** 원본 파일 storage 경로 (오버레이 합성 사진일 때) */
   originalPath?: string | null;
+  /** 촬영 위치 */
+  lat?: number | null;
+  lng?: number | null;
+  place?: string | null;
 };
 
 export type RootStackParamList = {
@@ -41,6 +45,8 @@ export type RootStackParamList = {
   Camera: undefined;
   /** 표현 카드 (일기에서 뽑은 영어/일본어 표현) */
   Expressions: undefined;
+  /** D-day / 기념일 관리 */
+  Anniversaries: undefined;
   /** 루틴 관리 */
   Routines: undefined;
   /** AI 리포트 */

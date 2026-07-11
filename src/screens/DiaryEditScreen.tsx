@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Confetti } from "../components/cute/Confetti";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { DiaryQuestion, generateDiaryQuestions, generateHighlight } from "../lib/aiHelper";
 import { formatKoreanDate } from "../lib/dateUtils";
@@ -22,11 +23,13 @@ import {
   deletePhoto,
   DiaryPhoto,
   getDiaryWithPhotos,
+  parseExifGps,
   parseExifTakenAt,
   recentPeople,
   toViewerPhoto,
   upsertDiary,
 } from "../lib/diary";
+import { placeNameOf } from "../lib/location";
 import { fetchSleepHours, isHealthAvailable } from "../lib/health";
 import { RootScreenProps } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
@@ -44,8 +47,11 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<string | null>(null);
   const [photos, setPhotos] = useState<DiaryPhoto[]>([]);
-  const [pending, setPending] = useState<{ uri: string; takenAt: string | null }[]>([]);
+  const [pending, setPending] = useState<
+    { uri: string; takenAt: string | null; gps: { lat: number; lng: number } | null }[]
+  >([]);
   const [saving, setSaving] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
 
   // 질문-답변 모드
   const [writeMode, setWriteMode] = useState<"free" | "qa">("free");
@@ -167,7 +173,11 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
     if (result.canceled) return;
     setPending((prev) => [
       ...prev,
-      ...result.assets.map((a) => ({ uri: a.uri, takenAt: parseExifTakenAt(a.exif) })),
+      ...result.assets.map((a) => ({
+        uri: a.uri,
+        takenAt: parseExifTakenAt(a.exif),
+        gps: parseExifGps(a.exif),
+      })),
     ]);
   };
 
@@ -220,10 +230,13 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         gratitude: gratitude.trim() || null,
       });
       let position = photos.length;
-      const failed: { uri: string; takenAt: string | null }[] = [];
+      const failed: typeof pending = [];
       for (const p of pending) {
         try {
-          await addPhoto(diary, p.uri, position++, { takenAt: p.takenAt });
+          const location = p.gps
+            ? { ...p.gps, place: await placeNameOf(p.gps.lat, p.gps.lng) }
+            : null;
+          await addPhoto(diary, p.uri, position++, { takenAt: p.takenAt, location });
         } catch {
           failed.push(p);
         }
@@ -232,7 +245,9 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         setPending(failed);
         Alert.alert("안내", `사진 ${failed.length}장은 업로드하지 못했어요. 다시 저장해 보세요.`);
       } else {
-        navigation.goBack();
+        // 컨페티 한 번 보여주고 닫기
+        setCelebrate(true);
+        setTimeout(() => navigation.goBack(), 900);
       }
     } catch (e) {
       Alert.alert("오류", e instanceof Error ? e.message : "일기 저장에 실패했어요.");
@@ -544,6 +559,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       <View style={styles.footer}>
         <PrimaryButton title="저장" onPress={handleSave} loading={saving} />
       </View>
+      <Confetti visible={celebrate} onDone={() => setCelebrate(false)} />
     </KeyboardAvoidingView>
   );
 }

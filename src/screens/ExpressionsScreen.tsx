@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SleepyCat } from "../components/cute/SleepyCat";
 import { deleteExpression, listExpressions } from "../lib/diaryLang";
 import { ExpressionRow } from "../lib/supabase";
 import { RootStackParamList } from "../navigation/types";
@@ -93,7 +94,7 @@ export function ExpressionsScreen() {
         <ActivityIndicator style={{ marginTop: spacing.xl }} color={c.primary} />
       ) : rows.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Ionicons name="book-outline" size={36} color={c.textMuted} />
+          <SleepyCat color={c.textMuted} />
           <Text style={styles.emptyText}>
             아직 표현 카드가 없어요.{"\n"}일기를 쓰고 번역을 눌러보면{"\n"}내 일기에서 나온
             표현들이 모여요.

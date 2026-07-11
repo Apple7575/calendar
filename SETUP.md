@@ -53,6 +53,7 @@
    5. `0005_diary_fields.sql` — 오늘의 한 줄/에너지/수면/사람/감사
    6. `0006_event_color.sql` — 일정 색상
    7. `0007_photolog_lang.sql` — 사진 촬영시각/좋아요/원본 보관, 일기 번역 캐시, 표현 카드
+   8. `0008_location_dday.sql` — 사진 위치(장소명), D-day/기념일
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 

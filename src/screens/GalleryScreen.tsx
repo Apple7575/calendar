@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SleepyCat } from "../components/cute/SleepyCat";
 import { addMonths, todayKey } from "../lib/dateUtils";
 import {
   GalleryMonth,
@@ -144,7 +145,7 @@ export function GalleryScreen() {
         <>
           {liked && liked.length === 0 && !loading ? (
             <View style={styles.emptyWrap}>
-              <Ionicons name="heart-outline" size={36} color={c.textMuted} />
+              <SleepyCat color={c.textMuted} />
               <Text style={styles.emptyText}>
                 아직 좋아요한 사진이 없어요.{"\n"}사진을 크게 보고 ♥를 눌러보세요.
               </Text>
@@ -163,7 +164,7 @@ export function GalleryScreen() {
         <>
           {nonEmpty.length === 0 && !loading ? (
             <View style={styles.emptyWrap}>
-              <Ionicons name="images-outline" size={36} color={c.textMuted} />
+              <SleepyCat color={c.textMuted} />
               <Text style={styles.emptyText}>
                 아직 사진이 없어요.{"\n"}일기에 사진을 추가하면 여기에 모여요.
               </Text>

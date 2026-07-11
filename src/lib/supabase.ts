@@ -113,6 +113,24 @@ export type DiaryPhotoRow = {
   liked: boolean;
   /** 시각 오버레이 합성 사진일 때 원본 파일 경로 */
   original_path: string | null;
+  /** 촬영 위치 (EXIF GPS 또는 카메라 촬영 시 현재 위치) */
+  lat: number | null;
+  lng: number | null;
+  /** 역지오코딩한 장소명 */
+  place: string | null;
+  created_at: string;
+};
+
+export type AnniversaryRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  /** 기준일 "YYYY-MM-DD" */
+  date: string;
+  /** true = 매년 반복 (생일 등) */
+  repeat_yearly: boolean;
+  emoji: string;
+  position: number;
   created_at: string;
 };
 

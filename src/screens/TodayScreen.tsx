@@ -5,7 +5,9 @@ import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BriefingCard } from "../components/BriefingCard";
+import { DaySky } from "../components/cute/DaySky";
 import { DayOverview } from "../components/DayOverview";
+import { DdayRow } from "../components/DdayRow";
 import { MemoriesRow } from "../components/MemoriesRow";
 import { formatKoreanDate, todayKey } from "../lib/dateUtils";
 import { updateWidget } from "../lib/widget";
@@ -34,6 +36,7 @@ export function TodayScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <DaySky size={26} />
           <Text style={styles.headerTitle}>오늘</Text>
           <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
         </View>
@@ -54,6 +57,7 @@ export function TodayScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      <DdayRow todayKey={dateKey} />
       <BriefingCard dateKey={dateKey} />
       <MemoriesRow
         todayKey={dateKey}
@@ -85,7 +89,7 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: spacing.sm,
       backgroundColor: c.surface,
     },
-    headerLeft: { flexDirection: "row", alignItems: "baseline" },
+    headerLeft: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     headerTitle: {
       fontSize: fontSizes.title,
       fontWeight: "900",

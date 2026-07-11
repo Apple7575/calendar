@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import { todayKey } from "../lib/dateUtils";
 import { addPhoto, countPhotos, ensureDiary } from "../lib/diary";
+import { currentPhotoLocation } from "../lib/location";
 import { RootScreenProps } from "../navigation/types";
 import { fontSizes, spacing } from "../theme/tokens";
 
@@ -106,13 +107,17 @@ export function CameraScreen({ navigation }: RootScreenProps<"Camera">) {
         // 앨범 저장 실패는 무시 — 클라우드 원본은 아래에서 보관
       }
 
-      // 3) 오늘 일기에 첨부 (합성본 표시용 + 원본 보관)
+      // 3) 촬영 위치 (권한 없으면 null — 흐름 안 막음)
+      const location = await currentPhotoLocation();
+
+      // 4) 오늘 일기에 첨부 (합성본 표시용 + 원본 보관)
       const date = todayKey();
       const diary = await ensureDiary(date);
       const position = await countPhotos(diary.id);
       await addPhoto(diary, overlaidUri, position, {
         takenAt: captured.takenAt.toISOString(),
         originalUri: captured.uri,
+        location,
       });
 
       Alert.alert("저장 완료", "오늘 일기에 사진을 넣어뒀어요. 원본은 사진 보관함에 있어요.", [

@@ -6,13 +6,16 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { HeartBurst } from "../components/cute/HeartBurst";
 import { getOriginalUrl, setPhotoLiked } from "../lib/diary";
+import { appleMapsUrl } from "../lib/location";
 import { RootScreenProps, ViewerPhoto } from "../navigation/types";
 import { fontSizes, spacing } from "../theme/tokens";
 
@@ -44,6 +47,7 @@ export function PhotoViewerScreen({ route, navigation }: RootScreenProps<"PhotoV
   const [originalUrls, setOriginalUrls] = useState<Record<number, string>>({});
   const [showOriginal, setShowOriginal] = useState<Record<number, boolean>>({});
   const [loadingOriginal, setLoadingOriginal] = useState(false);
+  const [heartBurst, setHeartBurst] = useState(0);
 
   const photo: ViewerPhoto | undefined = photos[current];
   const liked = photo?.id ? likedById[photo.id] : undefined;
@@ -52,6 +56,7 @@ export function PhotoViewerScreen({ route, navigation }: RootScreenProps<"PhotoV
     if (!photo?.id) return;
     const next = !likedById[photo.id];
     setLikedById((prev) => ({ ...prev, [photo.id!]: next }));
+    if (next) setHeartBurst((n) => n + 1);
     try {
       await setPhotoLiked(photo.id, next);
     } catch (e) {
@@ -120,6 +125,18 @@ export function PhotoViewerScreen({ route, navigation }: RootScreenProps<"PhotoV
           {photo?.takenAt ? (
             <Text style={styles.takenAt}>{formatTakenAt(photo.takenAt)}</Text>
           ) : null}
+          {photo?.lat != null && photo?.lng != null ? (
+            <TouchableOpacity
+              style={styles.placeRow}
+              hitSlop={6}
+              onPress={() =>
+                Linking.openURL(appleMapsUrl(photo.lat!, photo.lng!, photo.place)).catch(() => {})
+              }
+            >
+              <Ionicons name="location" size={12} color="#7EC8FF" />
+              <Text style={styles.placeText}>{photo.place ?? "지도에서 보기"}</Text>
+            </TouchableOpacity>
+          ) : null}
           {showOriginal[current] ? <Text style={styles.originalBadge}>원본</Text> : null}
         </View>
         <View style={styles.actions}>
@@ -140,13 +157,16 @@ export function PhotoViewerScreen({ route, navigation }: RootScreenProps<"PhotoV
             </TouchableOpacity>
           ) : null}
           {photo?.id ? (
-            <TouchableOpacity style={styles.actionButton} onPress={toggleLike} hitSlop={8}>
-              <Ionicons
-                name={liked ? "heart" : "heart-outline"}
-                size={26}
-                color={liked ? "#FF5A79" : "#FFFFFF"}
-              />
-            </TouchableOpacity>
+            <View>
+              <HeartBurst trigger={heartBurst} />
+              <TouchableOpacity style={styles.actionButton} onPress={toggleLike} hitSlop={8}>
+                <Ionicons
+                  name={liked ? "heart" : "heart-outline"}
+                  size={26}
+                  color={liked ? "#FF5A79" : "#FFFFFF"}
+                />
+              </TouchableOpacity>
+            </View>
           ) : null}
         </View>
       </View>
@@ -191,6 +211,14 @@ const styles = StyleSheet.create({
     color: "#FFC94A",
     fontSize: fontSizes.caption,
     fontWeight: "800",
+  },
+  placeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  placeText: {
+    color: "#7EC8FF",
+    fontSize: fontSizes.caption,
+    fontWeight: "700",
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowRadius: 3,
   },
   actions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   actionButton: { alignItems: "center", gap: 2 },

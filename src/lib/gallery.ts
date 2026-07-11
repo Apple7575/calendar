@@ -10,6 +10,9 @@ export type GalleryPhoto = {
   takenAt: string | null;
   liked: boolean;
   originalPath: string | null;
+  lat: number | null;
+  lng: number | null;
+  place: string | null;
 };
 
 export type GalleryMonth = {
@@ -27,6 +30,9 @@ export function galleryPhotoToViewer(p: GalleryPhoto): ViewerPhoto {
     takenAt: p.takenAt,
     liked: p.liked,
     originalPath: p.originalPath,
+    lat: p.lat,
+    lng: p.lng,
+    place: p.place,
   };
 }
 
@@ -49,6 +55,9 @@ async function withUrls(
       takenAt: r.taken_at,
       liked: r.liked,
       originalPath: r.original_path,
+      lat: r.lat,
+      lng: r.lng,
+      place: r.place,
     }))
     .filter((p) => p.url);
 }
