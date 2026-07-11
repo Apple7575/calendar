@@ -1,7 +1,7 @@
 // D-day / 기념일 관리: 추가(이모지·제목·날짜·매년 반복) + 목록 + 삭제
 
-import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Trash } from "phosphor-react-native/src/icons/Trash";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -179,7 +179,7 @@ export function AnniversariesScreen() {
                 {dday.label}
               </Text>
               <TouchableOpacity onPress={() => handleDelete(r)} hitSlop={8}>
-                <Ionicons name="trash-outline" size={18} color={c.textMuted} />
+                <Trash size={17} color={c.textMuted} />
               </TouchableOpacity>
             </View>
           ))

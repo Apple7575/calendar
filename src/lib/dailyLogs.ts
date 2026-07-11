@@ -1,5 +1,6 @@
-// 생활 기록: 식단/몸무게/걸음수/지출/학습/인바디 등 하루의 수치·텍스트 기록
+// 생활 기록: 식단/몸무게/걸음수/지출/학습/운동 등 하루의 수치·텍스트 기록
 
+import { invokeHelper } from "./aiHelper";
 import { DailyLogRow, supabase } from "./supabase";
 
 export type LogKind = {
@@ -18,7 +19,11 @@ export const LOG_KINDS: LogKind[] = [
   { key: "steps", label: "걸음수", emoji: "👟", numeric: true, unit: "걸음", placeholder: "예: 8500" },
   { key: "money", label: "지출", emoji: "💸", numeric: true, unit: "원", placeholder: "예: 12000 (메모는 뒤에)" },
   { key: "study", label: "학습", emoji: "✏️", numeric: false, placeholder: "예: 일본어 문법 30분, 알고리즘 1문제" },
+  { key: "workout", label: "운동", emoji: "💪", numeric: false, placeholder: "예: 헬스 1시간(가슴), 러닝 5km" },
   { key: "inbody", label: "인바디", emoji: "📊", numeric: false, placeholder: "예: 체지방 18%, 골격근 32kg" },
+  { key: "meds", label: "약·영양제", emoji: "💊", numeric: false, placeholder: "예: 유산균, 비타민D" },
+  { key: "media", label: "책·영화", emoji: "🎬", numeric: false, placeholder: "예: 데미안 3장, 영화 인셉션" },
+  { key: "sleepwake", label: "기상·취침", emoji: "⏰", numeric: false, placeholder: "예: 기상 7:00, 취침 00:30" },
 ];
 
 export function logKindOf(key: string): LogKind {
@@ -80,4 +85,28 @@ export async function addLog(dateKey: string, kindKey: string, input: string): P
 export async function deleteLog(id: string): Promise<void> {
   const { error } = await supabase.from("daily_logs").delete().eq("id", id);
   if (error) throw new Error(`기록 삭제에 실패했어요: ${error.message}`);
+}
+
+/**
+ * 말/글 한마디를 여러 기록으로 자동 분해해 저장.
+ * "몸무게 62.5고 아침에 샐러드 먹고 헬스 1시간 했어" → 몸무게/식단/운동 3건.
+ * 저장된 기록들을 돌려준다.
+ */
+export async function addLogsFromText(dateKey: string, text: string): Promise<DailyLogRow[]> {
+  const { logs } = await invokeHelper<{ logs: { kind: string; text: string }[] }>(
+    "parse_logs",
+    { text: text.slice(0, 1000) }
+  );
+  const validKeys = new Set(LOG_KINDS.map((k) => k.key));
+  const saved: DailyLogRow[] = [];
+  for (const item of logs) {
+    if (!validKeys.has(item.kind) || !item.text.trim()) continue;
+    try {
+      saved.push(await addLog(dateKey, item.kind, item.text));
+    } catch {
+      // 개별 실패는 건너뜀
+    }
+  }
+  if (saved.length === 0) throw new Error("기록할 내용을 찾지 못했어요. 다시 말해 주세요.");
+  return saved;
 }

@@ -13,8 +13,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { addLog, deleteLog, formatLog, listLogs, LOG_KINDS, logKindOf } from "../lib/dailyLogs";
-import { tapLight } from "../lib/haptics";
+import {
+  addLog,
+  addLogsFromText,
+  deleteLog,
+  formatLog,
+  listLogs,
+  LOG_KINDS,
+  logKindOf,
+} from "../lib/dailyLogs";
+import { tapLight, tapSuccess } from "../lib/haptics";
+import { MicButton } from "./MicButton";
 import { DailyLogRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -70,8 +79,26 @@ export function LifeLogSection({ dateKey }: { dateKey: string }) {
 
   const selected = logKindOf(kind);
 
+  // 말 한마디 → 여러 기록 자동 분류 저장
+  const handleSpeech = async (text: string) => {
+    try {
+      const saved = await addLogsFromText(dateKey, text);
+      setLogs((prev) => [...prev, ...saved]);
+      tapSuccess();
+      Alert.alert(
+        "기록 완료",
+        saved.map((r) => `${logKindOf(r.kind).emoji} ${logKindOf(r.kind).label}: ${formatLog(r)}`).join("\n")
+      );
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "기록에 실패했어요.");
+    }
+  };
+
   return (
-    <Section title="생활 기록">
+    <Section
+      title="생활 기록"
+      right={<MicButton size={30} onText={handleSpeech} />}
+    >
       {logs.map((row) => {
         const k = logKindOf(row.kind);
         return (

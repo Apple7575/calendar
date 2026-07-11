@@ -24,6 +24,7 @@ import {
   View,
 } from "react-native";
 import { Confetti } from "../components/cute/Confetti";
+import { MoodFace } from "../components/cute/MoodFace";
 import { MicButton } from "../components/MicButton";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { linkDiaryToGoals } from "../lib/goals";
@@ -292,7 +293,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
               style={[styles.moodChip, mood === m && styles.moodChipSelected]}
               onPress={() => setMood(mood === m ? null : m)}
             >
-              <Text style={styles.moodEmoji}>{m}</Text>
+              <MoodFace mood={m} size={30} />
             </TouchableOpacity>
           ))}
         </View>

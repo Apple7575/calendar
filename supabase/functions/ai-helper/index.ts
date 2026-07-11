@@ -207,6 +207,38 @@ Deno.serve(async (req) => {
       return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
     }
 
+    if (task === "parse_logs") {
+      const text = await callOpenAI({
+        system:
+          "너는 생활 기록 분류기야. 사용자가 하루를 말한 문장을 항목별 기록으로 분해해. kind는 다음 중에서만: meal(식단), weight(몸무게kg), steps(걸음수), money(지출·원), study(학습), workout(운동), inbody(인바디), meds(약·영양제), media(책·영화), sleepwake(기상·취침). 숫자형 항목(weight/steps/money)은 text 맨 앞에 숫자를 써(예: '62.5', '8500', '12000 점심 국밥'). 언급된 것만 뽑고 지어내지 마. 식단은 끼니별로 나누지 말고 한 항목에 합쳐.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 1000,
+        jsonSchema: {
+          name: "parsed_logs",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              logs: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { type: "string" },
+                    text: { type: "string" },
+                  },
+                  required: ["kind", "text"],
+                },
+              },
+            },
+            required: ["logs"],
+          },
+        },
+      });
+      return json({ result: JSON.parse(text) }, 200);
+    }
+
     if (task === "goal_mottos") {
       const text = await callOpenAI({
         system:

@@ -3,6 +3,7 @@ import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
 import { Fire } from "phosphor-react-native/src/icons/Fire";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MoodFace } from "./cute/MoodFace";
 import { addDays, todayKey } from "../lib/dateUtils";
 import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
 import { computeStreak, countInMonth } from "../lib/streaks";
@@ -63,7 +64,7 @@ export function MonthlyStats({ monthKey, entries, onPressDay }: Props) {
               style={styles.moodCell}
               onPress={() => onPressDay(e.date)}
             >
-              <Text style={styles.moodEmoji}>{e.mood}</Text>
+              <MoodFace mood={e.mood ?? ""} size={24} />
               <Text style={styles.moodDay}>{Number(e.date.slice(8, 10))}일</Text>
             </TouchableOpacity>
           ))}
