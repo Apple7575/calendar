@@ -16,6 +16,7 @@ import { MonthGrid } from "../components/MonthGrid";
 import { MonthlyStats } from "../components/MonthlyStats";
 import { QuickEventSheet, SlotSelection } from "../components/QuickEventSheet";
 import { WeekView } from "../components/WeekView";
+import { YearGrid } from "../components/YearGrid";
 import { invalidateGoogleCache, useGoogleEvents } from "../hooks/useGoogleEvents";
 import {
   addDays,
@@ -40,7 +41,7 @@ import { ThemeColors } from "../theme/themes";
 import { fontSizes, spacing } from "../theme/tokens";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type ViewMode = "month" | "week";
+type ViewMode = "month" | "week" | "year";
 
 export function CalendarScreen() {
   const theme = useTheme();
@@ -67,6 +68,12 @@ export function CalendarScreen() {
   const loadLocal = useCallback(async () => {
     setError(null);
     try {
+      // 연간 보기: 그 해의 일기 날짜만 가볍게 불러온다 (미니 달력 점 표시용)
+      if (mode === "year") {
+        const year = monthKey.slice(0, 4);
+        setDiaryEntries(await listDiaryEntriesInRange(`${year}-01-01`, `${year}-12-31`));
+        return;
+      }
       let rangeStart: Date;
       let rangeEnd: Date;
       if (mode === "month") {
@@ -130,6 +137,17 @@ export function CalendarScreen() {
 
   const changeWeek = (delta: number) => setWeekStart(addDays(weekStart, delta * 7));
 
+  const changeYear = (delta: number) => {
+    const y = Number(monthKey.slice(0, 4)) + delta;
+    setMonthKey(`${y}-${monthKey.slice(5, 7)}`);
+  };
+
+  const changePeriod = (delta: number) => {
+    if (mode === "month") changeMonth(delta);
+    else if (mode === "week") changeWeek(delta);
+    else changeYear(delta);
+  };
+
   const goToday = () => {
     setMonthKey(todayKey().slice(0, 7));
     setWeekStart(weekStartOf(todayKey()));
@@ -153,28 +171,24 @@ export function CalendarScreen() {
   const periodLabel =
     mode === "month"
       ? `${Number(monthKey.slice(0, 4))}년 ${Number(monthKey.slice(5, 7))}월`
-      : `${Number(weekStart.slice(5, 7))}/${Number(weekStart.slice(8, 10))} - ${Number(
-          addDays(weekStart, 6).slice(5, 7)
-        )}/${Number(addDays(weekStart, 6).slice(8, 10))}`;
+      : mode === "year"
+        ? `${Number(monthKey.slice(0, 4))}년`
+        : `${Number(weekStart.slice(5, 7))}/${Number(weekStart.slice(8, 10))} - ${Number(
+            addDays(weekStart, 6).slice(5, 7)
+          )}/${Number(addDays(weekStart, 6).slice(8, 10))}`;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* 상단 헤더: 기간 이동 + 모드 토글 + 구글 새로고침 */}
       <View style={styles.header}>
         <View style={styles.periodNav}>
-          <TouchableOpacity
-            onPress={() => (mode === "month" ? changeMonth(-1) : changeWeek(-1))}
-            hitSlop={8}
-          >
+          <TouchableOpacity onPress={() => changePeriod(-1)} hitSlop={8}>
             <Ionicons name="chevron-back" size={20} color={c.primary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={goToday}>
             <Text style={styles.periodLabel}>{periodLabel}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => (mode === "month" ? changeMonth(1) : changeWeek(1))}
-            hitSlop={8}
-          >
+          <TouchableOpacity onPress={() => changePeriod(1)} hitSlop={8}>
             <Ionicons name="chevron-forward" size={20} color={c.primary} />
           </TouchableOpacity>
         </View>
@@ -184,14 +198,14 @@ export function CalendarScreen() {
             <Ionicons name="sparkles-outline" size={18} color={c.primary} />
           </TouchableOpacity>
           <View style={styles.modeToggle}>
-            {(["month", "week"] as const).map((m) => (
+            {(["month", "week", "year"] as const).map((m) => (
               <TouchableOpacity
                 key={m}
                 style={[styles.modeButton, mode === m && styles.modeButtonActive]}
                 onPress={() => setMode(m)}
               >
                 <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>
-                  {m === "month" ? "월" : "주"}
+                  {m === "month" ? "월" : m === "week" ? "주" : "년"}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -213,7 +227,17 @@ export function CalendarScreen() {
         <Text style={styles.error}>{error ?? google.error}</Text>
       ) : null}
 
-      {mode === "month" ? (
+      {mode === "year" ? (
+        <YearGrid
+          year={Number(monthKey.slice(0, 4))}
+          diaryDates={diaryEntries.map((e) => e.date)}
+          onPressMonth={(mk) => {
+            setMonthKey(mk);
+            setExpandedWeek(null);
+            setMode("month");
+          }}
+        />
+      ) : mode === "month" ? (
         <ScrollView showsVerticalScrollIndicator={false}>
           <MonthGrid
             monthKey={monthKey}

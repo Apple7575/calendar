@@ -11,6 +11,7 @@ import { MapPin } from "phosphor-react-native/src/icons/MapPin";
 import { XCircle } from "phosphor-react-native/src/icons/XCircle";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -75,7 +76,7 @@ export function InterestsScreen() {
   const hiddenModules = MODULES.filter((m) => hidden.has(m.id));
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>관심사</Text>
         <TouchableOpacity onPress={() => navigation.navigate("Settings")} hitSlop={8}>
@@ -127,7 +128,7 @@ export function InterestsScreen() {
           앞으로 관심 있는 주제가 생기면 여기에 새 카드를 추가해 갈 수 있어요.
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { InsightsView } from "../components/InsightsView";
 import { PrimaryButton } from "../components/PrimaryButton";
 import {
@@ -175,7 +176,7 @@ export function ReportScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* 검색창 */}
       <View style={styles.searchRow}>
         <View style={styles.searchInputWrap}>
@@ -337,7 +338,7 @@ export function ReportScreen() {
       )}
       </>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

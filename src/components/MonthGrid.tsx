@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { formatTime, monthWeeks, todayKey } from "../lib/dateUtils";
 import { CalendarEvent, eventsOnDate, MarkedDates } from "../lib/eventMerge";
 import { useTheme } from "../theme/ThemeContext";
@@ -85,32 +85,49 @@ export function MonthGrid({
                 const inMonth = dateKey.startsWith(monthKey);
                 const isToday = dateKey === today;
                 const dots = markedDates[dateKey]?.dots ?? [];
+                const highlight = highlights?.[dateKey];
+                // 이미지 스티커는 셀 배경으로 크게, 내장 스티커는 숫자 옆 배지로
+                const imageBg = highlight?.startsWith("img:") ? highlight.slice(4) : null;
                 return (
                   <TouchableOpacity
                     key={dateKey}
                     style={styles.dayCell}
                     onPress={() => onPressDay(dateKey)}
                   >
+                    {imageBg ? (
+                      <View style={styles.bgWrap} pointerEvents="none">
+                        <Image source={{ uri: imageBg }} style={styles.bgImage} />
+                        <View style={styles.bgScrim} />
+                      </View>
+                    ) : null}
                     <View style={[styles.dayNumWrap, isToday && styles.todayWrap]}>
                       <Text
                         style={[
                           styles.dayNum,
                           di === 0 && { color: c.danger },
                           !inMonth && styles.dayNumMuted,
+                          imageBg && styles.dayNumOnImage,
                           isToday && styles.todayText,
                         ]}
                       >
                         {Number(dateKey.slice(8, 10))}
                       </Text>
-                      {highlights?.[dateKey] ? (
+                      {highlight && !imageBg ? (
                         <View style={styles.stickerBadge}>
-                          <Sticker id={highlights[dateKey]} size={14} />
+                          <Sticker id={highlight} size={14} />
                         </View>
                       ) : null}
                     </View>
                     <View style={styles.dotRow}>
                       {dots.slice(0, 4).map((d) => (
-                        <View key={d.key} style={[styles.dot, { backgroundColor: d.color }]} />
+                        <View
+                          key={d.key}
+                          style={[
+                            styles.dot,
+                            { backgroundColor: d.color },
+                            imageBg ? styles.dotOnImage : null,
+                          ]}
+                        />
                       ))}
                     </View>
                   </TouchableOpacity>
@@ -267,6 +284,28 @@ const createStyles = (c: ThemeColors) =>
       position: "absolute",
       top: -6,
       right: -8,
+    },
+    // 이미지 스티커: 셀 전체 배경 + 살짝 어둡게 → 날짜 텍스트 가독 확보
+    bgWrap: {
+      position: "absolute",
+      top: 2,
+      left: 2,
+      right: 2,
+      bottom: 2,
+      borderRadius: 10,
+      overflow: "hidden",
+    },
+    bgImage: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined },
+    bgScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" },
+    dayNumOnImage: {
+      color: "#FFFFFF",
+      fontWeight: "800",
+      textShadowColor: "rgba(0,0,0,0.7)",
+      textShadowRadius: 3,
+    },
+    dotOnImage: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: "rgba(255,255,255,0.8)",
     },
     todayWrap: { backgroundColor: c.primary },
     dayNum: { fontSize: fontSizes.body, color: c.text },

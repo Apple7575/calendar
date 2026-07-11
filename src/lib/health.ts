@@ -1,6 +1,7 @@
 // Apple 건강(HealthKit) 수면 데이터 읽기.
 // 네이티브 모듈이라 TestFlight/개발 빌드에서만 동작 — Expo Go에서는 조용히 비활성화된다.
 
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { parseDateKey } from "./dateUtils";
 
@@ -15,6 +16,11 @@ let cachedModule: HealthKitModule | null | undefined;
 function loadModule(): HealthKitModule | null {
   if (cachedModule !== undefined) return cachedModule;
   if (Platform.OS !== "ios") {
+    cachedModule = null;
+    return null;
+  }
+  // Expo Go에서는 require 시 Nitro가 에러 로그를 찍으므로 아예 시도하지 않는다
+  if (Constants.appOwnership === "expo") {
     cachedModule = null;
     return null;
   }
