@@ -121,6 +121,17 @@ export type DiaryPhotoRow = {
   created_at: string;
 };
 
+export type GoalRow = {
+  id: string;
+  user_id: string;
+  /** 방면: career/dream/money/home/health/learning/relationship/etc */
+  category: string;
+  title: string;
+  done: boolean;
+  position: number;
+  created_at: string;
+};
+
 export type DayHighlightRow = {
   id: string;
   user_id: string;

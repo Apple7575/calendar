@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
 import { Gear } from "phosphor-react-native/src/icons/Gear";
 import { MapPin } from "phosphor-react-native/src/icons/MapPin";
+import { Target } from "phosphor-react-native/src/icons/Target";
 import { XCircle } from "phosphor-react-native/src/icons/XCircle";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -19,7 +20,7 @@ import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 
 const HIDDEN_KEY = "interests.hidden";
 
-type ModuleScreen = "Expressions" | "MemoryMap";
+type ModuleScreen = "Expressions" | "MemoryMap" | "Goals";
 
 type ModuleDef = {
   id: string;
@@ -30,6 +31,13 @@ type ModuleDef = {
 };
 
 const MODULES: ModuleDef[] = [
+  {
+    id: "goals",
+    title: "목표 · 갓생",
+    desc: "직장·꿈·돈·집… 방면별 목표와 AI 갓생 코칭",
+    icon: Target,
+    screen: "Goals",
+  },
   {
     id: "expressions",
     title: "표현 카드",

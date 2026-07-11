@@ -8,7 +8,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "mood";
+type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "mood" | "coach";
 
 // 기능별 모델: 가벼운 요약은 mini, 긴 분석·글쓰기는 gpt-5
 const MODELS: Record<ReportType, string> = {
@@ -18,6 +18,7 @@ const MODELS: Record<ReportType, string> = {
   quarterly: "gpt-5",
   yearly: "gpt-5",
   mood: "gpt-5",
+  coach: "gpt-5",
 };
 
 const MAX_TOKENS: Record<ReportType, number> = {
@@ -27,6 +28,7 @@ const MAX_TOKENS: Record<ReportType, number> = {
   quarterly: 3500,
   yearly: 4000,
   mood: 3500,
+  coach: 3000,
 };
 
 const INSTRUCTIONS: Record<ReportType, string> = {
@@ -42,6 +44,8 @@ const INSTRUCTIONS: Record<ReportType, string> = {
     "아래 데이터는 사용자의 일 년 기록 요약이야. '올해의 발자취', '숫자로 보는 일 년', '내년을 향해' 세 부분으로 연간 회고 리포트를 써줘. 월별 흐름의 변화가 보이면 짚어줘.",
   mood:
     "아래 데이터는 사용자의 최근 3개월 기분 기록과 생활 데이터야. '기분 흐름'(시간에 따른 변화), '패턴 발견'(요일/루틴/일정과 기분의 관계, 데이터에 근거가 있을 때만), '기분을 위한 제안' 세 부분으로 기분 트렌드 분석을 써줘. 데이터가 부족하면 부족하다고 솔직히 말하고 무리한 해석은 하지 마.",
+  coach:
+    "아래 데이터는 사용자의 방면별 목표 목록과 최근 2주 생활 기록이야. 사용자는 '탑클래스 갓생'을 살고 싶어 해. 목표를 이룬 사람들의 보편적 습관(규칙적 수면, 아침 루틴, 운동, 꾸준한 학습, 기록, 목표를 작은 단위로 쪼개기)을 비교 기준으로 삼되 비난하지 말고: '지금 잘하고 있는 것'(기록에서 근거 찾기), '탑클래스와의 갭'(각 목표와 실제 기록을 비교해 구체적으로 — 예: 수면 평균 vs 권장, 루틴 달성률), '이번 주 실천 3가지'(목표와 직결되고 작고 측정 가능하게) 세 부분으로 갓생 코칭을 써줘. 목표가 없으면 방면별 목표부터 정하자고 제안해.",
 };
 
 const SYSTEM_PROMPT = `너는 개인 캘린더/일기 앱의 회고 도우미야.

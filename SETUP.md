@@ -57,6 +57,7 @@
    9. `0009_day_highlights.sql` — 날짜 꾸미기(내장 스티커 + 내 이미지 스티커)
    10. `0010_decoration_combo.sql` — 사진+스티커 동시 사용, 기념일 외곽선 색
    11. `0011_quarterly_report.sql` — 분기 리포트 타입
+   12. `0012_goals_coach.sql` — 방면별 목표, 갓생 코칭 리포트 타입
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 

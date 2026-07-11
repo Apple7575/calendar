@@ -18,7 +18,14 @@ import { expandEventRows } from "./recurrence";
 import { listChecksInRange, listRoutines, routinesForDate } from "./routines";
 import { supabase } from "./supabase";
 
-export type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "mood";
+export type ReportType =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly"
+  | "mood"
+  | "coach";
 
 export function periodRange(type: ReportType, periodKey: string): { start: string; end: string } {
   if (type === "daily") return { start: periodKey, end: periodKey };
@@ -42,6 +49,10 @@ export function periodRange(type: ReportType, periodKey: string): { start: strin
     const [y, m] = periodKey.split("-").map(Number);
     return { start: toDateKey(new Date(y, m - 3, 1)), end: toDateKey(new Date(y, m, 0)) };
   }
+  if (type === "coach") {
+    // periodKey = 주 시작(월요일): 지난주+이번주 2주 창
+    return { start: addDays(periodKey, -7), end: addDays(periodKey, 6) };
+  }
   return { start: `${periodKey}-01-01`, end: `${periodKey}-12-31` };
 }
 
@@ -57,6 +68,7 @@ export function periodLabel(type: ReportType, periodKey: string): string {
     const q = Number(periodKey.slice(6));
     return `${Number(periodKey.slice(0, 4))}년 ${q}분기 (${(q - 1) * 3 + 1}~${q * 3}월)`;
   }
+  if (type === "coach") return "이번 주 갓생 코칭 (최근 2주 기준)";
   if (type === "mood")
     return `~${Number(periodKey.slice(0, 4))}년 ${Number(periodKey.slice(5, 7))}월 (3개월)`;
   return `${periodKey}년`;
@@ -216,6 +228,55 @@ async function buildPayload(
         moodCounts,
         routines: routineStats,
         note: "mood가 null이면 기분을 기록하지 않은 일기",
+      },
+      photoUrls: [],
+    };
+  }
+
+  if (type === "coach") {
+    // 갓생 코칭: 목표 + 최근 2주 생활 기록 요약
+    const [{ data: goalRows }, routineStats, { data: taskRows }, { data: diaryRows }] =
+      await Promise.all([
+        supabase.from("goals").select("category, title, done").order("category"),
+        collectRoutineStats(start, end),
+        supabase.from("tasks").select("done").gte("date", start).lte("date", end),
+        supabase
+          .from("diaries")
+          .select("date, mood, energy, sleep_hours, highlight")
+          .gte("date", start)
+          .lte("date", end)
+          .order("date"),
+      ]);
+    const tasks2w = (taskRows ?? []) as { done: boolean }[];
+    const diaries2w = (diaryRows ?? []) as {
+      date: string;
+      mood: string | null;
+      energy: number | null;
+      sleep_hours: number | null;
+      highlight: string | null;
+    }[];
+    const sleeps = diaries2w
+      .map((d) => (d.sleep_hours != null ? Number(d.sleep_hours) : null))
+      .filter((v): v is number => v !== null);
+    const energies = diaries2w
+      .map((d) => d.energy)
+      .filter((v): v is number => v !== null);
+    return {
+      payload: {
+        goals: ((goalRows ?? []) as { category: string; title: string; done: boolean }[]),
+        recentTwoWeeks: {
+          diaryCount: diaries2w.length,
+          highlights: diaries2w.map((d) => d.highlight).filter(Boolean).slice(0, 14),
+          avgSleepHours: sleeps.length
+            ? Math.round((sleeps.reduce((a, b) => a + b, 0) / sleeps.length) * 10) / 10
+            : null,
+          avgEnergy: energies.length
+            ? Math.round((energies.reduce((a, b) => a + b, 0) / energies.length) * 10) / 10
+            : null,
+          tasksDone: tasks2w.filter((t) => t.done).length,
+          tasksTotal: tasks2w.length,
+          routines: routineStats,
+        },
       },
       photoUrls: [],
     };

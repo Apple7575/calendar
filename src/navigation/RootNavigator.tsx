@@ -6,6 +6,7 @@ import { AnniversariesScreen } from "../screens/AnniversariesScreen";
 import { CameraScreen } from "../screens/CameraScreen";
 import { DayDetailScreen } from "../screens/DayDetailScreen";
 import { ExpressionsScreen } from "../screens/ExpressionsScreen";
+import { GoalsScreen } from "../screens/GoalsScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -109,6 +110,11 @@ export function RootNavigator() {
             name="Anniversaries"
             component={AnniversariesScreen}
             options={{ title: "D-day · 기념일" }}
+          />
+          <Stack.Screen
+            name="Goals"
+            component={GoalsScreen}
+            options={{ title: "목표 · 갓생" }}
           />
         </>
       ) : (
