@@ -1,8 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { generateWeekLine, WeekLineInput } from "../lib/aiHelper";
 import { formatTime, monthWeeks, todayKey } from "../lib/dateUtils";
+import { annivHex } from "../lib/dday";
 import { CalendarEvent, eventsOnDate, MarkedDates } from "../lib/eventMerge";
+import { DayDecoration } from "../lib/highlights";
+import { AnniversaryRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
@@ -18,8 +30,10 @@ type Props = {
   events: CalendarEvent[];
   taskDates: string[];
   diaryDates: string[];
-  /** dateKey → 스티커 id */
-  highlights?: Record<string, string>;
+  /** dateKey → 꾸미기 (사진 배경 + 스티커) */
+  highlights?: Record<string, DayDecoration>;
+  /** dateKey → 그날의 기념일들 (외곽선 링 표시) */
+  anniversaries?: Record<string, AnniversaryRow[]>;
   /** 펼쳐진 주차 index (null = 없음) */
   expandedWeek: number | null;
   onToggleWeek: (index: number) => void;
@@ -37,6 +51,7 @@ export function MonthGrid({
   taskDates,
   diaryDates,
   highlights,
+  anniversaries,
   expandedWeek,
   onToggleWeek,
   onPressDay,
@@ -62,12 +77,17 @@ export function MonthGrid({
 
       {weeks.map((week, wi) => {
         const expanded = expandedWeek === wi;
+        const isCurrentWeek = week.includes(today);
         return (
           <View key={week[0]}>
             <View style={styles.row}>
-              {/* 주차 바 */}
+              {/* 주차 바 (이번 주는 테두리 강조) */}
               <TouchableOpacity
-                style={[styles.weekBar, expanded && styles.weekBarActive]}
+                style={[
+                  styles.weekBar,
+                  isCurrentWeek && styles.weekBarCurrent,
+                  expanded && styles.weekBarActive,
+                ]}
                 onPress={() => onToggleWeek(wi)}
               >
                 <Text style={[styles.weekBarText, expanded && styles.weekBarTextActive]}>
@@ -85,9 +105,10 @@ export function MonthGrid({
                 const inMonth = dateKey.startsWith(monthKey);
                 const isToday = dateKey === today;
                 const dots = markedDates[dateKey]?.dots ?? [];
-                const highlight = highlights?.[dateKey];
-                // 이미지 스티커는 셀 배경으로 크게, 내장 스티커는 숫자 옆 배지로
-                const imageBg = highlight?.startsWith("img:") ? highlight.slice(4) : null;
+                const deco = highlights?.[dateKey];
+                const imageBg = deco?.imageUrl ?? null;
+                // 기념일 외곽선: 색으로 분야/중요도 구분, 여러 개면 겹 링 (최대 2개)
+                const rings = anniversaries?.[dateKey] ?? [];
                 return (
                   <TouchableOpacity
                     key={dateKey}
@@ -100,23 +121,44 @@ export function MonthGrid({
                         <View style={styles.bgScrim} />
                       </View>
                     ) : null}
-                    <View style={[styles.dayNumWrap, isToday && styles.todayWrap]}>
-                      <Text
-                        style={[
-                          styles.dayNum,
-                          di === 0 && { color: c.danger },
-                          !inMonth && styles.dayNumMuted,
-                          imageBg && styles.dayNumOnImage,
-                          isToday && styles.todayText,
-                        ]}
-                      >
-                        {Number(dateKey.slice(8, 10))}
-                      </Text>
-                      {highlight && !imageBg ? (
-                        <View style={styles.stickerBadge}>
-                          <Sticker id={highlight} size={14} />
-                        </View>
-                      ) : null}
+                    <View style={styles.dayNumOuter}>
+                      {rings.slice(0, 2).map((a, ri) => {
+                        const inset = -3 - ri * 4;
+                        return (
+                          <View
+                            key={a.id}
+                            pointerEvents="none"
+                            style={[
+                              styles.annivRing,
+                              {
+                                top: inset,
+                                left: inset,
+                                right: inset,
+                                bottom: inset,
+                                borderColor: annivHex(a.color),
+                              },
+                            ]}
+                          />
+                        );
+                      })}
+                      <View style={[styles.dayNumWrap, isToday && styles.todayWrap]}>
+                        <Text
+                          style={[
+                            styles.dayNum,
+                            di === 0 && { color: c.danger },
+                            !inMonth && styles.dayNumMuted,
+                            imageBg && styles.dayNumOnImage,
+                            isToday && styles.todayText,
+                          ]}
+                        >
+                          {Number(dateKey.slice(8, 10))}
+                        </Text>
+                        {deco?.stickerId ? (
+                          <View style={styles.stickerBadge}>
+                            <Sticker id={deco.stickerId} size={14} />
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                     <View style={styles.dotRow}>
                       {dots.slice(0, 4).map((d) => (
@@ -186,12 +228,28 @@ function WeekSummary({
     }))
     .filter((d) => d.events.length > 0 || d.hasTask || d.hasDiary);
 
+  const weekEvents = week.flatMap((d) => eventsOnDate(events, d));
+
   if (daysWithContent.length === 0) {
     return <Text style={styles.accordionEmpty}>이번 주는 아직 비어 있어요.</Text>;
   }
 
   return (
     <>
+      <WeekLine
+        weekStart={week[0]}
+        input={{
+          range: `${week[0]} ~ ${week[6]}`,
+          events: weekEvents.slice(0, 20).map((e) => ({
+            title: e.title,
+            time: e.allDay ? "종일" : formatTime(e.startAt),
+          })),
+          taskDays: week.filter((d) => taskSet.has(d)).length,
+          diaryDays: week.filter((d) => diarySet.has(d)).length,
+        }}
+        styles={styles}
+        c={c}
+      />
       {daysWithContent.map((d) => (
         <TouchableOpacity
           key={d.dateKey}
@@ -246,6 +304,65 @@ function WeekSummary({
   );
 }
 
+/** 이번 주 한 줄 AI 요약 — 아코디언을 열 때 생성하고 AsyncStorage에 캐시한다 */
+function WeekLine({
+  weekStart,
+  input,
+  styles,
+  c,
+}: {
+  weekStart: string;
+  input: WeekLineInput;
+  styles: ReturnType<typeof createStyles>;
+  c: ThemeColors;
+}) {
+  const [line, setLine] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  // 내용이 바뀌면(개수 기준) 다시 생성
+  const signature = `${input.events.length}-${input.taskDays}-${input.diaryDays}`;
+  const cacheKey = `weekline.${weekStart}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(cacheKey);
+        if (raw) {
+          const cached = JSON.parse(raw) as { text: string; sig: string };
+          if (cached.sig === signature) {
+            if (!cancelled) setLine(cached.text);
+            return;
+          }
+        }
+        setLoading(true);
+        const text = await generateWeekLine(input);
+        await AsyncStorage.setItem(cacheKey, JSON.stringify({ text, sig: signature }));
+        if (!cancelled) setLine(text);
+      } catch {
+        if (!cancelled) setLine(null); // AI 미설정/실패 시 조용히 숨김
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey, signature]);
+
+  if (!loading && !line) return null;
+  return (
+    <View style={styles.weekLineRow}>
+      <Ionicons name="sparkles" size={12} color={c.primary} />
+      {loading ? (
+        <ActivityIndicator size="small" color={c.primary} />
+      ) : (
+        <Text style={styles.weekLineText}>{line}</Text>
+      )}
+    </View>
+  );
+}
+
 const WEEK_BAR_W = 30;
 
 const createStyles = (c: ThemeColors) =>
@@ -264,6 +381,22 @@ const createStyles = (c: ThemeColors) =>
       gap: 1,
     },
     weekBarActive: { backgroundColor: c.primary },
+    weekBarCurrent: { borderWidth: 1.5, borderColor: c.primary },
+    weekLineRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    weekLineText: {
+      flex: 1,
+      fontSize: fontSizes.small,
+      fontWeight: "700",
+      color: c.text,
+      lineHeight: 19,
+    },
     weekBarText: { fontSize: 10, fontWeight: "800", color: c.textMuted },
     weekBarTextActive: { color: c.white },
     weekdayLabel: {
@@ -273,12 +406,18 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: 4,
     },
     dayCell: { flex: 1, alignItems: "center", paddingVertical: 5, minHeight: 52 },
+    dayNumOuter: { width: 30, height: 30 },
     dayNumWrap: {
       width: 30,
       height: 30,
       borderRadius: 15,
       alignItems: "center",
       justifyContent: "center",
+    },
+    annivRing: {
+      position: "absolute",
+      borderWidth: 2,
+      borderRadius: 999,
     },
     stickerBadge: {
       position: "absolute",

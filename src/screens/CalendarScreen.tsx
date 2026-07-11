@@ -28,10 +28,13 @@ import {
   todayKey,
   weekStartOf,
 } from "../lib/dateUtils";
+import { listAnniversaries } from "../lib/anniversaries";
+import { anniversaryOccurrences } from "../lib/dday";
 import { buildMarkedDates, CalendarEvent, mergeEvents } from "../lib/eventMerge";
 import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
 import { listLocalEventsInRange } from "../lib/events";
-import { listHighlightsInRange } from "../lib/highlights";
+import { DayDecoration, listHighlightsInRange } from "../lib/highlights";
+import { AnniversaryRow } from "../lib/supabase";
 import { expandEventRows } from "../lib/recurrence";
 import { listTaskDatesInRange } from "../lib/tasks";
 import { updateWidget } from "../lib/widget";
@@ -58,7 +61,8 @@ export function CalendarScreen() {
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [taskDates, setTaskDates] = useState<string[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
-  const [highlights, setHighlights] = useState<Record<string, string>>({});
+  const [highlights, setHighlights] = useState<Record<string, DayDecoration>>({});
+  const [annivByDate, setAnnivByDate] = useState<Record<string, AnniversaryRow[]>>({});
   const [error, setError] = useState<string | null>(null);
 
   // 주간 모드에서도 그 주가 속한 달 기준으로 구글 fetch (±1개월 커버)
@@ -86,16 +90,18 @@ export function CalendarScreen() {
       }
       const startKey = toDateKey(rangeStart);
       const endKey = toDateKey(new Date(rangeEnd.getTime() - 1));
-      const [rows, tDates, dEntries, highlightMap] = await Promise.all([
+      const [rows, tDates, dEntries, highlightMap, annivRows] = await Promise.all([
         listLocalEventsInRange(rangeStart, rangeEnd),
         listTaskDatesInRange(startKey, endKey),
         listDiaryEntriesInRange(startKey, endKey),
         listHighlightsInRange(startKey, endKey),
+        listAnniversaries().catch(() => [] as AnniversaryRow[]),
       ]);
       setLocalEvents(expandEventRows(rows, rangeStart, rangeEnd));
       setTaskDates(tDates);
       setDiaryEntries(dEntries);
       setHighlights(highlightMap);
+      setAnnivByDate(anniversaryOccurrences(annivRows, startKey, endKey));
     } catch (e) {
       setError(e instanceof Error ? e.message : "데이터를 불러오지 못했어요.");
     }
@@ -246,6 +252,7 @@ export function CalendarScreen() {
             taskDates={taskDates}
             diaryDates={diaryEntries.map((e) => e.date)}
             highlights={highlights}
+            anniversaries={annivByDate}
             expandedWeek={expandedWeek}
             onToggleWeek={(i) => setExpandedWeek(expandedWeek === i ? null : i)}
             onPressDay={(date) => navigation.navigate("DayDetail", { date })}

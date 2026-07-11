@@ -141,6 +141,8 @@ export type AnniversaryRow = {
   /** true = 매년 반복 (생일 등) */
   repeat_yearly: boolean;
   emoji: string;
+  /** 달력 외곽선 색 키 (ANNIV_COLORS) — 분야/중요도 구분용 */
+  color: string;
   position: number;
   created_at: string;
 };

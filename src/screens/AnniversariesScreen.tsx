@@ -21,7 +21,7 @@ import {
   listAnniversaries,
 } from "../lib/anniversaries";
 import { todayKey, toDateKey, parseDateKey } from "../lib/dateUtils";
-import { ddayInfo } from "../lib/dday";
+import { ANNIV_COLORS, annivHex, ddayInfo } from "../lib/dday";
 import { AnniversaryRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -34,6 +34,7 @@ export function AnniversariesScreen() {
   const styles = useMemo(() => createStyles(c), [c]);
   const [rows, setRows] = useState<AnniversaryRow[] | null>(null);
   const [emoji, setEmoji] = useState<string>("🎉");
+  const [color, setColor] = useState<string>("rose");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(todayKey());
   const [repeatYearly, setRepeatYearly] = useState(false);
@@ -55,7 +56,7 @@ export function AnniversariesScreen() {
     }
     setSaving(true);
     try {
-      const row = await addAnniversary({ title: title.trim(), date, repeatYearly, emoji });
+      const row = await addAnniversary({ title: title.trim(), date, repeatYearly, emoji, color });
       setRows((prev) => [...(prev ?? []), row]);
       setTitle("");
       setRepeatYearly(false);
@@ -98,6 +99,24 @@ export function AnniversariesScreen() {
               <Text style={styles.emojiText}>{e}</Text>
             </TouchableOpacity>
           ))}
+        </View>
+        {/* 달력 외곽선 색 — 분야/중요도를 색으로 구분 */}
+        <View style={styles.colorRow}>
+          <Text style={styles.rowLabel}>달력 표시색</Text>
+          <View style={styles.colorChips}>
+            {ANNIV_COLORS.map((col) => (
+              <TouchableOpacity
+                key={col.key}
+                style={[
+                  styles.colorChip,
+                  { backgroundColor: col.hex },
+                  color === col.key && styles.colorChipActive,
+                ]}
+                onPress={() => setColor(col.key)}
+                accessibilityLabel={col.label}
+              />
+            ))}
+          </View>
         </View>
         <TextInput
           style={styles.input}
@@ -147,6 +166,7 @@ export function AnniversariesScreen() {
           })
           .map(({ r, dday }) => (
             <View key={r.id} style={styles.item}>
+              <View style={[styles.itemColorBar, { backgroundColor: annivHex(r.color) }]} />
               <Text style={styles.itemEmoji}>{r.emoji}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemTitle}>{r.title}</Text>
@@ -229,6 +249,15 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: spacing.sm + 4,
     },
     itemEmoji: { fontSize: 20 },
+    itemColorBar: { width: 4, alignSelf: "stretch", borderRadius: 2 },
+    colorRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    colorChips: { flexDirection: "row", gap: spacing.sm },
+    colorChip: { width: 24, height: 24, borderRadius: 12 },
+    colorChipActive: { borderWidth: 3, borderColor: c.text },
     itemTitle: { fontSize: fontSizes.body, fontWeight: "700", color: c.text },
     itemDate: { fontSize: fontSizes.caption, color: c.textMuted, marginTop: 1 },
     itemDday: { fontSize: fontSizes.body, fontWeight: "900", color: c.primary },

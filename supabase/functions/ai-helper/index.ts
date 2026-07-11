@@ -207,6 +207,16 @@ Deno.serve(async (req) => {
       return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
     }
 
+    if (task === "week_line") {
+      const text = await callOpenAI({
+        system:
+          "너는 개인 캘린더의 주간 요약가야. 한 주의 일정 제목들과 할 일·일기 일수를 보고 그 주의 핵심을 한국어 한 문장(35자 이내)으로 요약해. 일정 제목의 고유명사를 살리고, 데이터가 적으면 담백하게 써. 문장 하나만, 따옴표와 마침표 없이.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 300,
+      });
+      return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
+    }
+
     if (task === "translate_diary") {
       const text = await callOpenAI({
         system:

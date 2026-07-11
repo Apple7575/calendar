@@ -1,8 +1,17 @@
-// 날짜 스티커 선택 모달: 내장 8종 그리드 + 내 사진(자동 압축)에서 고르거나 제거한다.
+// 날짜 꾸미기 모달: 사진 배경(자동 압축)과 스티커를 같이 쓸 수 있다.
+// 사진은 달력 셀 배경으로, 스티커는 그 위 배지로 올라간다.
 
 import { ImageSquare } from "phosphor-react-native/src/icons/ImageSquare";
 import React, { useMemo } from "react";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { STICKERS, Sticker } from "./stickers";
 import { useTheme } from "../../theme/ThemeContext";
 import { ThemeColors } from "../../theme/themes";
@@ -10,20 +19,26 @@ import { fontSizes, radii, spacing } from "../../theme/tokens";
 
 type Props = {
   visible: boolean;
-  current: string | null;
+  /** 현재 스티커 id */
+  sticker: string | null;
+  /** 현재 사진 배경 URL */
+  imageUrl: string | null;
   onSelect: (id: string) => void;
-  /** "내 사진" 선택 (앨범에서 골라 스티커로) */
+  /** 사진 배경 고르기 (앨범) */
   onPickImage: () => void;
-  onClear: () => void;
+  onClearSticker: () => void;
+  onClearImage: () => void;
   onClose: () => void;
 };
 
 export function StickerPickerModal({
   visible,
-  current,
+  sticker,
+  imageUrl,
   onSelect,
   onPickImage,
-  onClear,
+  onClearSticker,
+  onClearImage,
   onClose,
 }: Props) {
   const { colors: c } = useTheme();
@@ -34,34 +49,44 @@ export function StickerPickerModal({
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>이 날 꾸미기</Text>
+
+          {/* 사진 배경 */}
+          <Text style={styles.sectionLabel}>배경 사진</Text>
+          <View style={styles.imageRow}>
+            <TouchableOpacity style={styles.imagePick} onPress={onPickImage}>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+              ) : (
+                <ImageSquare size={30} weight="duotone" color={c.primary} />
+              )}
+              <Text style={styles.cellLabel}>{imageUrl ? "사진 바꾸기" : "사진 고르기"}</Text>
+            </TouchableOpacity>
+            {imageUrl ? (
+              <TouchableOpacity style={styles.clearSmall} onPress={onClearImage}>
+                <Text style={styles.clearText}>사진 제거</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* 스티커 (사진 위에 올라감) */}
+          <Text style={styles.sectionLabel}>스티커</Text>
           <View style={styles.grid}>
             {STICKERS.map((s) => (
               <TouchableOpacity
                 key={s.id}
-                style={[styles.cell, current === s.id && styles.cellActive]}
+                style={[styles.cell, sticker === s.id && styles.cellActive]}
                 onPress={() => onSelect(s.id)}
               >
                 <Sticker id={s.id} size={34} />
                 <Text style={styles.cellLabel}>{s.label}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity
-              style={[styles.cell, current?.startsWith("img:") && styles.cellActive]}
-              onPress={onPickImage}
-            >
-              {current?.startsWith("img:") ? (
-                <Sticker id={current} size={34} />
-              ) : (
-                <ImageSquare size={32} weight="duotone" color={c.primary} />
-              )}
-              <Text style={styles.cellLabel}>내 사진</Text>
-            </TouchableOpacity>
           </View>
           <Text style={styles.sizeHint}>
-            내 사진은 자동으로 256px로 줄여 저장돼요 (용량 걱정 없음)
+            사진은 배경으로, 스티커는 그 위에 함께 표시돼요 (사진은 자동 압축)
           </Text>
-          {current ? (
-            <TouchableOpacity style={styles.clearButton} onPress={onClear}>
+          {sticker ? (
+            <TouchableOpacity style={styles.clearButton} onPress={onClearSticker}>
               <Text style={styles.clearText}>스티커 제거</Text>
             </TouchableOpacity>
           ) : null}
@@ -105,6 +130,21 @@ const createStyles = (c: ThemeColors) =>
     },
     cellActive: { backgroundColor: c.primarySoft },
     cellLabel: { fontSize: fontSizes.caption, color: c.textMuted },
+    sectionLabel: {
+      fontSize: fontSizes.caption,
+      fontWeight: "800",
+      color: c.textMuted,
+      marginBottom: spacing.xs + 2,
+    },
+    imageRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      marginBottom: spacing.md,
+    },
+    imagePick: { alignItems: "center", gap: 3 },
+    imagePreview: { width: 44, height: 44, borderRadius: 10 },
+    clearSmall: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
     sizeHint: {
       fontSize: fontSizes.caption,
       color: c.textMuted,

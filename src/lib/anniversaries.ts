@@ -24,6 +24,8 @@ export type AnniversaryInput = {
   date: string;
   repeatYearly: boolean;
   emoji: string;
+  /** 달력 외곽선 색 키 (ANNIV_COLORS) */
+  color: string;
 };
 
 export async function addAnniversary(input: AnniversaryInput): Promise<AnniversaryRow> {
@@ -36,6 +38,7 @@ export async function addAnniversary(input: AnniversaryInput): Promise<Anniversa
       date: input.date,
       repeat_yearly: input.repeatYearly,
       emoji: input.emoji,
+      color: input.color,
     })
     .select()
     .single();

@@ -101,6 +101,19 @@ async function collectDayContext(dateKey: string) {
   };
 }
 
+// ===== 주간 한 줄 요약 (캘린더 주차 아코디언) =====
+
+export type WeekLineInput = {
+  range: string;
+  events: { title: string; time: string }[];
+  taskDays: number;
+  diaryDays: number;
+};
+
+export async function generateWeekLine(input: WeekLineInput): Promise<string> {
+  return invokeHelper<string>("week_line", input);
+}
+
 // ===== 아침 브리핑 =====
 
 export async function generateBriefing(dateKey: string): Promise<string> {

@@ -20,11 +20,13 @@ import { toViewerPhoto } from "../lib/diary";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
 import * as ImagePicker from "expo-image-picker";
 import {
-  clearHighlight,
+  clearImage,
+  clearSticker,
+  DayDecoration,
+  decorationOf,
   getHighlight,
-  highlightDisplayValue,
-  setHighlight,
   setImageHighlight,
+  setSticker,
 } from "../lib/highlights";
 import * as routineLib from "../lib/routines";
 import * as taskLib from "../lib/tasks";
@@ -69,35 +71,45 @@ export function DayOverview({
   const [newTask, setNewTask] = useState("");
   const [addingTask, setAddingTask] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const [stickerId, setStickerId] = useState<string | null>(null);
+  const [decoration, setDecoration] = useState<DayDecoration>({
+    stickerId: null,
+    imageUrl: null,
+  });
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       getHighlight(dateKey)
-        .then(highlightDisplayValue)
-        .then(setStickerId)
-        .catch(() => setStickerId(null));
+        .then(decorationOf)
+        .then(setDecoration)
+        .catch(() => setDecoration({ stickerId: null, imageUrl: null }));
     }, [dateKey])
   );
 
   const handleSelectSticker = async (id: string) => {
-    setStickerId(id);
-    setPickerOpen(false);
+    setDecoration((prev) => ({ ...prev, stickerId: id }));
     try {
-      await setHighlight(dateKey, id);
+      await setSticker(dateKey, id);
     } catch (e) {
       Alert.alert("오류", e instanceof Error ? e.message : "스티커 저장에 실패했어요.");
     }
   };
 
   const handleClearSticker = async () => {
-    setStickerId(null);
-    setPickerOpen(false);
+    setDecoration((prev) => ({ ...prev, stickerId: null }));
     try {
-      await clearHighlight(dateKey);
+      await clearSticker(dateKey);
     } catch (e) {
       Alert.alert("오류", e instanceof Error ? e.message : "스티커 삭제에 실패했어요.");
+    }
+  };
+
+  const handleClearImage = async () => {
+    setDecoration((prev) => ({ ...prev, imageUrl: null }));
+    try {
+      await clearImage(dateKey);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "사진 삭제에 실패했어요.");
     }
   };
 
@@ -109,12 +121,11 @@ export function DayOverview({
       quality: 1,
     });
     if (result.canceled || !result.assets[0]) return;
-    setPickerOpen(false);
     try {
-      const value = await setImageHighlight(dateKey, result.assets[0].uri);
-      setStickerId(value || null);
+      const url = await setImageHighlight(dateKey, result.assets[0].uri);
+      setDecoration((prev) => ({ ...prev, imageUrl: url }));
     } catch (e) {
-      Alert.alert("오류", e instanceof Error ? e.message : "이미지 스티커 저장에 실패했어요.");
+      Alert.alert("오류", e instanceof Error ? e.message : "사진 배경 저장에 실패했어요.");
     }
   };
 
@@ -219,10 +230,13 @@ export function DayOverview({
       ) : null}
 
       <TouchableOpacity style={styles.stickerRow} onPress={() => setPickerOpen(true)}>
-        {stickerId ? (
+        {decoration.stickerId || decoration.imageUrl ? (
           <>
-            <Sticker id={stickerId} size={26} />
-            <Text style={styles.stickerRowText}>이 날의 스티커 · 바꾸기</Text>
+            {decoration.imageUrl ? (
+              <Image source={{ uri: decoration.imageUrl }} style={styles.decoThumb} />
+            ) : null}
+            {decoration.stickerId ? <Sticker id={decoration.stickerId} size={26} /> : null}
+            <Text style={styles.stickerRowText}>이 날 꾸미기 · 바꾸기</Text>
           </>
         ) : (
           <>
@@ -447,11 +461,13 @@ export function DayOverview({
     </ScrollView>
     <Confetti visible={celebrate} onDone={() => setCelebrate(false)} />
     <StickerPickerModal
-      onPickImage={handlePickImageSticker}
       visible={pickerOpen}
-      current={stickerId}
+      sticker={decoration.stickerId}
+      imageUrl={decoration.imageUrl}
       onSelect={handleSelectSticker}
-      onClear={handleClearSticker}
+      onPickImage={handlePickImageSticker}
+      onClearSticker={handleClearSticker}
+      onClearImage={handleClearImage}
       onClose={() => setPickerOpen(false)}
     />
     </View>
@@ -478,6 +494,7 @@ const createStyles = (c: ThemeColors) =>
       marginBottom: spacing.md,
     },
     stickerRowText: { fontSize: fontSizes.small, fontWeight: "700", color: c.textMuted },
+    decoThumb: { width: 26, height: 26, borderRadius: 7 },
     banner: {
       flexDirection: "row",
       alignItems: "center",
