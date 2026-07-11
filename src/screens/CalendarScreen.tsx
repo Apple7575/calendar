@@ -36,6 +36,7 @@ import { anniversaryOccurrences } from "../lib/dday";
 import { buildMarkedDates, CalendarEvent, mergeEvents } from "../lib/eventMerge";
 import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
 import { listLocalEventsInRange } from "../lib/events";
+import { tapLight } from "../lib/haptics";
 import { DayDecoration, listHighlightsInRange } from "../lib/highlights";
 import { AnniversaryRow } from "../lib/supabase";
 import { expandEventRows } from "../lib/recurrence";
@@ -152,6 +153,7 @@ export function CalendarScreen() {
   };
 
   const changePeriod = (delta: number) => {
+    tapLight();
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (mode === "month") changeMonth(delta);
     else if (mode === "week") changeWeek(delta);
@@ -279,6 +281,10 @@ export function CalendarScreen() {
             expandedWeek={expandedWeek}
             onToggleWeek={(i) => setExpandedWeek(expandedWeek === i ? null : i)}
             onPressDay={(date) => navigation.navigate("DayDetail", { date })}
+            onLongPressDay={(date) => {
+              tapLight();
+              navigation.navigate("EventEdit", { date });
+            }}
           />
 
           <View style={styles.legend}>
@@ -295,16 +301,18 @@ export function CalendarScreen() {
           />
         </ScrollView>
       ) : (
-        <WeekView
-          weekStart={weekStart}
-          events={mergedEvents}
-          selection={selection}
-          onPressDay={(date) => navigation.navigate("DayDetail", { date })}
-          onPressSlot={(date, hour) =>
-            setSelection({ dateKey: date, startMin: hour * 60, endMin: hour * 60 + 60 })
-          }
-          onPressEvent={handlePressGoogleEvent}
-        />
+        <View style={{ flex: 1 }} {...swipe.panHandlers}>
+          <WeekView
+            weekStart={weekStart}
+            events={mergedEvents}
+            selection={selection}
+            onPressDay={(date) => navigation.navigate("DayDetail", { date })}
+            onPressSlot={(date, hour) =>
+              setSelection({ dateKey: date, startMin: hour * 60, endMin: hour * 60 + 60 })
+            }
+            onPressEvent={handlePressGoogleEvent}
+          />
+        </View>
       )}
 
       <QuickEventSheet

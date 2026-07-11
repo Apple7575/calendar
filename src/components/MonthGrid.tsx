@@ -40,6 +40,8 @@ type Props = {
   expandedWeek: number | null;
   onToggleWeek: (index: number) => void;
   onPressDay: (dateKey: string) => void;
+  /** 날짜 길게 누르기 → 바로 일정 추가 */
+  onLongPressDay?: (dateKey: string) => void;
 };
 
 /**
@@ -57,8 +59,9 @@ export function MonthGrid({
   expandedWeek,
   onToggleWeek,
   onPressDay,
+  onLongPressDay,
 }: Props) {
-  const { colors: c } = useTheme();
+  const { colors: c, isDark } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const weeks = useMemo(() => monthWeeks(monthKey), [monthKey]);
   const today = todayKey();
@@ -119,11 +122,18 @@ export function MonthGrid({
                     key={dateKey}
                     style={styles.dayCell}
                     onPress={() => onPressDay(dateKey)}
+                    onLongPress={onLongPressDay ? () => onLongPressDay(dateKey) : undefined}
                   >
                     {imageBg ? (
                       <View style={styles.bgWrap} pointerEvents="none">
                         <Image source={{ uri: imageBg }} style={styles.bgImage} />
-                        <View style={styles.bgScrim} />
+                        {/* 다크 테마에선 밝은 사진이 튀지 않게 더 어둡게 */}
+                        <View
+                          style={[
+                            styles.bgScrim,
+                            isDark && { backgroundColor: "rgba(0,0,0,0.4)" },
+                          ]}
+                        />
                       </View>
                     ) : null}
                     {ringColors.length > 0 ? <AnnivBorder colors={ringColors} /> : null}
@@ -353,6 +363,7 @@ function WeekLine({
   c: ThemeColors;
 }) {
   const [line, setLine] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   // 내용이 바뀌면(개수 기준) 다시 생성
   const signature = `${input.events.length}-${input.taskDays}-${input.diaryDays}`;
@@ -373,9 +384,15 @@ function WeekLine({
         setLoading(true);
         const text = await generateWeekLine(input);
         await AsyncStorage.setItem(cacheKey, JSON.stringify({ text, sig: signature }));
-        if (!cancelled) setLine(text);
+        if (!cancelled) {
+          setLine(text);
+          setFailed(false);
+        }
       } catch {
-        if (!cancelled) setLine(null); // AI 미설정/실패 시 조용히 숨김
+        if (!cancelled) {
+          setLine(null);
+          setFailed(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -386,12 +403,19 @@ function WeekLine({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKey, signature]);
 
-  if (!loading && !line) return null;
+  if (!loading && !line && !failed) return null;
   return (
     <View style={styles.weekLineRow}>
       <Ionicons name="sparkles" size={12} color={c.primary} />
       {loading ? (
-        <ActivityIndicator size="small" color={c.primary} />
+        <>
+          <ActivityIndicator size="small" color={c.primary} />
+          <Text style={styles.weekLineLoading}>이번 주 한 줄을 만드는 중…</Text>
+        </>
+      ) : failed ? (
+        <Text style={styles.weekLineLoading}>
+          한 줄 요약을 만들지 못했어요 — ai-helper 최신 배포·AI 키를 확인해 주세요
+        </Text>
       ) : (
         <Text style={styles.weekLineText}>{line}</Text>
       )}
@@ -433,6 +457,7 @@ const createStyles = (c: ThemeColors) =>
       color: c.text,
       lineHeight: 19,
     },
+    weekLineLoading: { flex: 1, fontSize: fontSizes.caption, color: c.textMuted },
     weekBarText: { fontSize: 10, fontWeight: "800", color: c.textMuted },
     weekBarTextActive: { color: c.white },
     weekdayLabel: {

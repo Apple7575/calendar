@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import { todayKey } from "../lib/dateUtils";
 import { addPhoto, countPhotos, ensureDiary } from "../lib/diary";
+import { tapLight } from "../lib/haptics";
 import { currentPhotoLocation } from "../lib/location";
 import { RootScreenProps } from "../navigation/types";
 import { fontSizes, spacing } from "../theme/tokens";
@@ -68,6 +69,7 @@ export function CameraScreen({ navigation }: RootScreenProps<"Camera">) {
 
   const shoot = async () => {
     if (!cameraRef.current || shooting) return;
+    tapLight();
     setShooting(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.85 });

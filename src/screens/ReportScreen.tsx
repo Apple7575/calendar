@@ -39,6 +39,7 @@ const TYPES: { value: TabType; label: string }[] = [
   { value: "daily", label: "하루" },
   { value: "weekly", label: "주간" },
   { value: "monthly", label: "월간" },
+  { value: "quarterly", label: "분기" },
   { value: "yearly", label: "연간" },
   { value: "mood", label: "기분" },
   { value: "gallery", label: "사진첩" },
@@ -49,6 +50,10 @@ function defaultPeriod(type: ReportType): string {
   if (type === "daily") return today;
   if (type === "weekly") return weekStartOf(today);
   if (type === "monthly" || type === "mood") return today.slice(0, 7);
+  if (type === "quarterly") {
+    const m = Number(today.slice(5, 7));
+    return `${today.slice(0, 4)}-Q${Math.floor((m - 1) / 3) + 1}`;
+  }
   return today.slice(0, 4);
 }
 
@@ -56,6 +61,12 @@ function shiftPeriod(type: ReportType, periodKey: string, delta: number): string
   if (type === "daily") return addDays(periodKey, delta);
   if (type === "weekly") return addDays(periodKey, delta * 7);
   if (type === "monthly" || type === "mood") return addMonths(periodKey, delta);
+  if (type === "quarterly") {
+    const y = Number(periodKey.slice(0, 4));
+    const q = Number(periodKey.slice(6));
+    const total = y * 4 + (q - 1) + delta;
+    return `${Math.floor(total / 4)}-Q${(total % 4) + 1}`;
+  }
   return String(Number(periodKey) + delta);
 }
 
@@ -83,7 +94,7 @@ function ReportBody({ content, styles }: { content: string; styles: Styles }) {
   );
 }
 
-const REPORT_TYPES: ReportType[] = ["daily", "weekly", "monthly", "yearly", "mood"];
+const REPORT_TYPES: ReportType[] = ["daily", "weekly", "monthly", "quarterly", "yearly", "mood"];
 function isReportType(t: TabType): t is ReportType {
   return (REPORT_TYPES as TabType[]).includes(t);
 }
@@ -238,8 +249,13 @@ export function ReportScreen() {
         <ActivityIndicator style={{ marginTop: spacing.lg }} color={c.primary} />
       ) : (
         <>
-      {/* 종류 선택 */}
-      <View style={styles.typeRow}>
+      {/* 종류 선택 (칩이 많아 가로 스크롤) */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={styles.typeRow}
+      >
         {TYPES.map((t) => (
           <TouchableOpacity
             key={t.value}
@@ -251,7 +267,7 @@ export function ReportScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {type === "metrics" ? (
         <View style={[styles.body, { paddingTop: spacing.md }]}>
@@ -390,10 +406,9 @@ const createStyles = (c: ThemeColors) =>
       paddingTop: spacing.md,
     },
     typeChip: {
-      flex: 1,
       alignItems: "center",
       paddingVertical: spacing.sm,
-      paddingHorizontal: 2,
+      paddingHorizontal: spacing.sm + 6,
       borderRadius: radii.pill,
       backgroundColor: c.card,
       borderWidth: 1,

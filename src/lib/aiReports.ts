@@ -18,7 +18,7 @@ import { expandEventRows } from "./recurrence";
 import { listChecksInRange, listRoutines, routinesForDate } from "./routines";
 import { supabase } from "./supabase";
 
-export type ReportType = "daily" | "weekly" | "monthly" | "yearly" | "mood";
+export type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "mood";
 
 export function periodRange(type: ReportType, periodKey: string): { start: string; end: string } {
   if (type === "daily") return { start: periodKey, end: periodKey };
@@ -26,6 +26,16 @@ export function periodRange(type: ReportType, periodKey: string): { start: strin
   if (type === "monthly") {
     const [y, m] = periodKey.split("-").map(Number);
     return { start: `${periodKey}-01`, end: toDateKey(new Date(y, m, 0)) };
+  }
+  if (type === "quarterly") {
+    // periodKey: "YYYY-Qn" (1분기=1~3월 … 4분기=10~12월)
+    const y = Number(periodKey.slice(0, 4));
+    const q = Number(periodKey.slice(6));
+    const startMonth = (q - 1) * 3 + 1;
+    return {
+      start: `${y}-${String(startMonth).padStart(2, "0")}-01`,
+      end: toDateKey(new Date(y, startMonth + 2, 0)),
+    };
   }
   if (type === "mood") {
     // 해당 월 포함 최근 3개월
@@ -43,6 +53,10 @@ export function periodLabel(type: ReportType, periodKey: string): string {
       end.slice(5, 7)
     )}/${Number(end.slice(8, 10))}`;
   if (type === "monthly") return `${Number(periodKey.slice(0, 4))}년 ${Number(periodKey.slice(5, 7))}월`;
+  if (type === "quarterly") {
+    const q = Number(periodKey.slice(6));
+    return `${Number(periodKey.slice(0, 4))}년 ${q}분기 (${(q - 1) * 3 + 1}~${q * 3}월)`;
+  }
   if (type === "mood")
     return `~${Number(periodKey.slice(0, 4))}년 ${Number(periodKey.slice(5, 7))}월 (3개월)`;
   return `${periodKey}년`;
@@ -246,7 +260,7 @@ async function buildPayload(
   }
 
   const { events, googleIncluded } = await collectEvents(start, end);
-  const contentLimit = type === "weekly" ? 300 : 120;
+  const contentLimit = type === "weekly" ? 300 : type === "quarterly" ? 60 : 120;
   const { data: diaryContents } = await supabase
     .from("diaries")
     .select("date, mood, content, highlight, energy, sleep_hours, people, gratitude")

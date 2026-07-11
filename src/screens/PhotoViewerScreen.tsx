@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartBurst } from "../components/cute/HeartBurst";
 import { getOriginalUrl, setPhotoLiked } from "../lib/diary";
+import { tapLight } from "../lib/haptics";
 import { appleMapsUrl } from "../lib/location";
 import { RootScreenProps, ViewerPhoto } from "../navigation/types";
 import { fontSizes, spacing } from "../theme/tokens";
@@ -56,7 +57,10 @@ export function PhotoViewerScreen({ route, navigation }: RootScreenProps<"PhotoV
     if (!photo?.id) return;
     const next = !likedById[photo.id];
     setLikedById((prev) => ({ ...prev, [photo.id!]: next }));
-    if (next) setHeartBurst((n) => n + 1);
+    if (next) {
+      tapLight();
+      setHeartBurst((n) => n + 1);
+    }
     try {
       await setPhotoLiked(photo.id, next);
     } catch (e) {

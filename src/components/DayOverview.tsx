@@ -17,6 +17,7 @@ import { useDayData } from "../hooks/useDayData";
 import { useGoogleEvents } from "../hooks/useGoogleEvents";
 import { formatTime, monthKeyOf } from "../lib/dateUtils";
 import { toViewerPhoto } from "../lib/diary";
+import { tapLight, tapSuccess } from "../lib/haptics";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -141,6 +142,7 @@ export function DayOverview({
         kind === "routine" && r.id === id ? true : day.checkedRoutineIds.has(r.id)
       );
     if (tasksAllDone && routinesAllDone && day.tasks.length + day.routines.length > 0) {
+      tapSuccess();
       setCelebrate(true);
     }
   };
@@ -169,6 +171,7 @@ export function DayOverview({
   };
 
   const handleToggleRoutine = async (routineId: string, checked: boolean) => {
+    if (checked) tapLight();
     try {
       await routineLib.setRoutineChecked(routineId, dateKey, checked);
       maybeCelebrate("routine", routineId, checked);
@@ -180,6 +183,7 @@ export function DayOverview({
   };
 
   const handleToggleTask = async (id: string, done: boolean) => {
+    if (done) tapLight();
     try {
       await taskLib.setTaskDone(id, done);
       maybeCelebrate("task", id, done);

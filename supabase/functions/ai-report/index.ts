@@ -8,13 +8,14 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type ReportType = "daily" | "weekly" | "monthly" | "yearly" | "mood";
+type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "mood";
 
 // 기능별 모델: 가벼운 요약은 mini, 긴 분석·글쓰기는 gpt-5
 const MODELS: Record<ReportType, string> = {
   daily: "gpt-5-mini",
   weekly: "gpt-5-mini",
   monthly: "gpt-5",
+  quarterly: "gpt-5",
   yearly: "gpt-5",
   mood: "gpt-5",
 };
@@ -23,6 +24,7 @@ const MAX_TOKENS: Record<ReportType, number> = {
   daily: 2500,
   weekly: 3000,
   monthly: 3500,
+  quarterly: 3500,
   yearly: 4000,
   mood: 3500,
 };
@@ -34,6 +36,8 @@ const INSTRUCTIONS: Record<ReportType, string> = {
     "아래 데이터는 사용자의 한 주 기록이야. '이번 주 돌아보기', '숫자로 보는 한 주'(일정/할 일/루틴/일기 통계), '다음 주를 위한 제안' 세 부분으로 주간 리포트를 써줘.",
   monthly:
     "아래 데이터는 사용자의 한 달 기록이야. '이달의 하이라이트', '기분과 리듬'(기분 분포와 루틴/일기 습관), '다음 달을 위한 제안' 세 부분으로 월간 리포트를 써줘.",
+  quarterly:
+    "아래 데이터는 사용자의 한 분기(3개월) 기록이야. '이번 분기 돌아보기'(굵직한 흐름과 사건), '분기의 리듬'(기분/루틴/일기 습관의 변화), '다음 분기를 위한 방향' 세 부분으로 분기 회고 리포트를 써줘. 월과 연 사이의 중간 호흡답게, 세세한 나열보다 흐름과 변화를 짚어줘.",
   yearly:
     "아래 데이터는 사용자의 일 년 기록 요약이야. '올해의 발자취', '숫자로 보는 일 년', '내년을 향해' 세 부분으로 연간 회고 리포트를 써줘. 월별 흐름의 변화가 보이면 짚어줘.",
   mood:

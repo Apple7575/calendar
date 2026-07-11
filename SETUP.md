@@ -56,6 +56,7 @@
    8. `0008_location_dday.sql` — 사진 위치(장소명), D-day/기념일
    9. `0009_day_highlights.sql` — 날짜 꾸미기(내장 스티커 + 내 이미지 스티커)
    10. `0010_decoration_combo.sql` — 사진+스티커 동시 사용, 기념일 외곽선 색
+   11. `0011_quarterly_report.sql` — 분기 리포트 타입
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 
