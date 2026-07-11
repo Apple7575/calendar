@@ -7,6 +7,8 @@ import { CameraScreen } from "../screens/CameraScreen";
 import { DayDetailScreen } from "../screens/DayDetailScreen";
 import { ExpressionsScreen } from "../screens/ExpressionsScreen";
 import { GoalsScreen } from "../screens/GoalsScreen";
+import { SpeechScreen } from "../screens/SpeechScreen";
+import { TimelineScreen } from "../screens/TimelineScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -115,6 +117,16 @@ export function RootNavigator() {
             name="Goals"
             component={GoalsScreen}
             options={{ title: "목표 · 갓생" }}
+          />
+          <Stack.Screen
+            name="Timeline"
+            component={TimelineScreen}
+            options={{ title: "인생 타임라인" }}
+          />
+          <Stack.Screen
+            name="Speech"
+            component={SpeechScreen}
+            options={{ title: "스피치 · 대화" }}
           />
         </>
       ) : (

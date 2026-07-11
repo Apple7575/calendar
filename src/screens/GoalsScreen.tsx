@@ -18,7 +18,15 @@ import {
 import { PrimaryButton } from "../components/PrimaryButton";
 import { generateReport, getCachedReport } from "../lib/aiReports";
 import { todayKey, weekStartOf } from "../lib/dateUtils";
-import { addGoal, categoryOf, deleteGoal, GOAL_CATEGORIES, listGoals, setGoalDone } from "../lib/goals";
+import {
+  addGoal,
+  categoryOf,
+  checkinSummary,
+  deleteGoal,
+  GOAL_CATEGORIES,
+  listGoals,
+  setGoalDone,
+} from "../lib/goals";
 import { tapLight, tapSuccess } from "../lib/haptics";
 import { GoalRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
@@ -35,6 +43,9 @@ export function GoalsScreen() {
   // 갓생 코칭
   const [coach, setCoach] = useState<string | null>(null);
   const [coaching, setCoaching] = useState(false);
+  const [checkins, setCheckins] = useState<
+    Record<string, { count: number; lastNote: string; lastDate: string }>
+  >({});
   const weekKey = weekStartOf(todayKey());
 
   useEffect(() => {
@@ -42,6 +53,7 @@ export function GoalsScreen() {
       .then(setGoals)
       .catch((e) => Alert.alert("오류", e instanceof Error ? e.message : "불러오지 못했어요."));
     getCachedReport("coach", weekKey).then(setCoach).catch(() => {});
+    checkinSummary().then(setCheckins).catch(() => {});
   }, [weekKey]);
 
   const handleAdd = async () => {
@@ -215,7 +227,15 @@ export function GoalsScreen() {
                     <CircleIcon size={22} color={c.border} />
                   )}
                 </TouchableOpacity>
-                <Text style={[styles.goalTitle, g.done && styles.goalDone]}>{g.title}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.goalTitle, g.done && styles.goalDone]}>{g.title}</Text>
+                  {checkins[g.id] ? (
+                    <Text style={styles.goalProgress}>
+                      진전 {checkins[g.id].count}회 · {checkins[g.id].lastDate.slice(5)}:{" "}
+                      {checkins[g.id].lastNote}
+                    </Text>
+                  ) : null}
+                </View>
                 <TouchableOpacity onPress={() => handleDelete(g)} hitSlop={8}>
                   <Trash size={16} color={c.textMuted} />
                 </TouchableOpacity>
@@ -314,6 +334,7 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: spacing.sm + 4,
       marginBottom: spacing.xs + 2,
     },
-    goalTitle: { flex: 1, fontSize: fontSizes.small, color: c.text, lineHeight: 20 },
+    goalTitle: { fontSize: fontSizes.small, color: c.text, lineHeight: 20 },
+    goalProgress: { fontSize: fontSizes.caption, color: c.primary, marginTop: 1 },
     goalDone: { textDecorationLine: "line-through", color: c.textMuted },
   });

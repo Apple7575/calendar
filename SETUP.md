@@ -58,6 +58,7 @@
    10. `0010_decoration_combo.sql` — 사진+스티커 동시 사용, 기념일 외곽선 색
    11. `0011_quarterly_report.sql` — 분기 리포트 타입
    12. `0012_goals_coach.sql` — 방면별 목표, 갓생 코칭 리포트 타입
+   13. `0013_life_records.sql` — 생활 기록(식단·몸무게 등), 인생 타임라인, 목표 진전
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 
@@ -84,6 +85,7 @@ AI 리포트(하루/주간/월간/연간/기분), 자연어 일정 등록, 아�
    npx supabase secrets set OPENAI_API_KEY=<발급받은 키>
    npx supabase functions deploy ai-report
    npx supabase functions deploy ai-helper
+   npx supabase functions deploy transcribe
    ```
 키는 서버(Edge Function)에만 저장되고 앱에는 들어가지 않습니다.
 AI 기능을 안 쓸 거면 건너뛰어도 됩니다 — AI 화면에서만 오류가 표시되고

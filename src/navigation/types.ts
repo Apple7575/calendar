@@ -49,6 +49,10 @@ export type RootStackParamList = {
   Anniversaries: undefined;
   /** 방면별 목표 + 갓생 코칭 */
   Goals: undefined;
+  /** 인생 타임라인 */
+  Timeline: undefined;
+  /** 스피치 · 대화 가이드 */
+  Speech: undefined;
   /** 루틴 관리 */
   Routines: undefined;
   /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */

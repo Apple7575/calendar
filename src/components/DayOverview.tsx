@@ -40,6 +40,7 @@ import { Confetti } from "./cute/Confetti";
 import { Sticker } from "./cute/stickers";
 import { StickerPickerModal } from "./cute/StickerPickerModal";
 import { DiaryTranslationCard } from "./DiaryTranslationCard";
+import { LifeLogSection } from "./LifeLogSection";
 import { Section } from "./Section";
 
 type Props = {
@@ -383,6 +384,8 @@ export function DayOverview({
           </TouchableOpacity>
         </View>
       </Section>
+
+      <LifeLogSection dateKey={dateKey} />
 
       <Section title="일기">
         <TouchableOpacity onPress={onEditDiary} activeOpacity={0.7}>

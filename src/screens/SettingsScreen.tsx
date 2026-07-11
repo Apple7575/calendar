@@ -24,10 +24,13 @@ import {
   getBriefingReminderPref,
   getDiaryReminderPref,
   getMomentReminderPref,
+  getReviewReminderPref,
   MomentReminderPref,
+  ReviewReminderPref,
   setBriefingReminder,
   setDiaryReminder,
   setMomentReminder,
+  setReviewReminder,
 } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { useThemeControls } from "../theme/ThemeContext";
@@ -46,6 +49,7 @@ export function SettingsScreen() {
   const [diaryPref, setDiaryPref] = useState<DiaryReminderPref | null>(null);
   const [briefingPref, setBriefingPref] = useState<BriefingReminderPref | null>(null);
   const [momentPref, setMomentPref] = useState<MomentReminderPref | null>(null);
+  const [reviewPref, setReviewPref] = useState<ReviewReminderPref | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -66,7 +70,24 @@ export function SettingsScreen() {
     getDiaryReminderPref().then(setDiaryPref);
     getBriefingReminderPref().then(setBriefingPref);
     getMomentReminderPref().then(setMomentPref);
+    getReviewReminderPref().then(setReviewPref);
   }, []);
+
+  const applyReviewPref = async (next: ReviewReminderPref) => {
+    if (next.enabled) {
+      const ok = await ensureNotificationPermission();
+      if (!ok) {
+        Alert.alert("알림 권한 필요", "설정 앱에서 이 앱의 알림을 허용해 주세요.");
+        return;
+      }
+    }
+    try {
+      await setReviewReminder(next);
+      setReviewPref(next);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "회고 알림 설정에 실패했어요.");
+    }
+  };
 
   const applyMomentPref = async (next: MomentReminderPref) => {
     if (next.enabled) {
@@ -269,6 +290,22 @@ export function SettingsScreen() {
           <Text style={styles.scopeHint}>
             매일 10시~21시 사이 랜덤한 시각에 "지금 이 순간"을 찍자고 알려드려요. 알림을
             누르면 바로 카메라가 열려요.
+          </Text>
+        </Section>
+
+        <Section title="주말 회고 알림">
+          <View style={styles.statusRow}>
+            <Text style={styles.rowText}>일요일 저녁 8시 알림</Text>
+            <Switch
+              value={reviewPref?.enabled ?? false}
+              onValueChange={(enabled) => {
+                if (reviewPref !== null) applyReviewPref({ enabled });
+              }}
+              trackColor={{ true: c.primary }}
+            />
+          </View>
+          <Text style={styles.scopeHint}>
+            한 주를 돌아보고 주간 리포트와 목표를 점검할 시간을 알려드려요.
           </Text>
         </Section>
 

@@ -228,6 +228,48 @@ export async function topUpMomentReminders(): Promise<void> {
   await AsyncStorage.setItem(MOMENT_IDS_KEY, JSON.stringify(map));
 }
 
+// ===== 주말 회고 알림 (매주 일요일 저녁) =====
+
+const REVIEW_NOTIF_ID_KEY = "notif.review.id";
+const REVIEW_PREF_KEY = "notif.review.pref";
+
+export type ReviewReminderPref = { enabled: boolean };
+
+export async function getReviewReminderPref(): Promise<ReviewReminderPref> {
+  const raw = await AsyncStorage.getItem(REVIEW_PREF_KEY);
+  if (!raw) return { enabled: false };
+  try {
+    return { enabled: !!(JSON.parse(raw) as ReviewReminderPref).enabled };
+  } catch {
+    return { enabled: false };
+  }
+}
+
+export async function setReviewReminder(pref: ReviewReminderPref): Promise<void> {
+  const oldId = await AsyncStorage.getItem(REVIEW_NOTIF_ID_KEY);
+  if (oldId) {
+    await Notifications.cancelScheduledNotificationAsync(oldId).catch(() => {});
+    await AsyncStorage.removeItem(REVIEW_NOTIF_ID_KEY);
+  }
+  await AsyncStorage.setItem(REVIEW_PREF_KEY, JSON.stringify(pref));
+  if (!pref.enabled) return;
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "이번 주를 돌아볼 시간 🌙",
+      body: "주간 리포트로 한 주를 정리하고, 다음 주 목표를 점검해 보세요.",
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 1, // 일요일
+      hour: 20,
+      minute: 0,
+    },
+  });
+  await AsyncStorage.setItem(REVIEW_NOTIF_ID_KEY, id);
+}
+
 // ===== 일기 리마인드 (매일 반복) =====
 
 export async function getDiaryReminderPref(): Promise<DiaryReminderPref> {

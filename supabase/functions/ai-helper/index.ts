@@ -207,6 +207,57 @@ Deno.serve(async (req) => {
       return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
     }
 
+    if (task === "goal_mottos") {
+      const text = await callOpenAI({
+        system:
+          "너는 동기부여 문구 작가야. 사용자의 방면별 목표 목록을 보고, 앱을 열 때마다 하나씩 보여줄 짧고 힘 있는 한국어 동기부여 문구 12개를 만들어. 각 문구는 30자 이내, 구체적인 목표 내용을 녹여서(예: 'N2 단어 5개면 오늘 몫은 끝'), 뻔한 명언 말고 그 사람의 목표에 딱 붙는 말로. 이모지는 문구당 최대 1개.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 1500,
+        jsonSchema: {
+          name: "goal_mottos",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: { phrases: { type: "array", items: { type: "string" } } },
+            required: ["phrases"],
+          },
+        },
+      });
+      return json({ result: JSON.parse(text) }, 200);
+    }
+
+    if (task === "goal_link") {
+      const text = await callOpenAI({
+        system:
+          "너는 일기와 목표를 연결하는 도우미야. 일기 내용과 목표 목록을 보고, 오늘 실제로 진전이 있었던 목표만 골라(억지로 연결하지 마, 없으면 빈 배열) 각각 20자 이내의 진전 메모를 한국어로 써. goalId는 반드시 목록에 있는 id만 사용해.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 800,
+        jsonSchema: {
+          name: "goal_links",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              links: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    goalId: { type: "string" },
+                    note: { type: "string" },
+                  },
+                  required: ["goalId", "note"],
+                },
+              },
+            },
+            required: ["links"],
+          },
+        },
+      });
+      return json({ result: JSON.parse(text) }, 200);
+    }
+
     if (task === "week_line") {
       const text = await callOpenAI({
         system:

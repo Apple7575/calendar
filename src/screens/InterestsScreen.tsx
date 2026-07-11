@@ -6,8 +6,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
+import { ChatCircleDots } from "phosphor-react-native/src/icons/ChatCircleDots";
 import { Gear } from "phosphor-react-native/src/icons/Gear";
 import { MapPin } from "phosphor-react-native/src/icons/MapPin";
+import { PathIcon } from "phosphor-react-native/src/icons/Path";
 import { Target } from "phosphor-react-native/src/icons/Target";
 import { XCircle } from "phosphor-react-native/src/icons/XCircle";
 import React, { useCallback, useMemo, useState } from "react";
@@ -20,7 +22,7 @@ import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 
 const HIDDEN_KEY = "interests.hidden";
 
-type ModuleScreen = "Expressions" | "MemoryMap" | "Goals";
+type ModuleScreen = "Expressions" | "MemoryMap" | "Goals" | "Timeline" | "Speech";
 
 type ModuleDef = {
   id: string;
@@ -51,6 +53,20 @@ const MODULES: ModuleDef[] = [
     desc: "사진을 찍은 장소들을 모아봐요",
     icon: MapPin,
     screen: "MemoryMap",
+  },
+  {
+    id: "timeline",
+    title: "인생 타임라인",
+    desc: "입학·취업·이사… 인생의 큰 순간들을 연도별로",
+    icon: PathIcon,
+    screen: "Timeline",
+  },
+  {
+    id: "speech",
+    title: "스피치 · 대화",
+    desc: "1:1 대화, 모임, 발표, 대화 주제까지 실전 팁",
+    icon: ChatCircleDots,
+    screen: "Speech",
   },
 ];
 

@@ -8,6 +8,8 @@ import { Compass } from "phosphor-react-native/src/icons/Compass";
 import { Sun } from "phosphor-react-native/src/icons/Sun";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { GoalMottoModal } from "../components/GoalMottoModal";
+import { maybeAutoBackup } from "../lib/backup";
 import { CalendarScreen } from "../screens/CalendarScreen";
 import { InterestsScreen } from "../screens/InterestsScreen";
 import { ReportScreen } from "../screens/ReportScreen";
@@ -50,7 +52,12 @@ function CameraTabButton({ c }: { c: ThemeColors }) {
 
 export function MainTabs() {
   const { colors: c } = useTheme();
+  // 앱 실행 시 1회: 자동 백업 점검 (28일 주기, 조용히)
+  React.useEffect(() => {
+    void maybeAutoBackup();
+  }, []);
   return (
+    <>
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -92,6 +99,8 @@ export function MainTabs() {
         options={{ title: "관심사", tabBarIcon: tabIcon(Compass) }}
       />
     </Tab.Navigator>
+    <GoalMottoModal />
+    </>
   );
 }
 

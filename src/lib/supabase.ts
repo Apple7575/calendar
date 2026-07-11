@@ -132,6 +132,37 @@ export type GoalRow = {
   created_at: string;
 };
 
+export type DailyLogRow = {
+  id: string;
+  user_id: string;
+  date: string;
+  /** meal/weight/steps/money/study/inbody */
+  kind: string;
+  value_num: number | null;
+  value_text: string | null;
+  created_at: string;
+};
+
+export type LifeEventRow = {
+  id: string;
+  user_id: string;
+  year: number;
+  title: string;
+  emoji: string;
+  note: string | null;
+  position: number;
+  created_at: string;
+};
+
+export type GoalCheckinRow = {
+  id: string;
+  user_id: string;
+  goal_id: string;
+  date: string;
+  note: string;
+  created_at: string;
+};
+
 export type DayHighlightRow = {
   id: string;
   user_id: string;

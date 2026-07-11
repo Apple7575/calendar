@@ -24,7 +24,9 @@ import {
   View,
 } from "react-native";
 import { Confetti } from "../components/cute/Confetti";
+import { MicButton } from "../components/MicButton";
 import { PrimaryButton } from "../components/PrimaryButton";
+import { linkDiaryToGoals } from "../lib/goals";
 import { DiaryQuestion, generateDiaryQuestions, generateHighlight } from "../lib/aiHelper";
 import { formatKoreanDate } from "../lib/dateUtils";
 import {
@@ -254,6 +256,8 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         setPending(failed);
         Alert.alert("안내", `사진 ${failed.length}장은 업로드하지 못했어요. 다시 저장해 보세요.`);
       } else {
+        // 목표 진전 자동 기록 (백그라운드, 실패 무시)
+        void linkDiaryToGoals(date, content);
         // 컨페티 한 번 보여주고 닫기
         setCelebrate(true);
         setTimeout(() => navigation.goBack(), 900);
@@ -447,18 +451,28 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </View>
         ) : null}
 
-        <TextInput
-          style={styles.diaryInput}
-          placeholder={
-            writeMode === "qa"
-              ? "답변을 고르면 여기에 일기가 쌓여요."
-              : "오늘 하루는 어땠나요?"
-          }
-          placeholderTextColor={c.textMuted}
-          value={content}
-          onChangeText={setContent}
-          multiline
-        />
+        <View>
+          <TextInput
+            style={styles.diaryInput}
+            placeholder={
+              writeMode === "qa"
+                ? "답변을 고르면 여기에 일기가 쌓여요."
+                : "오늘 하루는 어땠나요? (🎙️로 말해도 돼요)"
+            }
+            placeholderTextColor={c.textMuted}
+            value={content}
+            onChangeText={setContent}
+            multiline
+          />
+          {/* 음성 일기: 말하면 받아 적어 이어붙인다 */}
+          <View style={styles.micWrap}>
+            <MicButton
+              onText={(text) =>
+                setContent((prev) => (prev.trim() ? `${prev.trimEnd()} ${text}` : text))
+              }
+            />
+          </View>
+        </View>
 
         {/* 오늘의 한 줄 */}
         <Text style={styles.fieldLabel}>
@@ -746,6 +760,7 @@ const createStyles = (c: ThemeColors) =>
       textAlign: "center",
       paddingVertical: 2,
     },
+    micWrap: { position: "absolute", right: spacing.sm, bottom: spacing.sm },
     diaryInput: {
       minHeight: 180,
       fontSize: fontSizes.body,

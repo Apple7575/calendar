@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { MicButton } from "../components/MicButton";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { parsedEventDates, parseEventText, ParsedEvent } from "../lib/aiHelper";
 import { formatKoreanDate, formatTime, toDateKey } from "../lib/dateUtils";
@@ -110,16 +111,26 @@ export function QuickAddScreen({ navigation }: RootScreenProps<"QuickAdd">) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.lead}>말하듯 쓰면 AI가 일정으로 만들어 드려요.</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={EXAMPLES[0]}
-        placeholderTextColor={c.textMuted}
-        value={text}
-        onChangeText={setText}
-        onSubmitEditing={handleParse}
-        returnKeyType="done"
-        autoFocus
-      />
+      <View style={styles.inputRow}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          placeholder={EXAMPLES[0]}
+          placeholderTextColor={c.textMuted}
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={handleParse}
+          returnKeyType="done"
+          autoFocus
+        />
+        {/* 음성으로 일정 말하기 → 전사 후 자동 파싱 */}
+        <MicButton
+          size={44}
+          onText={(t) => {
+            setText(t);
+            setParsed(null);
+          }}
+        />
+      </View>
       <View style={styles.exampleWrap}>
         {EXAMPLES.map((ex) => (
           <TouchableOpacity key={ex} style={styles.exampleChip} onPress={() => setText(ex)}>
@@ -219,6 +230,7 @@ const createStyles = (c: ThemeColors) =>
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: spacing.md, paddingBottom: spacing.xl },
     lead: { fontSize: fontSizes.body, color: c.textMuted, marginBottom: spacing.md },
+    inputRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     input: {
       borderWidth: 1.5,
       borderColor: c.primary,
