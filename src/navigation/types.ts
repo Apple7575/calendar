@@ -49,10 +49,12 @@ export type RootStackParamList = {
   Anniversaries: undefined;
   /** 루틴 관리 */
   Routines: undefined;
-  /** AI 리포트 */
-  Reports: undefined;
-  /** 사진첩 */
+  /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */
   Gallery: undefined;
+  /** 설정 (관심사 탭의 톱니바퀴로 진입) */
+  Settings: undefined;
+  /** 추억 지도 (위치가 있는 사진 모음) */
+  MemoryMap: undefined;
 };
 
 export type MainTabParamList = {
@@ -60,8 +62,8 @@ export type MainTabParamList = {
   Today: undefined;
   /** 실제 화면 없음 — 탭 버튼이 루트 스택의 Camera를 연다 */
   CameraTab: undefined;
-  Search: undefined;
-  Settings: undefined;
+  Report: undefined;
+  Interests: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<

@@ -1,5 +1,14 @@
-import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { ArrowUp } from "phosphor-react-native/src/icons/ArrowUp";
+import { Camera } from "phosphor-react-native/src/icons/Camera";
+import { ChatsCircle } from "phosphor-react-native/src/icons/ChatsCircle";
+import { Heartbeat } from "phosphor-react-native/src/icons/Heartbeat";
+import { Lightning } from "phosphor-react-native/src/icons/Lightning";
+import { MinusCircle } from "phosphor-react-native/src/icons/MinusCircle";
+import { PencilSimpleLine } from "phosphor-react-native/src/icons/PencilSimpleLine";
+import { PlusCircle } from "phosphor-react-native/src/icons/PlusCircle";
+import { Sparkle } from "phosphor-react-native/src/icons/Sparkle";
+import { X } from "phosphor-react-native/src/icons/X";
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -295,10 +304,10 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
                   onPress={() => setEnergy(energy === v ? null : v)}
                   hitSlop={4}
                 >
-                  <Ionicons
-                    name="flash"
+                  <Lightning
                     size={22}
-                    color={energy !== null && v <= energy ? c.dotTask : c.border}
+                    weight={energy !== null && v <= energy ? "fill" : "regular"}
+                    color={energy !== null && v <= energy ? "#FFB020" : c.border}
                   />
                 </TouchableOpacity>
               ))}
@@ -326,7 +335,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
                     }
                   }}
                 >
-                  <Ionicons name="heart-circle" size={18} color={c.danger} />
+                  <Heartbeat size={18} weight="duotone" color={c.danger} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -337,7 +346,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
                 }
                 hitSlop={6}
               >
-                <Ionicons name="remove-circle-outline" size={22} color={c.primary} />
+                <MinusCircle size={22} color={c.primary} />
               </TouchableOpacity>
               <Text style={styles.sleepText}>
                 {sleepHours === null ? "기록 안 함" : `${sleepHours}시간`}
@@ -348,7 +357,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
                 }
                 hitSlop={6}
               >
-                <Ionicons name="add-circle-outline" size={22} color={c.primary} />
+                <PlusCircle size={22} color={c.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -360,8 +369,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             style={[styles.modeChip, writeMode === "free" && styles.modeChipActive]}
             onPress={() => setWriteMode("free")}
           >
-            <Ionicons
-              name="create-outline"
+            <PencilSimpleLine
               size={13}
               color={writeMode === "free" ? c.white : c.textMuted}
             />
@@ -373,8 +381,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             style={[styles.modeChip, writeMode === "qa" && styles.modeChipActive]}
             onPress={enterQaMode}
           >
-            <Ionicons
-              name="chatbubbles-outline"
+            <ChatsCircle
               size={13}
               color={writeMode === "qa" ? c.white : c.textMuted}
             />
@@ -427,7 +434,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
                     disabled={!customAnswer.trim()}
                     onPress={() => appendAnswer(questions[qIndex].question, customAnswer)}
                   >
-                    <Ionicons name="arrow-up" size={16} color={c.white} />
+                    <ArrowUp size={16} weight="bold" color={c.white} />
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity onPress={skipQuestion} hitSlop={8}>
@@ -473,7 +480,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             {generatingHighlight ? (
               <ActivityIndicator size="small" color={c.white} />
             ) : (
-              <Ionicons name="sparkles" size={16} color={c.white} />
+              <Sparkle size={16} weight="fill" color={c.white} />
             )}
           </TouchableOpacity>
         </View>
@@ -498,7 +505,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
               onPress={() => setPeople((prev) => prev.filter((x) => x !== p))}
             >
               <Text style={styles.personChipText}>{p}</Text>
-              <Ionicons name="close" size={12} color={c.primary} />
+              <X size={12} weight="bold" color={c.primary} />
             </TouchableOpacity>
           ))}
           <TextInput
@@ -547,7 +554,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.addThumb} onPress={pickPhotos}>
-            <Ionicons name="camera-outline" size={26} color={c.textMuted} />
+            <Camera size={26} color={c.textMuted} />
             <Text style={styles.addThumbLabel}>사진</Text>
           </TouchableOpacity>
         </View>

@@ -1,12 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Camera as CameraIcon } from "phosphor-react-native/src/icons/Camera";
+import { CalendarBlank } from "phosphor-react-native/src/icons/CalendarBlank";
+import { ChartLineUp } from "phosphor-react-native/src/icons/ChartLineUp";
+import { Compass } from "phosphor-react-native/src/icons/Compass";
+import { Sun } from "phosphor-react-native/src/icons/Sun";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { CalendarScreen } from "../screens/CalendarScreen";
-import { SearchScreen } from "../screens/SearchScreen";
-import { SettingsScreen } from "../screens/SettingsScreen";
+import { InterestsScreen } from "../screens/InterestsScreen";
+import { ReportScreen } from "../screens/ReportScreen";
 import { TodayScreen } from "../screens/TodayScreen";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -15,11 +19,11 @@ import { MainTabParamList, RootStackParamList } from "./types";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-type IconName = keyof typeof Ionicons.glyphMap;
+type PhosphorIcon = typeof CalendarBlank;
 
-function tabIcon(active: IconName, inactive: IconName) {
+function tabIcon(Icon: PhosphorIcon) {
   return ({ focused, color }: { focused: boolean; color: string }) => (
-    <Ionicons name={focused ? active : inactive} size={22} color={color} />
+    <Icon size={22} weight={focused ? "fill" : "regular"} color={color} />
   );
 }
 
@@ -38,7 +42,7 @@ function CameraTabButton({ c }: { c: ThemeColors }) {
         activeOpacity={0.85}
         accessibilityLabel="순간 찍기"
       >
-        <Ionicons name="camera" size={26} color={c.white} />
+        <CameraIcon size={26} weight="fill" color={c.white} />
       </TouchableOpacity>
     </View>
   );
@@ -62,12 +66,12 @@ export function MainTabs() {
       <Tab.Screen
         name="Calendar"
         component={CalendarScreen}
-        options={{ title: "캘린더", tabBarIcon: tabIcon("calendar", "calendar-outline") }}
+        options={{ title: "캘린더", tabBarIcon: tabIcon(CalendarBlank) }}
       />
       <Tab.Screen
         name="Today"
         component={TodayScreen}
-        options={{ title: "오늘", tabBarIcon: tabIcon("sunny", "sunny-outline") }}
+        options={{ title: "오늘", tabBarIcon: tabIcon(Sun) }}
       />
       <Tab.Screen
         name="CameraTab"
@@ -78,14 +82,14 @@ export function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{ title: "검색", tabBarIcon: tabIcon("search", "search-outline") }}
+        name="Report"
+        component={ReportScreen}
+        options={{ title: "리포트", tabBarIcon: tabIcon(ChartLineUp) }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: "설정", tabBarIcon: tabIcon("settings", "settings-outline") }}
+        name="Interests"
+        component={InterestsScreen}
+        options={{ title: "관심사", tabBarIcon: tabIcon(Compass) }}
       />
     </Tab.Navigator>
   );

@@ -6,6 +6,7 @@ import { CalendarEvent, eventsOnDate, MarkedDates } from "../lib/eventMerge";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
+import { Sticker } from "./cute/stickers";
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
@@ -17,6 +18,8 @@ type Props = {
   events: CalendarEvent[];
   taskDates: string[];
   diaryDates: string[];
+  /** dateKey → 스티커 id */
+  highlights?: Record<string, string>;
   /** 펼쳐진 주차 index (null = 없음) */
   expandedWeek: number | null;
   onToggleWeek: (index: number) => void;
@@ -33,6 +36,7 @@ export function MonthGrid({
   events,
   taskDates,
   diaryDates,
+  highlights,
   expandedWeek,
   onToggleWeek,
   onPressDay,
@@ -98,6 +102,11 @@ export function MonthGrid({
                       >
                         {Number(dateKey.slice(8, 10))}
                       </Text>
+                      {highlights?.[dateKey] ? (
+                        <View style={styles.stickerBadge}>
+                          <Sticker id={highlights[dateKey]} size={14} />
+                        </View>
+                      ) : null}
                     </View>
                     <View style={styles.dotRow}>
                       {dots.slice(0, 4).map((d) => (
@@ -253,6 +262,11 @@ const createStyles = (c: ThemeColors) =>
       borderRadius: 15,
       alignItems: "center",
       justifyContent: "center",
+    },
+    stickerBadge: {
+      position: "absolute",
+      top: -6,
+      right: -8,
     },
     todayWrap: { backgroundColor: c.primary },
     dayNum: { fontSize: fontSizes.body, color: c.text },

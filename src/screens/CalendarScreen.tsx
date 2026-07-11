@@ -30,6 +30,7 @@ import {
 import { buildMarkedDates, CalendarEvent, mergeEvents } from "../lib/eventMerge";
 import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
 import { listLocalEventsInRange } from "../lib/events";
+import { listHighlightsInRange } from "../lib/highlights";
 import { expandEventRows } from "../lib/recurrence";
 import { listTaskDatesInRange } from "../lib/tasks";
 import { updateWidget } from "../lib/widget";
@@ -56,6 +57,7 @@ export function CalendarScreen() {
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [taskDates, setTaskDates] = useState<string[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
+  const [highlights, setHighlights] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   // 주간 모드에서도 그 주가 속한 달 기준으로 구글 fetch (±1개월 커버)
@@ -77,14 +79,16 @@ export function CalendarScreen() {
       }
       const startKey = toDateKey(rangeStart);
       const endKey = toDateKey(new Date(rangeEnd.getTime() - 1));
-      const [rows, tDates, dEntries] = await Promise.all([
+      const [rows, tDates, dEntries, highlightMap] = await Promise.all([
         listLocalEventsInRange(rangeStart, rangeEnd),
         listTaskDatesInRange(startKey, endKey),
         listDiaryEntriesInRange(startKey, endKey),
+        listHighlightsInRange(startKey, endKey),
       ]);
       setLocalEvents(expandEventRows(rows, rangeStart, rangeEnd));
       setTaskDates(tDates);
       setDiaryEntries(dEntries);
+      setHighlights(highlightMap);
     } catch (e) {
       setError(e instanceof Error ? e.message : "데이터를 불러오지 못했어요.");
     }
@@ -203,7 +207,7 @@ export function CalendarScreen() {
       </View>
 
       {google.notLinked ? (
-        <Text style={styles.notice}>구글 캘린더 미연결 — 설정 탭에서 연결할 수 있어요.</Text>
+        <Text style={styles.notice}>구글 캘린더 미연결 — 관심사 탭 ⚙️ 설정에서 연결할 수 있어요.</Text>
       ) : null}
       {error || google.error ? (
         <Text style={styles.error}>{error ?? google.error}</Text>
@@ -217,6 +221,7 @@ export function CalendarScreen() {
             events={mergedEvents}
             taskDates={taskDates}
             diaryDates={diaryEntries.map((e) => e.date)}
+            highlights={highlights}
             expandedWeek={expandedWeek}
             onToggleWeek={(i) => setExpandedWeek(expandedWeek === i ? null : i)}
             onPressDay={(date) => navigation.navigate("DayDetail", { date })}

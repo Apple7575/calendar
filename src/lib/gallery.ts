@@ -89,6 +89,32 @@ export async function listMonthPhotos(monthKey: string): Promise<GalleryPhoto[]>
   return photos.sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
+/** 위치가 있는 사진 전체 (최신순) — 추억 지도용 */
+export async function listLocationPhotos(limit = 300): Promise<GalleryPhoto[]> {
+  const { data: photoRows, error } = await supabase
+    .from("diary_photos")
+    .select("*")
+    .not("lat", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`위치 정보를 불러오지 못했어요: ${error.message}`);
+  const rows = (photoRows ?? []) as DiaryPhotoRow[];
+  if (rows.length === 0) return [];
+
+  const diaryIds = [...new Set(rows.map((r) => r.diary_id))];
+  const { data: diaries, error: diaryError } = await supabase
+    .from("diaries")
+    .select("id, date")
+    .in("id", diaryIds);
+  if (diaryError) throw new Error(`사진 날짜를 불러오지 못했어요: ${diaryError.message}`);
+  const dateByDiary = new Map(
+    ((diaries ?? []) as Pick<DiaryRow, "id" | "date">[]).map((d) => [d.id, d.date])
+  );
+
+  const photos = await withUrls(rows, dateByDiary);
+  return photos.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
 /** 좋아요(하트) 누른 사진 전체 (최신순) */
 export async function listLikedPhotos(limit = 300): Promise<GalleryPhoto[]> {
   const { data: photoRows, error } = await supabase

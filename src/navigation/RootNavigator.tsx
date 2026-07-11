@@ -11,9 +11,10 @@ import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { PhotoViewerScreen } from "../screens/PhotoViewerScreen";
 import { GalleryScreen } from "../screens/GalleryScreen";
+import { MemoryMapScreen } from "../screens/MemoryMapScreen";
 import { QuickAddScreen } from "../screens/QuickAddScreen";
-import { ReportScreen } from "../screens/ReportScreen";
 import { RoutineManageScreen } from "../screens/RoutineManageScreen";
+import { SettingsScreen } from "../screens/SettingsScreen";
 import { useTheme } from "../theme/ThemeContext";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
@@ -75,9 +76,14 @@ export function RootNavigator() {
             options={{ title: "루틴 관리" }}
           />
           <Stack.Screen
-            name="Reports"
-            component={ReportScreen}
-            options={{ title: "AI 리포트" }}
+            name="Settings"
+            component={SettingsScreen}
+            options={{ title: "설정" }}
+          />
+          <Stack.Screen
+            name="MemoryMap"
+            component={MemoryMapScreen}
+            options={{ title: "추억 지도" }}
           />
           <Stack.Screen
             name="QuickAdd"

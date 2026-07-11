@@ -121,6 +121,17 @@ export type DiaryPhotoRow = {
   created_at: string;
 };
 
+export type DayHighlightRow = {
+  id: string;
+  user_id: string;
+  date: string;
+  /** 내장 스티커 id — 이미지 스티커면 null */
+  sticker_id: string | null;
+  /** 이미지 스티커 storage 경로 */
+  image_path: string | null;
+  created_at: string;
+};
+
 export type AnniversaryRow = {
   id: string;
   user_id: string;

@@ -5,10 +5,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -20,14 +22,16 @@ import {
   periodLabel,
   ReportType,
 } from "../lib/aiReports";
-import { addDays, addMonths, todayKey, weekStartOf } from "../lib/dateUtils";
+import { addDays, addMonths, formatKoreanDate, todayKey, weekStartOf } from "../lib/dateUtils";
 import { GalleryPhoto, galleryPhotoToViewer, listLikedPhotos } from "../lib/gallery";
+import { searchAll, SearchResult, typeLabel } from "../lib/search";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
+import { GalleryScreen } from "./GalleryScreen";
 
-type TabType = ReportType | "metrics";
+type TabType = ReportType | "metrics" | "gallery";
 
 const TYPES: { value: TabType; label: string }[] = [
   { value: "metrics", label: "지표" },
@@ -36,6 +40,7 @@ const TYPES: { value: TabType; label: string }[] = [
   { value: "monthly", label: "월간" },
   { value: "yearly", label: "연간" },
   { value: "mood", label: "기분" },
+  { value: "gallery", label: "사진첩" },
 ];
 
 function defaultPeriod(type: ReportType): string {
@@ -77,6 +82,11 @@ function ReportBody({ content, styles }: { content: string; styles: Styles }) {
   );
 }
 
+const REPORT_TYPES: ReportType[] = ["daily", "weekly", "monthly", "yearly", "mood"];
+function isReportType(t: TabType): t is ReportType {
+  return (REPORT_TYPES as TabType[]).includes(t);
+}
+
 export function ReportScreen() {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
@@ -87,6 +97,32 @@ export function ReportScreen() {
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [likedInMonth, setLikedInMonth] = useState<GalleryPhoto[]>([]);
+
+  // 검색 (탭 최상단 검색창)
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const searchTypeColors: Record<SearchResult["type"], string> = {
+    event: c.dotEvent,
+    task: c.dotTask,
+    diary: c.dotDiary,
+  };
+  const handleSearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
+    try {
+      setSearchResults(await searchAll(q));
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "검색에 실패했어요.");
+    } finally {
+      setSearching(false);
+    }
+  };
+  const clearSearch = () => {
+    setQuery("");
+    setSearchResults(null);
+  };
 
   // 월간 탭: 그 달의 ♥ 사진 하이라이트
   useEffect(() => {
@@ -107,12 +143,12 @@ export function ReportScreen() {
 
   const changeType = (t: TabType) => {
     setType(t);
-    if (t !== "metrics") setPeriodKey(defaultPeriod(t));
+    if (isReportType(t)) setPeriodKey(defaultPeriod(t));
   };
 
   // 기간 변경 시 캐시된 리포트 확인
   const loadCached = useCallback(async () => {
-    if (type === "metrics") return;
+    if (!isReportType(type)) return;
     setChecking(true);
     setContent(null);
     try {
@@ -127,7 +163,7 @@ export function ReportScreen() {
   }, [loadCached]);
 
   const handleGenerate = async (force: boolean) => {
-    if (type === "metrics") return;
+    if (!isReportType(type)) return;
     setGenerating(true);
     try {
       setContent(await generateReport(type, periodKey, force));
@@ -140,6 +176,67 @@ export function ReportScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 검색창 */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputWrap}>
+          <Ionicons name="search" size={16} color={c.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="일정, 할 일, 일기 검색"
+            placeholderTextColor={c.textMuted}
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {query.length > 0 ? (
+            <TouchableOpacity onPress={clearSearch} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color={c.textMuted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
+      {searchResults !== null ? (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(r) => `${r.type}-${r.id}`}
+          contentContainerStyle={styles.searchList}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons name="file-tray-outline" size={28} color={c.textMuted} />
+              <Text style={styles.emptyText}>검색 결과가 없어요.</Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.resultRow}
+              onPress={() => navigation.navigate("DayDetail", { date: item.date })}
+            >
+              <View style={[styles.typeBadge, { backgroundColor: searchTypeColors[item.type] }]}>
+                <Text style={styles.typeBadgeText}>{typeLabel(item.type)}</Text>
+              </View>
+              <View style={styles.resultBody}>
+                <Text style={styles.resultTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                {item.snippet ? (
+                  <Text style={styles.resultSnippet} numberOfLines={1}>
+                    {item.snippet}
+                  </Text>
+                ) : null}
+                <Text style={styles.resultDate}>{formatKoreanDate(item.date)}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+            </TouchableOpacity>
+          )}
+        />
+      ) : searching ? (
+        <ActivityIndicator style={{ marginTop: spacing.lg }} color={c.primary} />
+      ) : (
+        <>
       {/* 종류 선택 */}
       <View style={styles.typeRow}>
         {TYPES.map((t) => (
@@ -159,6 +256,8 @@ export function ReportScreen() {
         <View style={[styles.body, { paddingTop: spacing.md }]}>
           <InsightsView />
         </View>
+      ) : type === "gallery" ? (
+        <GalleryScreen />
       ) : (
         <>
       {/* 기간 이동 */}
@@ -236,6 +335,8 @@ export function ReportScreen() {
       </ScrollView>
         </>
       )}
+      </>
+      )}
     </View>
   );
 }
@@ -245,6 +346,42 @@ type Styles = ReturnType<typeof createStyles>;
 const createStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
+    searchRow: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
+    searchInputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      backgroundColor: c.inputBg,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: spacing.sm + 2,
+      fontSize: fontSizes.body,
+      color: c.text,
+    },
+    searchList: { padding: spacing.md, paddingTop: spacing.xs },
+    resultRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.sm + 2,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    typeBadge: {
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      marginRight: spacing.sm,
+    },
+    typeBadgeText: { color: c.white, fontSize: fontSizes.caption, fontWeight: "700" },
+    resultBody: { flex: 1 },
+    resultTitle: { fontSize: fontSizes.body, color: c.text, fontWeight: "600" },
+    resultSnippet: { fontSize: fontSizes.small, color: c.textMuted, marginTop: 2 },
+    resultDate: { fontSize: fontSizes.caption, color: c.textMuted, marginTop: 2 },
     typeRow: {
       flexDirection: "row",
       gap: spacing.sm,

@@ -1,4 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
+import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
+import { Fire } from "phosphor-react-native/src/icons/Fire";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { addDays, todayKey } from "../lib/dateUtils";
@@ -38,12 +40,18 @@ export function MonthlyStats({ monthKey, entries, onPressDay }: Props) {
     <View style={styles.card}>
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>🔥 {streak ?? "–"}일</Text>
+          <View style={styles.statValueRow}>
+            <Fire size={20} weight="duotone" color="#FF8A4C" />
+            <Text style={styles.statValue}>{streak ?? "–"}일</Text>
+          </View>
           <Text style={styles.statLabel}>연속 작성</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>✍️ {monthCount}개</Text>
+          <View style={styles.statValueRow}>
+            <BookOpenText size={20} weight="duotone" color={c.primary} />
+            <Text style={styles.statValue}>{monthCount}개</Text>
+          </View>
           <Text style={styles.statLabel}>이번 달 일기</Text>
         </View>
       </View>
@@ -79,6 +87,7 @@ const createStyles = (c: ThemeColors) =>
     },
     statsRow: { flexDirection: "row", alignItems: "center" },
     statBox: { flex: 1, alignItems: "center" },
+    statValueRow: { flexDirection: "row", alignItems: "center", gap: 5 },
     statValue: { fontSize: fontSizes.emphasis, fontWeight: "800", color: c.text },
     statLabel: { fontSize: fontSizes.caption, color: c.textMuted, marginTop: 2 },
     divider: { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: c.border },

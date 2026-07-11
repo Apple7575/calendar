@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { Lightning } from "phosphor-react-native/src/icons/Lightning";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -16,6 +18,14 @@ import { useGoogleEvents } from "../hooks/useGoogleEvents";
 import { formatTime, monthKeyOf } from "../lib/dateUtils";
 import { toViewerPhoto } from "../lib/diary";
 import { CalendarEvent, eventsOnDate, mergeEvents } from "../lib/eventMerge";
+import * as ImagePicker from "expo-image-picker";
+import {
+  clearHighlight,
+  getHighlight,
+  highlightDisplayValue,
+  setHighlight,
+  setImageHighlight,
+} from "../lib/highlights";
 import * as routineLib from "../lib/routines";
 import * as taskLib from "../lib/tasks";
 import { updateWidget } from "../lib/widget";
@@ -24,6 +34,8 @@ import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, minTouch, radii, spacing } from "../theme/tokens";
 import { Confetti } from "./cute/Confetti";
+import { Sticker } from "./cute/stickers";
+import { StickerPickerModal } from "./cute/StickerPickerModal";
 import { DiaryTranslationCard } from "./DiaryTranslationCard";
 import { Section } from "./Section";
 
@@ -57,6 +69,54 @@ export function DayOverview({
   const [newTask, setNewTask] = useState("");
   const [addingTask, setAddingTask] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [stickerId, setStickerId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      getHighlight(dateKey)
+        .then(highlightDisplayValue)
+        .then(setStickerId)
+        .catch(() => setStickerId(null));
+    }, [dateKey])
+  );
+
+  const handleSelectSticker = async (id: string) => {
+    setStickerId(id);
+    setPickerOpen(false);
+    try {
+      await setHighlight(dateKey, id);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "스티커 저장에 실패했어요.");
+    }
+  };
+
+  const handleClearSticker = async () => {
+    setStickerId(null);
+    setPickerOpen(false);
+    try {
+      await clearHighlight(dateKey);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "스티커 삭제에 실패했어요.");
+    }
+  };
+
+  const handlePickImageSticker = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    setPickerOpen(false);
+    try {
+      const value = await setImageHighlight(dateKey, result.assets[0].uri);
+      setStickerId(value || null);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "이미지 스티커 저장에 실패했어요.");
+    }
+  };
 
   /** 방금의 토글로 오늘 할 일+루틴이 전부 끝났으면 컨페티 */
   const maybeCelebrate = (kind: "task" | "routine", id: string, nowDone: boolean) => {
@@ -157,6 +217,20 @@ export function DayOverview({
           </Text>
         </TouchableOpacity>
       ) : null}
+
+      <TouchableOpacity style={styles.stickerRow} onPress={() => setPickerOpen(true)}>
+        {stickerId ? (
+          <>
+            <Sticker id={stickerId} size={26} />
+            <Text style={styles.stickerRowText}>이 날의 스티커 · 바꾸기</Text>
+          </>
+        ) : (
+          <>
+            <Ionicons name="add-circle-outline" size={18} color={c.textMuted} />
+            <Text style={styles.stickerRowText}>이 날 꾸미기</Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       <Section
         title="일정"
@@ -306,19 +380,32 @@ export function DayOverview({
               ) : null}
               {day.diary.diary.energy || day.diary.diary.sleep_hours != null ||
               day.diary.diary.people.length > 0 ? (
-                <Text style={styles.diaryMeta}>
-                  {[
-                    day.diary.diary.energy ? `에너지 ${"⚡".repeat(day.diary.diary.energy)}` : null,
-                    day.diary.diary.sleep_hours != null
-                      ? `수면 ${Number(day.diary.diary.sleep_hours)}시간`
-                      : null,
-                    day.diary.diary.people.length > 0
-                      ? `함께: ${day.diary.diary.people.join(", ")}`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </Text>
+                <View style={styles.diaryMetaRow}>
+                  {day.diary.diary.energy ? (
+                    <View style={styles.energyIconRow}>
+                      {[1, 2, 3, 4, 5].map((v) => (
+                        <Lightning
+                          key={v}
+                          size={12}
+                          weight={v <= day.diary.diary!.energy! ? "fill" : "regular"}
+                          color={v <= day.diary.diary!.energy! ? "#FFB020" : c.border}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                  <Text style={styles.diaryMeta}>
+                    {[
+                      day.diary.diary.sleep_hours != null
+                        ? `수면 ${Number(day.diary.diary.sleep_hours)}시간`
+                        : null,
+                      day.diary.diary.people.length > 0
+                        ? `함께: ${day.diary.diary.people.join(", ")}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
               ) : null}
               {day.diary.diary.content ? (
                 <Text style={styles.diaryPreview} numberOfLines={4}>
@@ -359,6 +446,14 @@ export function DayOverview({
       </Section>
     </ScrollView>
     <Confetti visible={celebrate} onDone={() => setCelebrate(false)} />
+    <StickerPickerModal
+      onPickImage={handlePickImageSticker}
+      visible={pickerOpen}
+      current={stickerId}
+      onSelect={handleSelectSticker}
+      onClear={handleClearSticker}
+      onClose={() => setPickerOpen(false)}
+    />
     </View>
   );
 }
@@ -372,6 +467,17 @@ const createStyles = (c: ThemeColors) =>
       fontSize: fontSizes.small,
       marginBottom: spacing.sm,
     },
+    stickerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: c.surface,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    stickerRowText: { fontSize: fontSizes.small, fontWeight: "700", color: c.textMuted },
     banner: {
       flexDirection: "row",
       alignItems: "center",
@@ -460,6 +566,8 @@ const createStyles = (c: ThemeColors) =>
       color: c.text,
       marginBottom: 2,
     },
+    diaryMetaRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 2, flexWrap: "wrap" },
+    energyIconRow: { flexDirection: "row", gap: 1 },
     diaryMeta: {
       fontSize: fontSizes.caption,
       color: c.textMuted,

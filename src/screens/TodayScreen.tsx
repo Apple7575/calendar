@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useState } from "react";
@@ -39,22 +38,6 @@ export function TodayScreen() {
           <DaySky size={26} />
           <Text style={styles.headerTitle}>오늘</Text>
           <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
-        </View>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity onPress={() => navigation.navigate("Expressions")} hitSlop={8}>
-            <Ionicons name="book-outline" size={20} color={c.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Gallery")} hitSlop={8}>
-            <Ionicons name="images-outline" size={20} color={c.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.aiButton}
-            onPress={() => navigation.navigate("Reports")}
-            hitSlop={8}
-          >
-            <Ionicons name="sparkles" size={14} color={c.primary} />
-            <Text style={styles.aiButtonText}>AI 리포트</Text>
-          </TouchableOpacity>
         </View>
       </View>
       <DdayRow todayKey={dateKey} />
@@ -97,15 +80,4 @@ const createStyles = (c: ThemeColors) =>
       letterSpacing: -0.5,
     },
     headerDate: { fontSize: fontSizes.small, color: c.textMuted, marginLeft: spacing.sm },
-    headerButtons: { flexDirection: "row", alignItems: "center", gap: spacing.sm + 4 },
-    aiButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: c.primarySoft,
-      borderRadius: 999,
-      paddingHorizontal: spacing.sm + 4,
-      paddingVertical: spacing.xs + 2,
-    },
-    aiButtonText: { color: c.primary, fontSize: fontSizes.caption, fontWeight: "700" },
   });
