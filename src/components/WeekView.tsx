@@ -16,10 +16,10 @@ import { fontSizes } from "../theme/tokens";
 
 const HOUR_H = 44;
 const GUTTER_W = 42;
-const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
+const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
 type Props = {
-  /** 주 시작(일요일) dateKey */
+  /** 주 시작(월요일) dateKey */
   weekStart: string;
   /** 그 주에 표시할 병합·전개된 이벤트 */
   events: CalendarEvent[];
@@ -81,14 +81,14 @@ export function WeekView({
           const isToday = d === today;
           return (
             <TouchableOpacity key={d} style={styles.headerCell} onPress={() => onPressDay(d)}>
-              <Text style={[styles.headerWeekday, i === 0 && { color: c.danger }]}>
+              <Text style={[styles.headerWeekday, i === 6 && { color: c.danger }]}>
                 {WEEKDAY_LABELS[i]}
               </Text>
               <View style={[styles.headerDayWrap, isToday && styles.headerToday]}>
                 <Text
                   style={[
                     styles.headerDay,
-                    i === 0 && { color: c.danger },
+                    i === 6 && { color: c.danger },
                     isToday && styles.headerTodayText,
                   ]}
                 >

@@ -96,7 +96,8 @@ export async function updateWidget(): Promise<void> {
       routinesTotal: routines.length,
       month: {
         title: `${d.getFullYear()}년 ${d.getMonth() + 1}월`,
-        firstWeekday: new Date(d.getFullYear(), d.getMonth(), 1).getDay(),
+        // 월요일 시작 (0=월 … 6=일)
+        firstWeekday: (new Date(d.getFullYear(), d.getMonth(), 1).getDay() + 6) % 7,
         daysInMonth,
         today: d.getDate(),
         eventDays: [...eventDaySet].sort((a, b) => a - b),

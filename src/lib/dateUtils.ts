@@ -72,10 +72,10 @@ export function addDays(dateKey: string, delta: number): string {
   return toDateKey(d);
 }
 
-/** 그 주(일요일 시작)의 시작 dateKey */
+/** 그 주(월요일 시작)의 시작 dateKey */
 export function weekStartOf(dateKey: string): string {
   const d = parseDateKey(dateKey);
-  d.setDate(d.getDate() - d.getDay());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return toDateKey(d);
 }
 
@@ -85,7 +85,7 @@ export function weekDays(weekStartKey: string): string[] {
 }
 
 /**
- * 월간 그리드: 해당 월을 포함하는 주(일~토)들의 dateKey 2차원 배열.
+ * 월간 그리드: 해당 월을 포함하는 주(월~일)들의 dateKey 2차원 배열.
  * 인접 월 날짜도 포함해 각 주는 항상 7일.
  */
 export function monthWeeks(monthKey: string): string[][] {

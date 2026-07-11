@@ -2,18 +2,20 @@ import { monthWeeks, weekDays, weekStartOf } from "../lib/dateUtils";
 import { assignLanes } from "../lib/lanes";
 
 describe("weekStartOf / weekDays", () => {
-  it("일요일 시작 주", () => {
-    // 2026-07-08은 수요일 → 그 주 일요일은 7/5
-    expect(weekStartOf("2026-07-08")).toBe("2026-07-05");
-    expect(weekStartOf("2026-07-05")).toBe("2026-07-05");
+  it("월요일 시작 주", () => {
+    // 2026-07-08은 수요일 → 그 주 월요일은 7/6
+    expect(weekStartOf("2026-07-08")).toBe("2026-07-06");
+    expect(weekStartOf("2026-07-06")).toBe("2026-07-06");
+    // 일요일은 그 주의 마지막 날 → 주 시작은 전 주 월요일
+    expect(weekStartOf("2026-07-05")).toBe("2026-06-29");
   });
 
   it("주 7일 생성 (월 경계 포함)", () => {
-    const days = weekDays("2026-06-28");
+    const days = weekDays("2026-06-29");
     expect(days).toHaveLength(7);
-    expect(days[0]).toBe("2026-06-28");
-    expect(days[3]).toBe("2026-07-01");
-    expect(days[6]).toBe("2026-07-04");
+    expect(days[0]).toBe("2026-06-29");
+    expect(days[2]).toBe("2026-07-01");
+    expect(days[6]).toBe("2026-07-05");
   });
 });
 
@@ -21,17 +23,17 @@ describe("monthWeeks", () => {
   it("2026년 7월은 5주, 인접 월 포함 항상 7일", () => {
     const weeks = monthWeeks("2026-07");
     expect(weeks).toHaveLength(5);
-    expect(weeks[0][0]).toBe("2026-06-28"); // 첫 주는 6월 말 포함
-    expect(weeks[0][3]).toBe("2026-07-01");
-    expect(weeks[4][6]).toBe("2026-08-01"); // 마지막 주는 8월 초 포함
+    expect(weeks[0][0]).toBe("2026-06-29"); // 첫 주는 6월 말 포함
+    expect(weeks[0][2]).toBe("2026-07-01");
+    expect(weeks[4][6]).toBe("2026-08-02"); // 마지막 주는 8월 초 포함
     for (const w of weeks) expect(w).toHaveLength(7);
   });
 
-  it("1일이 일요일인 달(2026-02)은 정확히 4주", () => {
-    const weeks = monthWeeks("2026-02");
-    expect(weeks[0][0]).toBe("2026-02-01");
-    expect(weeks).toHaveLength(4); // 2026-02는 28일 = 딱 4주
-    expect(weeks[3][6]).toBe("2026-02-28");
+  it("1일이 월요일인 달(2026-06)은 1일부터 시작", () => {
+    const weeks = monthWeeks("2026-06");
+    expect(weeks[0][0]).toBe("2026-06-01");
+    expect(weeks).toHaveLength(5);
+    expect(weeks[4][1]).toBe("2026-06-30");
   });
 });
 

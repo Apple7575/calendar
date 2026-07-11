@@ -259,7 +259,8 @@ struct TodayWidgetView: View {
 struct MonthWidgetView: View {
   var entry: TodayEntry
 
-  private let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
+  // 월요일 시작 (앱과 동일)
+  private let weekdays = ["월", "화", "수", "목", "금", "토", "일"]
 
   var body: some View {
     if let data = entry.data, let month = data.month {
@@ -279,7 +280,7 @@ struct MonthWidgetView: View {
           ForEach(0..<7, id: \.self) { i in
             Text(weekdays[i])
               .font(.system(size: 10, weight: .bold))
-              .foregroundStyle(i == 0 ? Color.red.opacity(0.75) : (i == 6 ? Color.blue.opacity(0.75) : Color.secondary))
+              .foregroundStyle(i == 6 ? Color.red.opacity(0.75) : (i == 5 ? Color.blue.opacity(0.75) : Color.secondary))
           }
           ForEach(0..<month.firstWeekday, id: \.self) { _ in
             Text("")
@@ -293,8 +294,8 @@ struct MonthWidgetView: View {
                 .monospacedDigit()
                 .foregroundStyle(
                   isToday ? Color.white
-                    : (weekday == 0 ? Color.red.opacity(0.85)
-                       : (weekday == 6 ? Color.blue.opacity(0.85) : Color.primary))
+                    : (weekday == 6 ? Color.red.opacity(0.85)
+                       : (weekday == 5 ? Color.blue.opacity(0.85) : Color.primary))
                 )
                 .frame(width: 22, height: 22)
                 .background(isToday ? Circle().fill(Color.accentColor) : nil)

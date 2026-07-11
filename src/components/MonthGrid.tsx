@@ -15,12 +15,14 @@ import { annivHex } from "../lib/dday";
 import { CalendarEvent, eventsOnDate, MarkedDates } from "../lib/eventMerge";
 import { DayDecoration } from "../lib/highlights";
 import { AnniversaryRow } from "../lib/supabase";
+import { Dimensions } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
 import { Sticker } from "./cute/stickers";
 
-const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
+const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
 type Props = {
   monthKey: string;
@@ -70,7 +72,7 @@ export function MonthGrid({
         <View style={styles.weekBarSpacer} />
         {WEEKDAY_LABELS.map((w, i) => (
           <View key={w} style={styles.dayCell}>
-            <Text style={[styles.weekdayLabel, i === 0 && { color: c.danger }]}>{w}</Text>
+            <Text style={[styles.weekdayLabel, i === 6 && { color: c.danger }]}>{w}</Text>
           </View>
         ))}
       </View>
@@ -107,8 +109,11 @@ export function MonthGrid({
                 const dots = markedDates[dateKey]?.dots ?? [];
                 const deco = highlights?.[dateKey];
                 const imageBg = deco?.imageUrl ?? null;
-                // 기념일 외곽선: 색으로 분야/중요도 구분, 여러 개면 겹 링 (최대 2개)
-                const rings = anniversaries?.[dateKey] ?? [];
+                // 기념일 외곽선: 사진과 같은 둥근 네모로 셀을 두르고,
+                // 여러 개면 테두리를 색깔별 구간으로 나눈다 (최대 3색)
+                const ringColors = (anniversaries?.[dateKey] ?? [])
+                  .slice(0, 3)
+                  .map((a) => annivHex(a.color));
                 return (
                   <TouchableOpacity
                     key={dateKey}
@@ -121,31 +126,13 @@ export function MonthGrid({
                         <View style={styles.bgScrim} />
                       </View>
                     ) : null}
+                    {ringColors.length > 0 ? <AnnivBorder colors={ringColors} /> : null}
                     <View style={styles.dayNumOuter}>
-                      {rings.slice(0, 2).map((a, ri) => {
-                        const inset = -3 - ri * 4;
-                        return (
-                          <View
-                            key={a.id}
-                            pointerEvents="none"
-                            style={[
-                              styles.annivRing,
-                              {
-                                top: inset,
-                                left: inset,
-                                right: inset,
-                                bottom: inset,
-                                borderColor: annivHex(a.color),
-                              },
-                            ]}
-                          />
-                        );
-                      })}
                       <View style={[styles.dayNumWrap, isToday && styles.todayWrap]}>
                         <Text
                           style={[
                             styles.dayNum,
-                            di === 0 && { color: c.danger },
+                            di === 6 && { color: c.danger },
                             !inMonth && styles.dayNumMuted,
                             imageBg && styles.dayNumOnImage,
                             isToday && styles.todayText,
@@ -304,6 +291,55 @@ function WeekSummary({
   );
 }
 
+// 날짜 셀 크기 (컨테이너 좌우 패딩 + 주차 바 제외)
+const CELL_W = (Dimensions.get("window").width - spacing.sm * 2 - 30) / 7;
+const CELL_H = 52;
+
+/**
+ * 기념일 외곽선: 사진 배경과 같은 둥근 네모 테두리.
+ * 색이 여러 개면 테두리 둘레를 색깔별 구간(dash)으로 나눠 한 날짜에
+ * 여러 기념일이 있어도 모두 보인다.
+ */
+function AnnivBorder({ colors }: { colors: string[] }) {
+  const inset = 2;
+  const sw = 2.5;
+  const x = inset + sw / 2;
+  const rw = CELL_W - x * 2;
+  const rh = CELL_H - x * 2;
+  const rr = Math.min(9, rw / 2, rh / 2);
+  // 둥근 네모 둘레 근사값
+  const perimeter = 2 * (rw + rh) - 8 * rr + 2 * Math.PI * rr;
+  const seg = perimeter / colors.length;
+  return (
+    <Svg
+      width={CELL_W}
+      height={CELL_H}
+      style={{ position: "absolute", top: 0, left: 0 }}
+      pointerEvents="none"
+    >
+      {colors.map((color, i) => (
+        <Rect
+          key={i}
+          x={x}
+          y={x}
+          width={rw}
+          height={rh}
+          rx={rr}
+          fill="none"
+          stroke={color}
+          strokeWidth={sw}
+          {...(colors.length > 1
+            ? {
+                strokeDasharray: `${seg} ${perimeter - seg}`,
+                strokeDashoffset: -(i * seg),
+              }
+            : {})}
+        />
+      ))}
+    </Svg>
+  );
+}
+
 /** 이번 주 한 줄 AI 요약 — 아코디언을 열 때 생성하고 AsyncStorage에 캐시한다 */
 function WeekLine({
   weekStart,
@@ -413,11 +449,6 @@ const createStyles = (c: ThemeColors) =>
       borderRadius: 15,
       alignItems: "center",
       justifyContent: "center",
-    },
-    annivRing: {
-      position: "absolute",
-      borderWidth: 2,
-      borderRadius: 999,
     },
     stickerBadge: {
       position: "absolute",

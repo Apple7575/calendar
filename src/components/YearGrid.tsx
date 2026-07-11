@@ -50,7 +50,7 @@ function MiniMonth({
                     <Text
                       style={[
                         styles.miniDay,
-                        di === 0 && { color: c.danger },
+                        di === 6 && { color: c.danger },
                         isToday && styles.miniToday,
                       ]}
                     >
