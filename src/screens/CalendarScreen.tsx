@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  LayoutAnimation,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +19,7 @@ import { MonthlyStats } from "../components/MonthlyStats";
 import { QuickEventSheet, SlotSelection } from "../components/QuickEventSheet";
 import { WeekView } from "../components/WeekView";
 import { YearGrid } from "../components/YearGrid";
+import { YearMemories } from "../components/YearMemories";
 import { invalidateGoogleCache, useGoogleEvents } from "../hooks/useGoogleEvents";
 import {
   addDays,
@@ -149,10 +152,25 @@ export function CalendarScreen() {
   };
 
   const changePeriod = (delta: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (mode === "month") changeMonth(delta);
     else if (mode === "week") changeWeek(delta);
     else changeYear(delta);
   };
+
+  // 좌우 스와이프로 이전/다음 기간 이동 (세로 스크롤과 충돌하지 않게 가로 우세일 때만)
+  const changePeriodRef = useRef(changePeriod);
+  changePeriodRef.current = changePeriod;
+  const swipe = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -40) changePeriodRef.current(1);
+        else if (g.dx > 40) changePeriodRef.current(-1);
+      },
+    })
+  ).current;
 
   const goToday = () => {
     setMonthKey(todayKey().slice(0, 7));
@@ -204,7 +222,7 @@ export function CalendarScreen() {
             <Ionicons name="sparkles-outline" size={18} color={c.primary} />
           </TouchableOpacity>
           <View style={styles.modeToggle}>
-            {(["month", "week", "year"] as const).map((m) => (
+            {(["year", "month", "week"] as const).map((m) => (
               <TouchableOpacity
                 key={m}
                 style={[styles.modeButton, mode === m && styles.modeButtonActive]}
@@ -234,17 +252,22 @@ export function CalendarScreen() {
       ) : null}
 
       {mode === "year" ? (
-        <YearGrid
-          year={Number(monthKey.slice(0, 4))}
-          diaryDates={diaryEntries.map((e) => e.date)}
-          onPressMonth={(mk) => {
-            setMonthKey(mk);
-            setExpandedWeek(null);
-            setMode("month");
-          }}
-        />
+        <View style={{ flex: 1 }} {...swipe.panHandlers}>
+          <YearGrid
+            year={Number(monthKey.slice(0, 4))}
+            diaryDates={diaryEntries.map((e) => e.date)}
+            onPressMonth={(mk) => {
+              setMonthKey(mk);
+              setExpandedWeek(null);
+              setMode("month");
+            }}
+            footer={
+              <YearMemories year={Number(monthKey.slice(0, 4))} entries={diaryEntries} />
+            }
+          />
+        </View>
       ) : mode === "month" ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} {...swipe.panHandlers}>
           <MonthGrid
             monthKey={monthKey}
             markedDates={markedDates}

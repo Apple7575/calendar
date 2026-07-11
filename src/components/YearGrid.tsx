@@ -12,6 +12,8 @@ type Props = {
   /** 일기 쓴 날짜들 — 미니 셀 아래 점으로 표시 */
   diaryDates?: string[];
   onPressMonth: (monthKey: string) => void;
+  /** 그리드 아래 붙일 내용 (올해의 기록 등) */
+  footer?: React.ReactNode;
 };
 
 function MiniMonth({
@@ -66,7 +68,7 @@ function MiniMonth({
   );
 }
 
-export function YearGrid({ year, diaryDates = [], onPressMonth }: Props) {
+export function YearGrid({ year, diaryDates = [], onPressMonth, footer }: Props) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const today = todayKey();
@@ -92,6 +94,7 @@ export function YearGrid({ year, diaryDates = [], onPressMonth }: Props) {
         ))}
       </View>
       <Text style={styles.hint}>달을 누르면 그 달의 월간 보기로 이동해요.</Text>
+      {footer}
     </ScrollView>
   );
 }
