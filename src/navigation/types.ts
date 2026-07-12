@@ -59,6 +59,12 @@ export type RootStackParamList = {
   Meals: undefined;
   /** 하지 않기 */
   Avoid: undefined;
+  /** 주간 회고 위저드 */
+  WeeklyReview: undefined;
+  /** 몸·습관 대시보드 */
+  Body: undefined;
+  /** 리캡: "2026" 또는 "2026-07" */
+  Recap: { periodKey: string };
   /** 루틴 관리 */
   Routines: undefined;
   /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */

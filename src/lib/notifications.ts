@@ -257,8 +257,9 @@ export async function setReviewReminder(pref: ReviewReminderPref): Promise<void>
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: "이번 주를 돌아볼 시간 🌙",
-      body: "주간 리포트로 한 주를 정리하고, 다음 주 목표를 점검해 보세요.",
+      body: "리포트 확인 → 목표 점검 → 다음 주 다짐까지 5분이면 돼요.",
       sound: true,
+      data: { screen: "WeeklyReview" },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,

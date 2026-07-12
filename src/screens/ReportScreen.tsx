@@ -24,6 +24,7 @@ import {
   ReportType,
 } from "../lib/aiReports";
 import { addDays, addMonths, formatKoreanDate, todayKey, weekStartOf } from "../lib/dateUtils";
+import { askRecords } from "../lib/askRecords";
 import { GalleryPhoto, galleryPhotoToViewer, listLikedPhotos } from "../lib/gallery";
 import { searchAll, SearchResult, typeLabel } from "../lib/search";
 import { RootStackParamList } from "../navigation/types";
@@ -109,6 +110,8 @@ export function ReportScreen() {
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [likedInMonth, setLikedInMonth] = useState<GalleryPhoto[]>([]);
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
 
   // 검색 (탭 최상단 검색창)
   const [query, setQuery] = useState("");
@@ -122,6 +125,7 @@ export function ReportScreen() {
   const handleSearch = async () => {
     const q = query.trim();
     if (!q) return;
+    setAiAnswer(null);
     setSearching(true);
     try {
       setSearchResults(await searchAll(q));
@@ -134,6 +138,7 @@ export function ReportScreen() {
   const clearSearch = () => {
     setQuery("");
     setSearchResults(null);
+    setAiAnswer(null);
   };
 
   // 월간 탭: 그 달의 ♥ 사진 하이라이트
@@ -216,6 +221,40 @@ export function ReportScreen() {
           keyExtractor={(r) => `${r.type}-${r.id}`}
           contentContainerStyle={styles.searchList}
           keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <View>
+              {/* 내 기록에게 물어보기 (AI) */}
+              {aiAnswer ? (
+                <View style={styles.aiAnswerCard}>
+                  <Text style={styles.aiAnswerLabel}>✨ 기록이 답해요</Text>
+                  <Text style={styles.aiAnswerText}>{aiAnswer}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.askButton}
+                  onPress={async () => {
+                    setAsking(true);
+                    try {
+                      setAiAnswer(await askRecords(query));
+                    } catch (e) {
+                      Alert.alert("오류", e instanceof Error ? e.message : "실패했어요.");
+                    } finally {
+                      setAsking(false);
+                    }
+                  }}
+                  disabled={asking}
+                >
+                  {asking ? (
+                    <ActivityIndicator size="small" color={c.primary} />
+                  ) : (
+                    <Text style={styles.askButtonText}>
+                      ✨ AI에게 물어보기 — "{query}"를 내 기록에서 찾아 답해줘요
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="file-tray-outline" size={28} color={c.textMuted} />
@@ -461,6 +500,23 @@ const createStyles = (c: ThemeColors) =>
       marginBottom: spacing.xs,
     },
     reportText: { fontSize: fontSizes.body, color: c.text, lineHeight: 25 },
+    askButton: {
+      backgroundColor: c.primarySoft,
+      borderRadius: radii.button,
+      padding: spacing.sm + 4,
+      marginBottom: spacing.sm,
+      alignItems: "center",
+    },
+    askButtonText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.primary },
+    aiAnswerCard: {
+      backgroundColor: c.primarySoft,
+      borderRadius: radii.card,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      gap: spacing.xs,
+    },
+    aiAnswerLabel: { fontSize: fontSizes.caption, fontWeight: "800", color: c.primary },
+    aiAnswerText: { fontSize: fontSizes.small, color: c.text, lineHeight: 22 },
     likedBlock: { marginBottom: spacing.md },
     likedHeader: {
       flexDirection: "row",

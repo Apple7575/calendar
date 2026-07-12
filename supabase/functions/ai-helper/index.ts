@@ -207,6 +207,16 @@ Deno.serve(async (req) => {
       return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
     }
 
+    if (task === "ask_records") {
+      const text = await callOpenAI({
+        system:
+          "너는 사용자의 개인 기록(일기·생활기록·운동·기념일·인생 사건·목표) 요약 데이터를 보고 질문에 답하는 도우미야. 반드시 데이터에 있는 사실만 근거로 한국어로 답하고, 날짜를 알면 함께 말해. 데이터에 없으면 '기록에서 찾지 못했어요'라고 솔직히 말해. 3~6문장, 담백하게.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 1500,
+      });
+      return json({ result: text.trim() }, 200);
+    }
+
     if (task === "diary_dictation") {
       const text = await callOpenAI({
         system:

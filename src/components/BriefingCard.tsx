@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { generateBriefing } from "../lib/aiHelper";
+import { weekStartOf } from "../lib/dateUtils";
 import { randomExpression } from "../lib/diaryLang";
 import { ExpressionRow } from "../lib/supabase";
 import { RootStackParamList } from "../navigation/types";
@@ -21,6 +22,7 @@ export function BriefingCard({ dateKey }: { dateKey: string }) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [text, setText] = useState<string | null>(null);
   const [expression, setExpression] = useState<ExpressionRow | null>(null);
+  const [resolution, setResolution] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState(false);
   const inFlight = useRef(false);
@@ -58,7 +60,11 @@ export function BriefingCard({ dateKey }: { dateKey: string }) {
       load(false);
       // 복습 표현 하나 (없으면 조용히 생략)
       randomExpression().then(setExpression).catch(() => {});
-    }, [load])
+      // 이번 주 다짐 (주간 회고에서 저장)
+      AsyncStorage.getItem(`resolution.${weekStartOf(dateKey)}`)
+        .then((v) => setResolution(v))
+        .catch(() => {});
+    }, [load, dateKey])
   );
 
   if (hidden) return null;
@@ -82,6 +88,9 @@ export function BriefingCard({ dateKey }: { dateKey: string }) {
       ) : (
         <Text style={styles.body}>{text}</Text>
       )}
+      {resolution ? (
+        <Text style={styles.resolution}>🌱 이번 주 다짐 — {resolution}</Text>
+      ) : null}
       {expression ? (
         <TouchableOpacity
           style={styles.expressionRow}
@@ -137,6 +146,12 @@ const createStyles = (c: ThemeColors) =>
       borderTopColor: c.border,
     },
     expressionFlag: { fontSize: 16 },
+    resolution: {
+      fontSize: fontSizes.small,
+      fontWeight: "700",
+      color: c.primary,
+      marginTop: spacing.sm,
+    },
     expressionText: { fontSize: fontSizes.small, fontWeight: "700", color: c.text },
     expressionMeaning: { fontSize: fontSizes.caption, color: c.textMuted },
   });

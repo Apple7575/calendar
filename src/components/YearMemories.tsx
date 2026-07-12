@@ -98,6 +98,12 @@ export function YearMemories({ year, entries }: { year: number; entries: DiaryEn
 
       <TouchableOpacity
         style={styles.reportButton}
+        onPress={() => navigation.navigate("Recap", { periodKey: String(year) })}
+      >
+        <Text style={styles.reportButtonText}>🎁 {year}년 리캡 카드 보기</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.reportButton}
         onPress={() =>
           // 리포트 탭으로 이동 (탭 네비게이터 형제 화면)
           (navigation as unknown as { navigate: (name: string) => void }).navigate("Report")

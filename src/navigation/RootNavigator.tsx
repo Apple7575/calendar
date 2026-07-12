@@ -12,6 +12,9 @@ import { TimelineScreen } from "../screens/TimelineScreen";
 import { WorkoutScreen } from "../screens/WorkoutScreen";
 import { MealsScreen } from "../screens/MealsScreen";
 import { AvoidScreen } from "../screens/AvoidScreen";
+import { BodyScreen } from "../screens/BodyScreen";
+import { RecapScreen } from "../screens/RecapScreen";
+import { WeeklyReviewScreen } from "../screens/WeeklyReviewScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -145,6 +148,21 @@ export function RootNavigator() {
             name="Avoid"
             component={AvoidScreen}
             options={{ title: "하지 않기" }}
+          />
+          <Stack.Screen
+            name="WeeklyReview"
+            component={WeeklyReviewScreen}
+            options={{ title: "주간 회고" }}
+          />
+          <Stack.Screen
+            name="Body"
+            component={BodyScreen}
+            options={{ title: "몸 · 습관" }}
+          />
+          <Stack.Screen
+            name="Recap"
+            component={RecapScreen}
+            options={{ title: "리캡" }}
           />
         </>
       ) : (

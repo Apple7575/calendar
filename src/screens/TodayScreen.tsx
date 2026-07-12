@@ -17,6 +17,7 @@ import { DdayRow } from "../components/DdayRow";
 import { MemoriesRow } from "../components/MemoriesRow";
 import { addDays, formatKoreanDate, todayKey } from "../lib/dateUtils";
 import { tapLight } from "../lib/haptics";
+import { detectInsight, dismissInsight } from "../lib/insightAlerts";
 import { updateWidget } from "../lib/widget";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
@@ -30,7 +31,14 @@ export function TodayScreen() {
   const styles = useMemo(() => createStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const [dateKey, setDateKey] = useState(todayKey());
+  const [insight, setInsight] = useState<string | null>(null);
   const isToday = dateKey === todayKey();
+
+  useFocusEffect(
+    useCallback(() => {
+      detectInsight().then(setInsight).catch(() => {});
+    }, [])
+  );
 
   // 자정을 넘겨 다시 열었을 때 오늘 날짜 갱신 + 홈 위젯 데이터 갱신
   useFocusEffect(
@@ -81,6 +89,18 @@ export function TodayScreen() {
         ) : null}
       </View>
       <View style={{ flex: 1 }} {...swipe.panHandlers}>
+        {insight && isToday ? (
+          <TouchableOpacity
+            style={styles.insightBanner}
+            onPress={() => {
+              dismissInsight();
+              setInsight(null);
+            }}
+          >
+            <Text style={styles.insightText}>{insight}</Text>
+            <Text style={styles.insightClose}>✕</Text>
+          </TouchableOpacity>
+        ) : null}
         <DdayRow todayKey={dateKey} />
         {isToday ? <BriefingCard dateKey={dateKey} /> : null}
         <MemoriesRow
@@ -129,4 +149,17 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: spacing.xs + 2,
     },
     todayChipText: { color: c.white, fontSize: fontSizes.caption, fontWeight: "800" },
+    insightBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      backgroundColor: "#FFF1D6",
+      borderRadius: 12,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm + 2,
+    },
+    insightText: { flex: 1, fontSize: fontSizes.caption, fontWeight: "700", color: "#8A5A00" },
+    insightClose: { fontSize: fontSizes.caption, color: "#8A5A00" },
   });

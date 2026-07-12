@@ -7,6 +7,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Barbell } from "phosphor-react-native/src/icons/Barbell";
 import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
+import { CalendarCheck } from "phosphor-react-native/src/icons/CalendarCheck";
+import { Heartbeat } from "phosphor-react-native/src/icons/Heartbeat";
 import { ForkKnife } from "phosphor-react-native/src/icons/ForkKnife";
 import { Prohibit } from "phosphor-react-native/src/icons/Prohibit";
 import { ChatCircleDots } from "phosphor-react-native/src/icons/ChatCircleDots";
@@ -33,7 +35,9 @@ type ModuleScreen =
   | "Speech"
   | "Workout"
   | "Meals"
-  | "Avoid";
+  | "Avoid"
+  | "Body"
+  | "WeeklyReview";
 
 type ModuleDef = {
   id: string;
@@ -91,6 +95,24 @@ const MODULES: ModuleDef[] = [
     screen: "Workout",
     tint: "#FF8A4C",
     tintBg: "#FFE9DB",
+  },
+  {
+    id: "body",
+    title: "몸 · 습관",
+    desc: "몸무게·칼로리·수면 추이와 습관 잔디",
+    icon: Heartbeat,
+    screen: "Body",
+    tint: "#5B7DB1",
+    tintBg: "#E4EBF5",
+  },
+  {
+    id: "weeklyReview",
+    title: "주간 회고",
+    desc: "리포트 → 목표 점검 → 다음 주 다짐 한 줄",
+    icon: CalendarCheck,
+    screen: "WeeklyReview",
+    tint: "#2FA36B",
+    tintBg: "#DEF5E9",
   },
   {
     id: "meals",

@@ -23,10 +23,13 @@ function ThemedApp() {
 
   // "순간 찍기" 알림 탭 → 카메라 열기 (로그인 전이면 조용히 무시)
   useEffect(() => {
-    const screen = lastNotification?.notification.request.content.data?.screen;
-    if (screen === "Camera" && navigationRef.isReady()) {
+    const screen = lastNotification?.notification.request.content.data?.screen as
+      | string
+      | undefined;
+    if (screen && navigationRef.isReady()) {
       try {
-        navigationRef.navigate("Camera");
+        // 알림 data.screen으로 지정된 화면 열기 (Camera, WeeklyReview 등)
+        (navigationRef as unknown as { navigate: (s: string) => void }).navigate(screen);
       } catch {
         // 로그인 게이트 등으로 라우트가 없으면 무시
       }
