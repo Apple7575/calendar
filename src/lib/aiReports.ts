@@ -12,6 +12,7 @@ import {
 } from "./dateUtils";
 import { formatLog, listLogs, listLogsInRange, logKindOf } from "./dailyLogs";
 import { getDiaryWithPhotos, listDiaryEntriesInRange } from "./diary";
+import { recordsForDate } from "./workouts";
 import { CalendarEvent, mapGoogleEvent, mergeEvents } from "./eventMerge";
 import { listLocalEventsInRange } from "./events";
 import * as googleCalendar from "./googleCalendar";
@@ -165,6 +166,7 @@ async function buildPayload(
       collectRoutineStats(start, end),
       listLogs(periodKey).catch(() => []),
     ]);
+    const workoutRecords = await recordsForDate(periodKey).catch(() => []);
     return {
       payload: {
         events: events.map(eventLine),
@@ -176,6 +178,8 @@ async function buildPayload(
           kind: logKindOf(l.kind).label,
           value: formatLog(l),
         })),
+        // 운동 종목별 기록 (풀업 12개 등)
+        workouts: workoutRecords.map((w) => `${w.name} ${w.total}${w.unit}`),
         diary: diary.diary
           ? {
               mood: diary.diary.mood,

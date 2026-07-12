@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MonthGrid } from "../components/MonthGrid";
 import { MonthlyStats } from "../components/MonthlyStats";
+import { MonthTopFive } from "../components/MonthTopFive";
 import { QuickEventSheet, SlotSelection } from "../components/QuickEventSheet";
 import { WeekView } from "../components/WeekView";
 import { YearGrid } from "../components/YearGrid";
@@ -270,6 +271,8 @@ export function CalendarScreen() {
         </View>
       ) : mode === "month" ? (
         <ScrollView showsVerticalScrollIndicator={false} {...swipe.panHandlers}>
+          {/* 이달의 TOP 5 — 직접 고른 사진 + 한 줄 */}
+          <MonthTopFive monthKey={monthKey} />
           <MonthGrid
             monthKey={monthKey}
             markedDates={markedDates}
