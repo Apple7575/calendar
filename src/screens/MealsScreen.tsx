@@ -16,7 +16,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { MagnifyingGlass } from "phosphor-react-native/src/icons/MagnifyingGlass";
 import { addDays, formatKoreanDate, todayKey } from "../lib/dateUtils";
+import { FoodItem, isFoodDbConfigured, scaleNutrient, searchFood } from "../lib/foodDb";
 import { tapSuccess } from "../lib/haptics";
 import { addMeal, deleteMeal, listMeals, Meal, MEAL_SLOTS, MealSlot } from "../lib/meals";
 import { useTheme } from "../theme/ThemeContext";
@@ -36,6 +38,10 @@ export function MealsScreen() {
   const [kcal, setKcal] = useState("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // 영양 DB 검색
+  const [searchResults, setSearchResults] = useState<FoodItem[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
 
   const reload = (key: string) => {
     setMeals(null);
@@ -45,14 +51,73 @@ export function MealsScreen() {
   };
   useEffect(() => reload(dateKey), [dateKey]);
 
-  const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 1,
-    });
-    if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+  const pickPhoto = () => {
+    Alert.alert("사진", undefined, [
+      {
+        text: "📷 바로 찍기",
+        onPress: async () => {
+          const perm = await ImagePicker.requestCameraPermissionsAsync();
+          if (!perm.granted) {
+            Alert.alert("알림", "카메라 권한을 허용해 주세요.");
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({ quality: 0.9 });
+          if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+        },
+      },
+      {
+        text: "앨범에서 고르기",
+        onPress: async () => {
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            quality: 1,
+          });
+          if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+        },
+      },
+      ...(photoUri
+        ? [{ text: "사진 빼기", style: "destructive" as const, onPress: () => setPhotoUri(null) }]
+        : []),
+      { text: "취소", style: "cancel" as const },
+    ]);
   };
+
+  /** 영양 DB 검색 (식약처) */
+  const handleSearch = async () => {
+    if (!title.trim()) {
+      Alert.alert("알림", "먼저 음식 이름을 입력해 주세요.");
+      return;
+    }
+    setSearching(true);
+    setSearchResults(null);
+    try {
+      setSearchResults(await searchFood(title));
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "검색에 실패했어요.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  /** 검색 결과 선택 → 이름 채우고 그람 수에 맞춰 칼로리 자동 계산 */
+  const applyFood = (food: FoodItem) => {
+    setSelectedFood(food);
+    setTitle(food.name);
+    setSearchResults(null);
+    const g = grams.trim() ? Number(grams.replace(/,/g, "")) : null;
+    const scaledKcal = scaleNutrient(food.per100.kcal, g);
+    if (scaledKcal != null) setKcal(String(Math.round(scaledKcal)));
+  };
+
+  // 그람 수가 바뀌면 선택된 식품 기준으로 칼로리 재계산
+  useEffect(() => {
+    if (!selectedFood) return;
+    const g = grams.trim() ? Number(grams.replace(/,/g, "")) : null;
+    const scaledKcal = scaleNutrient(selectedFood.per100.kcal, g);
+    if (scaledKcal != null) setKcal(String(Math.round(scaledKcal)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grams]);
 
   const handleAdd = async () => {
     if (!title.trim() && !photoUri) {
@@ -61,18 +126,23 @@ export function MealsScreen() {
     }
     setSaving(true);
     try {
+      const g = grams.trim() ? Number(grams.replace(/,/g, "")) : null;
       await addMeal({
         date: dateKey,
         slot,
         title: title.trim() || "사진 기록",
-        grams: grams.trim() ? Number(grams.replace(/,/g, "")) : null,
+        grams: g,
         kcal: kcal.trim() ? Number(kcal.replace(/,/g, "")) : null,
+        carbG: selectedFood ? scaleNutrient(selectedFood.per100.carb, g) : null,
+        proteinG: selectedFood ? scaleNutrient(selectedFood.per100.protein, g) : null,
+        fatG: selectedFood ? scaleNutrient(selectedFood.per100.fat, g) : null,
         localUri: photoUri,
       });
       setTitle("");
       setGrams("");
       setKcal("");
       setPhotoUri(null);
+      setSelectedFood(null);
       tapSuccess();
       reload(dateKey);
     } catch (e) {
@@ -138,13 +208,57 @@ export function MealsScreen() {
             )}
           </TouchableOpacity>
         </View>
-        <TextInput
-          style={styles.input}
-          placeholder="먹은 것 (예: 닭가슴살 샐러드)"
-          placeholderTextColor={c.textMuted}
-          value={title}
-          onChangeText={setTitle}
-        />
+        <View style={styles.numRow}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="먹은 것 (예: 닭가슴살 샐러드)"
+            placeholderTextColor={c.textMuted}
+            value={title}
+            onChangeText={(t) => {
+              setTitle(t);
+              setSelectedFood(null);
+            }}
+            onSubmitEditing={isFoodDbConfigured() ? handleSearch : undefined}
+            returnKeyType={isFoodDbConfigured() ? "search" : "done"}
+          />
+          {isFoodDbConfigured() ? (
+            <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={searching}>
+              {searching ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <MagnifyingGlass size={16} weight="bold" color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* 영양 DB 검색 결과 */}
+        {searchResults ? (
+          searchResults.length === 0 ? (
+            <Text style={styles.searchEmpty}>검색 결과가 없어요. 다른 이름으로 찾아보세요.</Text>
+          ) : (
+            searchResults.slice(0, 8).map((f, i) => (
+              <TouchableOpacity key={i} style={styles.foodRow} onPress={() => applyFood(f)}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.foodName} numberOfLines={1}>
+                    {f.name}
+                  </Text>
+                  <Text style={styles.foodMeta} numberOfLines={1}>
+                    {[f.maker, "100g당"].filter(Boolean).join(" · ")} 탄{" "}
+                    {f.per100.carb ?? "–"} · 단 {f.per100.protein ?? "–"} · 지{" "}
+                    {f.per100.fat ?? "–"}
+                  </Text>
+                </View>
+                <Text style={styles.foodKcal}>{f.per100.kcal ?? "–"} kcal</Text>
+              </TouchableOpacity>
+            ))
+          )
+        ) : null}
+        {selectedFood ? (
+          <Text style={styles.selectedFoodHint}>
+            ✓ {selectedFood.name} — g을 입력하면 칼로리가 자동 계산돼요
+          </Text>
+        ) : null}
         <View style={styles.numRow}>
           <TextInput
             style={[styles.input, { flex: 1 }]}
@@ -201,6 +315,9 @@ export function MealsScreen() {
                       {[
                         m.grams != null ? `${m.grams}g` : null,
                         m.kcal != null ? `${m.kcal} kcal` : null,
+                        m.carb_g != null || m.protein_g != null || m.fat_g != null
+                          ? `탄 ${m.carb_g ?? "–"} · 단 ${m.protein_g ?? "–"} · 지 ${m.fat_g ?? "–"}`
+                          : null,
                       ]
                         .filter(Boolean)
                         .join(" · ") || "  "}
@@ -280,6 +397,27 @@ const createStyles = (c: ThemeColors) =>
       color: c.text,
     },
     numRow: { flexDirection: "row", gap: spacing.sm },
+    searchButton: {
+      width: 40,
+      backgroundColor: ACCENT,
+      borderRadius: radii.button,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    searchEmpty: { fontSize: fontSizes.caption, color: c.textMuted },
+    foodRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: c.surface,
+      borderRadius: radii.button,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: spacing.xs + 3,
+    },
+    foodName: { fontSize: fontSizes.caption, fontWeight: "700", color: c.text },
+    foodMeta: { fontSize: 10, color: c.textMuted, marginTop: 1 },
+    foodKcal: { fontSize: fontSizes.caption, fontWeight: "900", color: ACCENT },
+    selectedFoodHint: { fontSize: fontSizes.caption, color: ACCENT, fontWeight: "700" },
     addButton: {
       backgroundColor: ACCENT,
       borderRadius: radii.button,

@@ -19,6 +19,9 @@ export type MealRow = {
   title: string;
   grams: number | null;
   kcal: number | null;
+  carb_g: number | null;
+  protein_g: number | null;
+  fat_g: number | null;
   image_path: string | null;
   created_at: string;
 };
@@ -52,6 +55,9 @@ export async function listMeals(dateKey: string): Promise<Meal[]> {
     ...r,
     grams: r.grams != null ? Number(r.grams) : null,
     kcal: r.kcal != null ? Number(r.kcal) : null,
+    carb_g: r.carb_g != null ? Number(r.carb_g) : null,
+    protein_g: r.protein_g != null ? Number(r.protein_g) : null,
+    fat_g: r.fat_g != null ? Number(r.fat_g) : null,
     url: r.image_path ? (urlByPath.get(r.image_path) ?? null) : null,
   }));
 }
@@ -62,6 +68,9 @@ export async function addMeal(input: {
   title: string;
   grams: number | null;
   kcal: number | null;
+  carbG?: number | null;
+  proteinG?: number | null;
+  fatG?: number | null;
   localUri: string | null;
 }): Promise<void> {
   const userId = await requireUserId();
@@ -86,6 +95,9 @@ export async function addMeal(input: {
     title: input.title,
     grams: input.grams,
     kcal: input.kcal,
+    carb_g: input.carbG ?? null,
+    protein_g: input.proteinG ?? null,
+    fat_g: input.fatG ?? null,
     image_path: imagePath,
   });
   if (error) {

@@ -62,6 +62,13 @@
    14. `0014_timeline_month_cover.sql` — 타임라인 월, 일기 대표사진
    15. `0015_monthtop_workouts.sql` — 이달의 TOP 5 사진, 운동 종목/기록
    16. `0016_meals_avoid.sql` — 식단(끼니별 사진·칼로리), 하지 않기
+   17. `0017_meal_macros.sql` — 식단 3대 영양소 (영양 DB 검색용)
+
+## 6-1. 식품 영양 DB (선택)
+
+식단 기록에서 음식 이름으로 칼로리·영양소를 자동으로 채우려면
+[공공데이터포털](https://www.data.go.kr)에서 "식품영양성분DB정보" 활용신청 후
+발급받은 인증키를 `app.json`의 `extra.foodApiKey`에 넣으세요. (무료, 과금 없음)
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 
