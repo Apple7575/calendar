@@ -14,6 +14,7 @@ import { MealsScreen } from "../screens/MealsScreen";
 import { AvoidScreen } from "../screens/AvoidScreen";
 import { BodyScreen } from "../screens/BodyScreen";
 import { RecapScreen } from "../screens/RecapScreen";
+import { PomodoroScreen } from "../screens/PomodoroScreen";
 import { RoutinePlayerScreen } from "../screens/RoutinePlayerScreen";
 import { WeeklyReviewScreen } from "../screens/WeeklyReviewScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
@@ -169,6 +170,11 @@ export function RootNavigator() {
             name="RoutinePlayer"
             component={RoutinePlayerScreen}
             options={{ headerShown: false, presentation: "fullScreenModal" }}
+          />
+          <Stack.Screen
+            name="Pomodoro"
+            component={PomodoroScreen}
+            options={{ title: "뽀모도로" }}
           />
         </>
       ) : (

@@ -35,6 +35,24 @@ export function slotLabel(slot: string): string {
   return SLOTS.find((s) => s.key === slot)?.label ?? "기타";
 }
 
+// 갓생 사는 사람들의 루틴 프리셋 — 한 번에 추가하고 취향대로 수정
+const MORNING_PRESET = [
+  "이불 정리하기", // 맥레이븐 제독 "Make Your Bed"
+  "물 한 컵 마시기",
+  "아침 햇빛 쬐기 5분", // 후버만 — 기상 직후 햇빛
+  "스트레칭·가벼운 운동 10분",
+  "찬물 샤워",
+  "오늘의 최우선 3가지 적기", // 성공인들의 공통 습관
+];
+const EVENING_PRESET = [
+  "저녁 이후 폰 방해금지 모드",
+  "따뜻한 샤워",
+  "내일 할 일 3개 적어두기",
+  "명상 10분",
+  "독서 20분",
+  "감사한 일 1가지 + 일기",
+];
+
 function repeatLabel(days: number[]): string {
   if (days.length === 0 || days.length === 7) return "매일";
   return days.map((d) => WEEKDAYS[d]).join("·");
@@ -49,6 +67,23 @@ export function RoutineManageScreen() {
   const [days, setDays] = useState<number[]>([]);
   const [slot, setSlot] = useState<string>("morning");
   const [adding, setAdding] = useState(false);
+  const [addingPreset, setAddingPreset] = useState(false);
+
+  const addPreset = async (presetSlot: string, titles: string[]) => {
+    setAddingPreset(true);
+    try {
+      const existing = new Set(routines.map((r) => r.title));
+      for (const t of titles) {
+        if (!existing.has(t)) await addRoutine(t, [], presetSlot);
+      }
+      await reload();
+      Alert.alert("추가 완료", "세트가 들어갔어요. 필요 없는 건 지우고 취향대로 고치세요.");
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "추가에 실패했어요.");
+    } finally {
+      setAddingPreset(false);
+    }
+  };
 
   const reload = useCallback(async () => {
     try {
@@ -117,6 +152,29 @@ export function RoutineManageScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Section title="갓생 루틴 세트 (탭 한 번에 추가)">
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <TouchableOpacity
+            style={styles.presetButton}
+            onPress={() => addPreset("morning", MORNING_PRESET)}
+            disabled={addingPreset}
+          >
+            <Text style={styles.presetText}>🌅 모닝루틴 세트</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.presetButton}
+            onPress={() => addPreset("evening", EVENING_PRESET)}
+            disabled={addingPreset}
+          >
+            <Text style={styles.presetText}>🌙 나이트루틴 세트</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.presetHint}>
+          이불 정리(맥레이븐)·아침 햇빛(후버만)·최우선 3가지 등 검증된 습관들이에요. 추가 후
+          자유롭게 지우고 고치세요.
+        </Text>
+      </Section>
 
       <Section title="새 루틴">
         <TextInput
@@ -229,6 +287,20 @@ const createStyles = (c: ThemeColors) =>
       backgroundColor: c.inputBg,
     },
     dayChipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    presetButton: {
+      flex: 1,
+      backgroundColor: c.primarySoft,
+      borderRadius: radii.button,
+      paddingVertical: spacing.sm + 4,
+      alignItems: "center",
+    },
+    presetText: { color: c.primary, fontSize: fontSizes.small, fontWeight: "800" },
+    presetHint: {
+      fontSize: fontSizes.caption,
+      color: c.textMuted,
+      marginTop: spacing.sm,
+      lineHeight: 17,
+    },
     slotChip: {
       borderRadius: 999,
       borderWidth: 1,

@@ -16,6 +16,7 @@ import { Gear } from "phosphor-react-native/src/icons/Gear";
 import { MapPin } from "phosphor-react-native/src/icons/MapPin";
 import { PathIcon } from "phosphor-react-native/src/icons/Path";
 import { Target } from "phosphor-react-native/src/icons/Target";
+import { Timer } from "phosphor-react-native/src/icons/Timer";
 import { XCircle } from "phosphor-react-native/src/icons/XCircle";
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -37,7 +38,8 @@ type ModuleScreen =
   | "Meals"
   | "Avoid"
   | "Body"
-  | "WeeklyReview";
+  | "WeeklyReview"
+  | "Pomodoro";
 
 type ModuleDef = {
   id: string;
@@ -95,6 +97,15 @@ const MODULES: ModuleDef[] = [
     screen: "Workout",
     tint: "#FF8A4C",
     tintBg: "#FFE9DB",
+  },
+  {
+    id: "pomodoro",
+    title: "뽀모도로",
+    desc: "25분 집중 + 5분 휴식 — 🍅는 학습 기록으로 저장",
+    icon: Timer,
+    screen: "Pomodoro",
+    tint: "#E8574F",
+    tintBg: "#FFE3E1",
   },
   {
     id: "body",
