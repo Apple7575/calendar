@@ -2,6 +2,16 @@
 // DayOverview 안에 들어가며 자체적으로 데이터를 관리한다.
 
 import { useFocusEffect } from "@react-navigation/native";
+import { Alarm } from "phosphor-react-native/src/icons/Alarm";
+import { Barbell } from "phosphor-react-native/src/icons/Barbell";
+import { ChartBar } from "phosphor-react-native/src/icons/ChartBar";
+import { FilmSlate } from "phosphor-react-native/src/icons/FilmSlate";
+import { Footprints } from "phosphor-react-native/src/icons/Footprints";
+import { ForkKnife } from "phosphor-react-native/src/icons/ForkKnife";
+import { PencilSimpleLine } from "phosphor-react-native/src/icons/PencilSimpleLine";
+import { Pill } from "phosphor-react-native/src/icons/Pill";
+import { Scales } from "phosphor-react-native/src/icons/Scales";
+import { Wallet } from "phosphor-react-native/src/icons/Wallet";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,6 +39,25 @@ import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
 import { Section } from "./Section";
+
+// 기록 종류별 phosphor 아이콘/색 (이모지 대신)
+const KIND_ICONS: Record<string, { Icon: typeof Barbell; color: string }> = {
+  meal: { Icon: ForkKnife, color: "#E8920A" },
+  weight: { Icon: Scales, color: "#5B7DB1" },
+  steps: { Icon: Footprints, color: "#3FBF77" },
+  money: { Icon: Wallet, color: "#E8637E" },
+  study: { Icon: PencilSimpleLine, color: "#3E93E0" },
+  workout: { Icon: Barbell, color: "#FF8A4C" },
+  inbody: { Icon: ChartBar, color: "#9B7DE8" },
+  meds: { Icon: Pill, color: "#2FA36B" },
+  media: { Icon: FilmSlate, color: "#C4699E" },
+  sleepwake: { Icon: Alarm, color: "#7A8699" },
+};
+
+function KindIcon({ kindKey, size, active }: { kindKey: string; size: number; active?: boolean }) {
+  const entry = KIND_ICONS[kindKey] ?? KIND_ICONS.meal;
+  return <entry.Icon size={size} weight="duotone" color={active ? "#FFFFFF" : entry.color} />;
+}
 
 export function LifeLogSection({ dateKey }: { dateKey: string }) {
   const { colors: c } = useTheme();
@@ -107,7 +136,7 @@ export function LifeLogSection({ dateKey }: { dateKey: string }) {
             style={styles.logRow}
             onLongPress={() => handleDelete(row)}
           >
-            <Text style={styles.logEmoji}>{k.emoji}</Text>
+            <KindIcon kindKey={row.kind} size={16} />
             <Text style={styles.logKind}>{k.label}</Text>
             <Text style={styles.logValue} numberOfLines={2}>
               {formatLog(row)}
@@ -127,7 +156,7 @@ export function LifeLogSection({ dateKey }: { dateKey: string }) {
               style={[styles.kindChip, kind === k.key && styles.kindChipActive]}
               onPress={() => setKind(k.key)}
             >
-              <Text style={styles.kindEmoji}>{k.emoji}</Text>
+              <KindIcon kindKey={k.key} size={12} active={kind === k.key} />
               <Text style={[styles.kindLabel, kind === k.key && styles.kindLabelActive]}>
                 {k.label}
               </Text>

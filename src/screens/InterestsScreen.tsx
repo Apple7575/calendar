@@ -5,6 +5,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Barbell } from "phosphor-react-native/src/icons/Barbell";
 import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
 import { ChatCircleDots } from "phosphor-react-native/src/icons/ChatCircleDots";
 import { Gear } from "phosphor-react-native/src/icons/Gear";
@@ -22,7 +23,7 @@ import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 
 const HIDDEN_KEY = "interests.hidden";
 
-type ModuleScreen = "Expressions" | "MemoryMap" | "Goals" | "Timeline" | "Speech";
+type ModuleScreen = "Expressions" | "MemoryMap" | "Goals" | "Timeline" | "Speech" | "Workout";
 
 type ModuleDef = {
   id: string;
@@ -71,6 +72,15 @@ const MODULES: ModuleDef[] = [
     screen: "Timeline",
     tint: "#2FA36B",
     tintBg: "#DEF5E9",
+  },
+  {
+    id: "workout",
+    title: "운동 기록",
+    desc: "오늘 한 운동을 남기고 주간·월간 횟수를 봐요",
+    icon: Barbell,
+    screen: "Workout",
+    tint: "#FF8A4C",
+    tintBg: "#FFE9DB",
   },
   {
     id: "speech",

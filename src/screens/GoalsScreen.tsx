@@ -1,9 +1,18 @@
 // 목표 · 갓생: 방면별(커리어/꿈/돈/집…) 목표 관리 + AI 갓생 코칭.
 // 코칭은 목표 + 최근 2주 기록(수면/에너지/루틴/할일)을 근거로 쓰며 주 단위로 캐시된다.
 
+import { Barbell } from "phosphor-react-native/src/icons/Barbell";
+import { BookOpen } from "phosphor-react-native/src/icons/BookOpen";
+import { Briefcase } from "phosphor-react-native/src/icons/Briefcase";
 import { CheckCircle } from "phosphor-react-native/src/icons/CheckCircle";
 import { CircleDashed } from "phosphor-react-native/src/icons/CircleDashed";
+import { Coins } from "phosphor-react-native/src/icons/Coins";
+import { House } from "phosphor-react-native/src/icons/House";
+import { ShootingStar } from "phosphor-react-native/src/icons/ShootingStar";
+import { Sparkle } from "phosphor-react-native/src/icons/Sparkle";
 import { Trash } from "phosphor-react-native/src/icons/Trash";
+import { Trophy } from "phosphor-react-native/src/icons/Trophy";
+import { UsersThree } from "phosphor-react-native/src/icons/UsersThree";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -32,6 +41,23 @@ import { GoalRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
+
+// 방면별 phosphor 아이콘/색 (이모지 대신)
+const CATEGORY_ICONS: Record<string, { Icon: typeof Briefcase; color: string }> = {
+  career: { Icon: Briefcase, color: "#5B7DB1" },
+  dream: { Icon: ShootingStar, color: "#9B7DE8" },
+  money: { Icon: Coins, color: "#E8920A" },
+  home: { Icon: House, color: "#3FBF77" },
+  health: { Icon: Barbell, color: "#E8637E" },
+  learning: { Icon: BookOpen, color: "#3E93E0" },
+  relationship: { Icon: UsersThree, color: "#FF8A4C" },
+  etc: { Icon: Sparkle, color: "#8B72E8" },
+};
+
+function CategoryIcon({ catKey, size, active }: { catKey: string; size: number; active?: boolean }) {
+  const { Icon, color } = CATEGORY_ICONS[catKey] ?? CATEGORY_ICONS.etc;
+  return <Icon size={size} weight="duotone" color={active ? "#FFFFFF" : color} />;
+}
 
 export function GoalsScreen() {
   const { colors: c } = useTheme();
@@ -120,7 +146,10 @@ export function GoalsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* 갓생 코칭 */}
       <View style={styles.coachCard}>
-        <Text style={styles.coachTitle}>🏆 갓생 코칭</Text>
+        <View style={styles.coachTitleRow}>
+          <Trophy size={20} weight="duotone" color="#E8920A" />
+          <Text style={styles.coachTitle}>갓생 코칭</Text>
+        </View>
         <Text style={styles.coachHint}>
           내 목표와 최근 2주 기록(수면·에너지·루틴·할일)을 탑클래스 습관과 비교해서{"\n"}
           지금 뭘 더 하면 되는지 알려줘요. 주마다 새로 받아보세요.
@@ -167,7 +196,7 @@ export function GoalsScreen() {
                   setCategory(cat.key);
                 }}
               >
-                <Text style={styles.catEmoji}>{cat.emoji}</Text>
+                <CategoryIcon catKey={cat.key} size={14} active={category === cat.key} />
                 <Text
                   style={[styles.catLabel, category === cat.key && styles.catLabelActive]}
                 >
@@ -211,13 +240,16 @@ export function GoalsScreen() {
       ) : (
         byCategory.map(({ cat, items }) => (
           <View key={cat.key} style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {cat.emoji} {cat.label}
-              <Text style={styles.sectionCount}>
-                {"  "}
-                {items.filter((g) => g.done).length}/{items.length}
+            <View style={styles.sectionTitleRow}>
+              <CategoryIcon catKey={cat.key} size={17} />
+              <Text style={styles.sectionTitle}>
+                {cat.label}
+                <Text style={styles.sectionCount}>
+                  {"  "}
+                  {items.filter((g) => g.done).length}/{items.length}
+                </Text>
               </Text>
-            </Text>
+            </View>
             {items.map((g) => (
               <View key={g.id} style={styles.goalRow}>
                 <TouchableOpacity onPress={() => handleToggle(g)} hitSlop={8}>
@@ -262,6 +294,13 @@ const createStyles = (c: ThemeColors) =>
       ...cardShadow(c.shadow),
     },
     coachTitle: { fontSize: fontSizes.emphasis, fontWeight: "900", color: c.text },
+    coachTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+    sectionTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: spacing.xs + 2,
+    },
     coachHint: { fontSize: fontSizes.caption, color: c.textMuted, lineHeight: 17 },
     coachLoading: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm },
     coachBody: { gap: 2 },
@@ -315,12 +354,7 @@ const createStyles = (c: ThemeColors) =>
       lineHeight: 21,
     },
     section: { marginTop: spacing.sm },
-    sectionTitle: {
-      fontSize: fontSizes.body,
-      fontWeight: "800",
-      color: c.text,
-      marginBottom: spacing.xs + 2,
-    },
+    sectionTitle: { fontSize: fontSizes.body, fontWeight: "800", color: c.text },
     sectionCount: { fontSize: fontSizes.caption, fontWeight: "600", color: c.textMuted },
     goalRow: {
       flexDirection: "row",

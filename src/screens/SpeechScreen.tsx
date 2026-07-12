@@ -3,6 +3,12 @@
 
 import { CaretDown } from "phosphor-react-native/src/icons/CaretDown";
 import { CaretUp } from "phosphor-react-native/src/icons/CaretUp";
+import { ChatsCircle } from "phosphor-react-native/src/icons/ChatsCircle";
+import { Coffee } from "phosphor-react-native/src/icons/Coffee";
+import { Ear } from "phosphor-react-native/src/icons/Ear";
+import { Presentation } from "phosphor-react-native/src/icons/Presentation";
+import { Snowflake } from "phosphor-react-native/src/icons/Snowflake";
+import { UsersThree } from "phosphor-react-native/src/icons/UsersThree";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
@@ -10,6 +16,16 @@ import { ThemeColors } from "../theme/themes";
 import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 
 type Section = { id: string; emoji: string; title: string; tips: string[] };
+
+// 섹션별 phosphor 아이콘/색 (이모지 대신)
+const SECTION_ICONS: Record<string, { Icon: typeof Coffee; color: string }> = {
+  one: { Icon: Coffee, color: "#E8920A" },
+  group: { Icon: UsersThree, color: "#3E93E0" },
+  presentation: { Icon: Presentation, color: "#9B7DE8" },
+  topics: { Icon: ChatsCircle, color: "#E8637E" },
+  listening: { Icon: Ear, color: "#3FBF77" },
+  icebreak: { Icon: Snowflake, color: "#5B7DB1" },
+};
 
 const SECTIONS: Section[] = [
   {
@@ -108,7 +124,10 @@ export function SpeechScreen() {
               style={styles.cardHeader}
               onPress={() => setOpen(expanded ? null : s.id)}
             >
-              <Text style={styles.cardEmoji}>{s.emoji}</Text>
+              {(() => {
+                const entry = SECTION_ICONS[s.id] ?? SECTION_ICONS.one;
+                return <entry.Icon size={20} weight="duotone" color={entry.color} />;
+              })()}
               <Text style={styles.cardTitle}>{s.title}</Text>
               {expanded ? (
                 <CaretUp size={16} weight="bold" color={c.primary} />

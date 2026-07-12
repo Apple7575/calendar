@@ -53,6 +53,8 @@ export type RootStackParamList = {
   Timeline: undefined;
   /** 스피치 · 대화 가이드 */
   Speech: undefined;
+  /** 운동 기록 */
+  Workout: undefined;
   /** 루틴 관리 */
   Routines: undefined;
   /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */

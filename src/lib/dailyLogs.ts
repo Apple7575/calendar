@@ -87,6 +87,36 @@ export async function deleteLog(id: string): Promise<void> {
   if (error) throw new Error(`기록 삭제에 실패했어요: ${error.message}`);
 }
 
+/** 기간 내 특정 종류 기록 (최신 날짜부터) — 운동 히스토리 등 */
+export async function listLogsByKind(
+  kind: string,
+  startKey: string,
+  endKey: string
+): Promise<DailyLogRow[]> {
+  const { data, error } = await supabase
+    .from("daily_logs")
+    .select("*")
+    .eq("kind", kind)
+    .gte("date", startKey)
+    .lte("date", endKey)
+    .order("date", { ascending: false })
+    .order("created_at");
+  if (error) throw new Error(`기록을 불러오지 못했어요: ${error.message}`);
+  return (data ?? []) as DailyLogRow[];
+}
+
+/** 기간 내 전체 생활 기록 — 리포트 데이터용 */
+export async function listLogsInRange(startKey: string, endKey: string): Promise<DailyLogRow[]> {
+  const { data, error } = await supabase
+    .from("daily_logs")
+    .select("*")
+    .gte("date", startKey)
+    .lte("date", endKey)
+    .order("date");
+  if (error) throw new Error(`기록을 불러오지 못했어요: ${error.message}`);
+  return (data ?? []) as DailyLogRow[];
+}
+
 /**
  * 말/글 한마디를 여러 기록으로 자동 분해해 저장.
  * "몸무게 62.5고 아침에 샐러드 먹고 헬스 1시간 했어" → 몸무게/식단/운동 3건.

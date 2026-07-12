@@ -9,6 +9,7 @@ import { ExpressionsScreen } from "../screens/ExpressionsScreen";
 import { GoalsScreen } from "../screens/GoalsScreen";
 import { SpeechScreen } from "../screens/SpeechScreen";
 import { TimelineScreen } from "../screens/TimelineScreen";
+import { WorkoutScreen } from "../screens/WorkoutScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -127,6 +128,11 @@ export function RootNavigator() {
             name="Speech"
             component={SpeechScreen}
             options={{ title: "스피치 · 대화" }}
+          />
+          <Stack.Screen
+            name="Workout"
+            component={WorkoutScreen}
+            options={{ title: "운동 기록" }}
           />
         </>
       ) : (

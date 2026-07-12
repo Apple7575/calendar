@@ -441,7 +441,8 @@ const createStyles = (c: ThemeColors) =>
       gap: 1,
     },
     weekBarActive: { backgroundColor: c.primary },
-    weekBarCurrent: { borderWidth: 1.5, borderColor: c.primary },
+    // 이번 주 표시는 테두리 대신 채움 — 테두리는 D-day(기념일) 전용 시각 언어로 남긴다
+    weekBarCurrent: { backgroundColor: c.primarySoft },
     weekLineRow: {
       flexDirection: "row",
       alignItems: "center",

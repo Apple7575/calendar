@@ -10,6 +10,7 @@ import {
   parseDateKey,
   toDateKey,
 } from "./dateUtils";
+import { formatLog, listLogs, listLogsInRange, logKindOf } from "./dailyLogs";
 import { getDiaryWithPhotos, listDiaryEntriesInRange } from "./diary";
 import { CalendarEvent, mapGoogleEvent, mergeEvents } from "./eventMerge";
 import { listLocalEventsInRange } from "./events";
@@ -158,10 +159,11 @@ async function buildPayload(
     } catch {
       // 구글 미연결 — 로컬만
     }
-    const [{ data: taskRows }, diary, routineStats] = await Promise.all([
+    const [{ data: taskRows }, diary, routineStats, dayLogs] = await Promise.all([
       supabase.from("tasks").select("title, done").eq("date", periodKey),
       getDiaryWithPhotos(periodKey),
       collectRoutineStats(start, end),
+      listLogs(periodKey).catch(() => []),
     ]);
     return {
       payload: {
@@ -169,6 +171,11 @@ async function buildPayload(
         googleIncluded,
         tasks: (taskRows ?? []) as { title: string; done: boolean }[],
         routines: routineStats,
+        // 생활 기록 (운동/식단/몸무게/지출/학습 등)
+        lifeLogs: dayLogs.map((l) => ({
+          kind: logKindOf(l.kind).label,
+          value: formatLog(l),
+        })),
         diary: diary.diary
           ? {
               mood: diary.diary.mood,
@@ -322,6 +329,9 @@ async function buildPayload(
 
   const { events, googleIncluded } = await collectEvents(start, end);
   const contentLimit = type === "weekly" ? 300 : type === "quarterly" ? 60 : 120;
+  // 주간 리포트에는 생활 기록(운동 등)도 포함
+  const weekLogs =
+    type === "weekly" ? await listLogsInRange(start, end).catch(() => []) : [];
   const { data: diaryContents } = await supabase
     .from("diaries")
     .select("date, mood, content, highlight, energy, sleep_hours, people, gratitude")
@@ -356,6 +366,15 @@ async function buildPayload(
         content: d.content.slice(0, contentLimit),
       })),
       moodCounts,
+      ...(weekLogs.length > 0
+        ? {
+            lifeLogs: weekLogs.map((l) => ({
+              date: l.date,
+              kind: logKindOf(l.kind).label,
+              value: formatLog(l),
+            })),
+          }
+        : {}),
     },
     photoUrls: [],
   };
