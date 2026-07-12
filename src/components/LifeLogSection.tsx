@@ -10,6 +10,7 @@ import { Footprints } from "phosphor-react-native/src/icons/Footprints";
 import { ForkKnife } from "phosphor-react-native/src/icons/ForkKnife";
 import { PencilSimpleLine } from "phosphor-react-native/src/icons/PencilSimpleLine";
 import { Pill } from "phosphor-react-native/src/icons/Pill";
+import { Prohibit } from "phosphor-react-native/src/icons/Prohibit";
 import { Scales } from "phosphor-react-native/src/icons/Scales";
 import { Wallet } from "phosphor-react-native/src/icons/Wallet";
 import React, { useCallback, useMemo, useState } from "react";
@@ -52,6 +53,7 @@ const KIND_ICONS: Record<string, { Icon: typeof Barbell; color: string }> = {
   meds: { Icon: Pill, color: "#2FA36B" },
   media: { Icon: FilmSlate, color: "#C4699E" },
   sleepwake: { Icon: Alarm, color: "#7A8699" },
+  avoid: { Icon: Prohibit, color: "#D9534F" },
 };
 
 function KindIcon({ kindKey, size, active }: { kindKey: string; size: number; active?: boolean }) {

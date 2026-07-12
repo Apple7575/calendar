@@ -90,6 +90,15 @@ export async function addMonthTop(
   }
 }
 
+/** 순위 저장: 배열 순서대로 position 갱신 */
+export async function saveMonthTopOrder(items: MonthTopItem[]): Promise<void> {
+  await Promise.all(
+    items.map((it, idx) =>
+      supabase.from("month_highlights").update({ position: idx }).eq("id", it.id)
+    )
+  );
+}
+
 export async function updateMonthTopCaption(id: string, caption: string): Promise<void> {
   const { error } = await supabase.from("month_highlights").update({ caption }).eq("id", id);
   if (error) throw new Error(`설명 저장에 실패했어요: ${error.message}`);

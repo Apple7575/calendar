@@ -24,6 +24,7 @@ export const LOG_KINDS: LogKind[] = [
   { key: "meds", label: "약·영양제", emoji: "💊", numeric: false, placeholder: "예: 유산균, 비타민D" },
   { key: "media", label: "책·영화", emoji: "🎬", numeric: false, placeholder: "예: 데미안 3장, 영화 인셉션" },
   { key: "sleepwake", label: "기상·취침", emoji: "⏰", numeric: false, placeholder: "예: 기상 7:00, 취침 00:30" },
+  { key: "avoid", label: "어김", emoji: "🚫", numeric: false, placeholder: "예: 야식 (하지 않기 항목)" },
 ];
 
 export function logKindOf(key: string): LogKind {

@@ -7,6 +7,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Barbell } from "phosphor-react-native/src/icons/Barbell";
 import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
+import { ForkKnife } from "phosphor-react-native/src/icons/ForkKnife";
+import { Prohibit } from "phosphor-react-native/src/icons/Prohibit";
 import { ChatCircleDots } from "phosphor-react-native/src/icons/ChatCircleDots";
 import { Gear } from "phosphor-react-native/src/icons/Gear";
 import { MapPin } from "phosphor-react-native/src/icons/MapPin";
@@ -23,7 +25,15 @@ import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
 
 const HIDDEN_KEY = "interests.hidden";
 
-type ModuleScreen = "Expressions" | "MemoryMap" | "Goals" | "Timeline" | "Speech" | "Workout";
+type ModuleScreen =
+  | "Expressions"
+  | "MemoryMap"
+  | "Goals"
+  | "Timeline"
+  | "Speech"
+  | "Workout"
+  | "Meals"
+  | "Avoid";
 
 type ModuleDef = {
   id: string;
@@ -81,6 +91,24 @@ const MODULES: ModuleDef[] = [
     screen: "Workout",
     tint: "#FF8A4C",
     tintBg: "#FFE9DB",
+  },
+  {
+    id: "meals",
+    title: "식단 기록",
+    desc: "끼니별 사진·그람·칼로리로 오늘 먹은 것 정리",
+    icon: ForkKnife,
+    screen: "Meals",
+    tint: "#3FBF77",
+    tintBg: "#DEF5E9",
+  },
+  {
+    id: "avoid",
+    title: "하지 않기",
+    desc: "끊고 싶은 습관 — 어긴 날만 체크",
+    icon: Prohibit,
+    screen: "Avoid",
+    tint: "#D9534F",
+    tintBg: "#FFE3E1",
   },
   {
     id: "speech",

@@ -10,6 +10,8 @@ import { GoalsScreen } from "../screens/GoalsScreen";
 import { SpeechScreen } from "../screens/SpeechScreen";
 import { TimelineScreen } from "../screens/TimelineScreen";
 import { WorkoutScreen } from "../screens/WorkoutScreen";
+import { MealsScreen } from "../screens/MealsScreen";
+import { AvoidScreen } from "../screens/AvoidScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -133,6 +135,16 @@ export function RootNavigator() {
             name="Workout"
             component={WorkoutScreen}
             options={{ title: "운동 기록" }}
+          />
+          <Stack.Screen
+            name="Meals"
+            component={MealsScreen}
+            options={{ title: "식단 기록" }}
+          />
+          <Stack.Screen
+            name="Avoid"
+            component={AvoidScreen}
+            options={{ title: "하지 않기" }}
           />
         </>
       ) : (

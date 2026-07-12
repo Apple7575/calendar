@@ -61,6 +61,7 @@
    13. `0013_life_records.sql` — 생활 기록(식단·몸무게 등), 인생 타임라인, 목표 진전
    14. `0014_timeline_month_cover.sql` — 타임라인 월, 일기 대표사진
    15. `0015_monthtop_workouts.sql` — 이달의 TOP 5 사진, 운동 종목/기록
+   16. `0016_meals_avoid.sql` — 식단(끼니별 사진·칼로리), 하지 않기
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 

@@ -19,6 +19,7 @@ import {
   MONTH_TOP_LIMIT,
   MonthTopItem,
   removeMonthTop,
+  saveMonthTopOrder,
   updateMonthTopCaption,
 } from "../lib/monthHighlights";
 import { useTheme } from "../theme/ThemeContext";
@@ -57,8 +58,24 @@ export function MonthTopFive({ monthKey }: { monthKey: string }) {
     );
   };
 
+  const move = async (item: MonthTopItem, dir: -1 | 1) => {
+    const idx = items.findIndex((i) => i.id === item.id);
+    const target = idx + dir;
+    if (target < 0 || target >= items.length) return;
+    const next = [...items];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setItems(next);
+    try {
+      await saveMonthTopOrder(next);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "순위 저장에 실패했어요.");
+    }
+  };
+
   const handlePressItem = (item: MonthTopItem) => {
     Alert.alert(item.caption || "TOP 5 사진", undefined, [
+      { text: "◀ 순위 올리기", onPress: () => move(item, -1) },
+      { text: "▶ 순위 내리기", onPress: () => move(item, 1) },
       {
         text: "설명 수정",
         onPress: () =>
@@ -96,16 +113,6 @@ export function MonthTopFive({ monthKey }: { monthKey: string }) {
       { text: "취소", style: "cancel" },
     ]);
   };
-
-  // 아무것도 없으면 얇은 추가 버튼만
-  if (items.length === 0) {
-    return (
-      <TouchableOpacity style={styles.emptyRow} onPress={handleAdd}>
-        <Plus size={12} weight="bold" color={c.textMuted} />
-        <Text style={styles.emptyText}>이달의 TOP 5 사진 남기기</Text>
-      </TouchableOpacity>
-    );
-  }
 
   return (
     <ScrollView
