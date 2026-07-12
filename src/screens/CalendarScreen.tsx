@@ -166,11 +166,12 @@ export function CalendarScreen() {
   changePeriodRef.current = changePeriod;
   const swipe = useRef(
     PanResponder.create({
+      // 가로가 확실히 우세할 때만 잡는다 (세로 스크롤 오동작 방지)
       onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        Math.abs(g.dx) > 32 && Math.abs(g.dx) > Math.abs(g.dy) * 2.5,
       onPanResponderRelease: (_, g) => {
-        if (g.dx < -40) changePeriodRef.current(1);
-        else if (g.dx > 40) changePeriodRef.current(-1);
+        if (Math.abs(g.dx) < 56 || Math.abs(g.dx) < Math.abs(g.dy) * 1.5) return;
+        changePeriodRef.current(g.dx < 0 ? 1 : -1);
       },
     })
   ).current;

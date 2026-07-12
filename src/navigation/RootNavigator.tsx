@@ -14,6 +14,7 @@ import { MealsScreen } from "../screens/MealsScreen";
 import { AvoidScreen } from "../screens/AvoidScreen";
 import { BodyScreen } from "../screens/BodyScreen";
 import { RecapScreen } from "../screens/RecapScreen";
+import { RoutinePlayerScreen } from "../screens/RoutinePlayerScreen";
 import { WeeklyReviewScreen } from "../screens/WeeklyReviewScreen";
 import { DiaryEditScreen } from "../screens/DiaryEditScreen";
 import { EventEditScreen } from "../screens/EventEditScreen";
@@ -163,6 +164,11 @@ export function RootNavigator() {
             name="Recap"
             component={RecapScreen}
             options={{ title: "리캡" }}
+          />
+          <Stack.Screen
+            name="RoutinePlayer"
+            component={RoutinePlayerScreen}
+            options={{ headerShown: false, presentation: "fullScreenModal" }}
           />
         </>
       ) : (

@@ -14,7 +14,10 @@ import {
 import { listLocalEventsInRange } from "./events";
 import * as googleCalendar from "./googleCalendar";
 import { expandEventRows } from "./recurrence";
-import { listCheckedRoutineIds, listRoutines, routinesForDate } from "./routines";
+import { addDays } from "./dateUtils";
+import { listDiaryEntriesInRange } from "./diary";
+import { listCheckedRoutineIds, listChecksInRange, listRoutines, routinesForDate } from "./routines";
+import { computeStreakWithRecovery } from "./streaks";
 import { supabase } from "./supabase";
 
 const APP_GROUP = "group.com.newblueday.mycalendar";
@@ -65,11 +68,30 @@ export async function updateWidget(): Promise<void> {
     }
     const todayEvents = eventsOnDate(monthEvents, dateKey);
 
-    const [{ data: taskRows }, allRoutines, checked] = await Promise.all([
-      supabase.from("tasks").select("done").eq("date", dateKey),
-      listRoutines(),
-      listCheckedRoutineIds(dateKey),
-    ]);
+    const [{ data: taskRows }, allRoutines, checked, diaryEntries, checks60] =
+      await Promise.all([
+        supabase.from("tasks").select("done").eq("date", dateKey),
+        listRoutines(),
+        listCheckedRoutineIds(dateKey),
+        listDiaryEntriesInRange(addDays(dateKey, -60), dateKey).catch(() => []),
+        listChecksInRange(addDays(dateKey, -60), dateKey).catch(() => []),
+      ]);
+
+    // 최근 60일: 루틴을 전부 지킨 날들 (스트릭·달력 표시용)
+    const checksByDate = new Map<string, Set<string>>();
+    for (const ch of checks60) {
+      if (!checksByDate.has(ch.date)) checksByDate.set(ch.date, new Set());
+      checksByDate.get(ch.date)!.add(ch.routine_id);
+    }
+    const routineFullDays: string[] = [];
+    for (let i = 0; i <= 60; i++) {
+      const key = addDays(dateKey, -i);
+      const due = routinesForDate(allRoutines, key);
+      if (due.length > 0 && due.every((r) => checksByDate.get(key)?.has(r.id))) {
+        routineFullDays.push(key);
+      }
+    }
+    const diaryDates = diaryEntries.map((e) => e.date);
     const tasks = (taskRows ?? []) as { done: boolean }[];
     const routines = routinesForDate(allRoutines, dateKey);
 
@@ -101,7 +123,17 @@ export async function updateWidget(): Promise<void> {
         daysInMonth,
         today: d.getDate(),
         eventDays: [...eventDaySet].sort((a, b) => a - b),
+        // 잘 살고 있는 표시: 일기 쓴 날 / 루틴 전부 지킨 날
+        diaryDays: diaryDates
+          .filter((k) => k.startsWith(monthKey))
+          .map((k) => Number(k.slice(8))),
+        routineDays: routineFullDays
+          .filter((k) => k.startsWith(monthKey))
+          .map((k) => Number(k.slice(8))),
       },
+      // 스트릭 (하루 빠짐 복구 허용)
+      routineStreak: computeStreakWithRecovery(routineFullDays, dateKey),
+      diaryStreak: computeStreakWithRecovery(diaryDates, dateKey),
     };
 
     const storage = new ExtensionStorage(APP_GROUP);

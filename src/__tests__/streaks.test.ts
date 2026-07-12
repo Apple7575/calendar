@@ -1,4 +1,23 @@
-import { computeStreak, countInMonth } from "../lib/streaks";
+import { computeStreak, computeStreakWithRecovery, countInMonth } from "../lib/streaks";
+
+describe("computeStreakWithRecovery — 하루 복구 허용", () => {
+  it("하루 빠져도 이어진다", () => {
+    expect(
+      computeStreakWithRecovery(["2026-07-07", "2026-07-09", "2026-07-10"], "2026-07-10")
+    ).toBe(3);
+  });
+  it("이틀 연속 빠지면 끊긴다", () => {
+    expect(
+      computeStreakWithRecovery(["2026-07-06", "2026-07-09", "2026-07-10"], "2026-07-10")
+    ).toBe(2);
+  });
+  it("오늘 아직 안 했으면 어제 기준", () => {
+    expect(computeStreakWithRecovery(["2026-07-08", "2026-07-09"], "2026-07-10")).toBe(2);
+  });
+  it("기록 없으면 0", () => {
+    expect(computeStreakWithRecovery([], "2026-07-10")).toBe(0);
+  });
+});
 
 describe("computeStreak", () => {
   it("오늘 포함 연속", () => {

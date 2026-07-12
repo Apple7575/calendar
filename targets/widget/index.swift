@@ -15,10 +15,12 @@ struct WidgetEventItem: Codable, Identifiable {
 
 struct WidgetMonthData: Codable {
   let title: String        // "2026년 7월"
-  let firstWeekday: Int    // 1일의 요일 (0=일 … 6=토)
+  let firstWeekday: Int    // 1일의 요일 (0=월 … 6=일)
   let daysInMonth: Int
   let today: Int           // 오늘 날짜 (1-based)
   let eventDays: [Int]     // 일정이 있는 날짜들
+  let diaryDays: [Int]?    // 일기 쓴 날
+  let routineDays: [Int]?  // 루틴 전부 지킨 날
 }
 
 struct TodayWidgetData: Codable {
@@ -30,6 +32,8 @@ struct TodayWidgetData: Codable {
   let routinesTotal: Int
   // 이전 버전 JSON에는 없을 수 있어 optional
   let month: WidgetMonthData?
+  let routineStreak: Int?
+  let diaryStreak: Int?
 }
 
 func loadWidgetData() -> TodayWidgetData? {
@@ -52,11 +56,15 @@ let sampleWidgetData = TodayWidgetData(
   routinesTotal: 2,
   month: WidgetMonthData(
     title: "2026년 7월",
-    firstWeekday: 3,
+    firstWeekday: 2,
     daysInMonth: 31,
     today: 10,
-    eventDays: [3, 10, 14, 22, 28]
-  )
+    eventDays: [3, 10, 14, 22, 28],
+    diaryDays: [6, 7, 8, 9, 10],
+    routineDays: [7, 8, 9, 10]
+  ),
+  routineStreak: 4,
+  diaryStreak: 5
 )
 
 // MARK: - Timeline
@@ -270,9 +278,9 @@ struct MonthWidgetView: View {
             .font(.system(size: 15, weight: .bold))
             .foregroundStyle(.tint)
           Spacer()
-          Text("할 일 \(data.tasksDone)/\(data.tasksTotal)")
-            .font(.system(size: 10))
-            .foregroundStyle(.secondary)
+          // 스트릭: 위젯만 봐도 "잘 살고 있다"가 보이게
+          Text("🔥\(data.routineStreak ?? 0)  📓\(data.diaryStreak ?? 0)")
+            .font(.system(size: 11, weight: .bold))
         }
 
         let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
@@ -288,6 +296,8 @@ struct MonthWidgetView: View {
           ForEach(1...month.daysInMonth, id: \.self) { day in
             let isToday = day == month.today
             let weekday = (month.firstWeekday + day - 1) % 7
+            let isRoutine = month.routineDays?.contains(day) ?? false
+            let isDiary = month.diaryDays?.contains(day) ?? false
             VStack(spacing: 1) {
               Text("\(day)")
                 .font(.system(size: 12, weight: isToday ? .bold : .medium))
@@ -298,10 +308,23 @@ struct MonthWidgetView: View {
                        : (weekday == 5 ? Color.blue.opacity(0.85) : Color.primary))
                 )
                 .frame(width: 22, height: 22)
-                .background(isToday ? Circle().fill(Color.accentColor) : nil)
-              Circle()
-                .fill(month.eventDays.contains(day) ? Color.accentColor.opacity(0.8) : Color.clear)
-                .frame(width: 4, height: 4)
+                .background(
+                  isToday
+                    ? AnyView(Circle().fill(Color.accentColor))
+                    // 루틴을 전부 지킨 날은 은은한 채움 — 빈칸이 보이면 채우고 싶어진다
+                    : (isRoutine
+                       ? AnyView(Circle().fill(Color.accentColor.opacity(0.22)))
+                       : AnyView(EmptyView()))
+                )
+              HStack(spacing: 2) {
+                if isDiary {
+                  Circle().fill(Color.green.opacity(0.85)).frame(width: 4, height: 4)
+                }
+                if month.eventDays.contains(day) {
+                  Circle().fill(Color.accentColor.opacity(0.8)).frame(width: 4, height: 4)
+                }
+              }
+              .frame(height: 4)
             }
           }
         }

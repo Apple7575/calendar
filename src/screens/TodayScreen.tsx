@@ -59,10 +59,10 @@ export function TodayScreen() {
   const swipe = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        Math.abs(g.dx) > 32 && Math.abs(g.dx) > Math.abs(g.dy) * 2.5,
       onPanResponderRelease: (_, g) => {
-        if (g.dx < -40) changeDayRef.current(1);
-        else if (g.dx > 40) changeDayRef.current(-1);
+        if (Math.abs(g.dx) < 56 || Math.abs(g.dx) < Math.abs(g.dy) * 1.5) return;
+        changeDayRef.current(g.dx < 0 ? 1 : -1);
       },
     })
   ).current;
@@ -117,6 +117,7 @@ export function TodayScreen() {
             navigation.navigate("PhotoViewer", { photos, index })
           }
           onManageRoutines={() => navigation.navigate("Routines")}
+          onStartRoutines={isToday ? () => navigation.navigate("RoutinePlayer") : undefined}
         />
       </View>
     </SafeAreaView>

@@ -50,6 +50,8 @@ type Props = {
   onGoSettings?: () => void;
   onOpenPhotos?: (photos: ViewerPhoto[], index: number) => void;
   onManageRoutines?: () => void;
+  /** 루틴 플레이어 시작 (오늘만) */
+  onStartRoutines?: () => void;
 };
 
 function timeLabel(e: CalendarEvent): string {
@@ -64,6 +66,7 @@ export function DayOverview({
   onGoSettings,
   onOpenPhotos,
   onManageRoutines,
+  onStartRoutines,
 }: Props) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
@@ -301,11 +304,18 @@ export function DayOverview({
         <Section
           title="루틴"
           right={
-            onManageRoutines ? (
-              <TouchableOpacity onPress={onManageRoutines} hitSlop={8}>
-                <Text style={styles.addLinkText}>관리</Text>
-              </TouchableOpacity>
-            ) : undefined
+            <View style={{ flexDirection: "row", gap: spacing.md }}>
+              {onStartRoutines && day.routines.length > 0 ? (
+                <TouchableOpacity onPress={onStartRoutines} hitSlop={8}>
+                  <Text style={styles.addLinkText}>▶ 시작</Text>
+                </TouchableOpacity>
+              ) : null}
+              {onManageRoutines ? (
+                <TouchableOpacity onPress={onManageRoutines} hitSlop={8}>
+                  <Text style={styles.addLinkText}>관리</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           }
         >
           {day.routines.length === 0 ? (

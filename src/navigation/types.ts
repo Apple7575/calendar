@@ -65,6 +65,8 @@ export type RootStackParamList = {
   Body: undefined;
   /** 리캡: "2026" 또는 "2026-07" */
   Recap: { periodKey: string };
+  /** 루틴 플레이어 (풀스크린 진행) */
+  RoutinePlayer: undefined;
   /** 루틴 관리 */
   Routines: undefined;
   /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */
