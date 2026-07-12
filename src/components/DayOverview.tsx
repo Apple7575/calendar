@@ -52,6 +52,10 @@ type Props = {
   onManageRoutines?: () => void;
   /** 루틴 플레이어 시작 (오늘만) — slot: 아침/저녁 */
   onStartRoutines?: (slot?: "morning" | "evening") => void;
+  /** true면 루틴/생활기록은 읽기 전용 요약 (기록은 관심사 탭에서) — 오늘 탭용 */
+  compact?: boolean;
+  /** compact에서 생활 기록 화면으로 이동 */
+  onOpenLifeLog?: () => void;
 };
 
 function timeLabel(e: CalendarEvent): string {
@@ -67,6 +71,8 @@ export function DayOverview({
   onOpenPhotos,
   onManageRoutines,
   onStartRoutines,
+  compact,
+  onOpenLifeLog,
 }: Props) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
@@ -305,17 +311,18 @@ export function DayOverview({
           title="루틴"
           right={
             <View style={{ flexDirection: "row", gap: spacing.md }}>
-              {onStartRoutines && day.routines.some((r) => r.time_slot === "morning") ? (
+              {!compact && onStartRoutines && day.routines.some((r) => r.time_slot === "morning") ? (
                 <TouchableOpacity onPress={() => onStartRoutines("morning")} hitSlop={8}>
                   <Text style={styles.addLinkText}>🌅 아침</Text>
                 </TouchableOpacity>
               ) : null}
-              {onStartRoutines && day.routines.some((r) => r.time_slot === "evening") ? (
+              {!compact && onStartRoutines && day.routines.some((r) => r.time_slot === "evening") ? (
                 <TouchableOpacity onPress={() => onStartRoutines("evening")} hitSlop={8}>
                   <Text style={styles.addLinkText}>🌙 저녁</Text>
                 </TouchableOpacity>
               ) : null}
-              {onStartRoutines &&
+              {!compact &&
+              onStartRoutines &&
               day.routines.length > 0 &&
               !day.routines.some((r) => r.time_slot === "morning" || r.time_slot === "evening") ? (
                 <TouchableOpacity onPress={() => onStartRoutines(undefined)} hitSlop={8}>
@@ -324,7 +331,7 @@ export function DayOverview({
               ) : null}
               {onManageRoutines ? (
                 <TouchableOpacity onPress={onManageRoutines} hitSlop={8}>
-                  <Text style={styles.addLinkText}>관리</Text>
+                  <Text style={styles.addLinkText}>{compact ? "기록하러 가기 →" : "관리"}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -339,6 +346,7 @@ export function DayOverview({
                 <TouchableOpacity
                   key={r.id}
                   style={styles.taskRow}
+                  disabled={compact}
                   onPress={() => handleToggleRoutine(r.id, !checked)}
                 >
                   <View style={styles.taskToggle}>
@@ -407,7 +415,7 @@ export function DayOverview({
         </View>
       </Section>
 
-      <LifeLogSection dateKey={dateKey} />
+      <LifeLogSection dateKey={dateKey} readOnly={compact} onOpen={onOpenLifeLog} />
 
       <Section title="일기">
         <TouchableOpacity onPress={onEditDiary} activeOpacity={0.7}>

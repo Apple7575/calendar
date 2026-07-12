@@ -69,6 +69,8 @@ export type RootStackParamList = {
   RoutinePlayer: { slot?: "morning" | "evening" } | undefined;
   /** 뽀모도로 타이머 */
   Pomodoro: undefined;
+  /** 생활 기록 (기록용 화면) */
+  LifeLog: undefined;
   /** 루틴 관리 */
   Routines: undefined;
   /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */

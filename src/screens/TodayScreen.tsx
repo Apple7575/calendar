@@ -117,9 +117,8 @@ export function TodayScreen() {
             navigation.navigate("PhotoViewer", { photos, index })
           }
           onManageRoutines={() => navigation.navigate("Routines")}
-          onStartRoutines={
-            isToday ? (slot) => navigation.navigate("RoutinePlayer", { slot }) : undefined
-          }
+          onOpenLifeLog={() => navigation.navigate("LifeLog")}
+          compact
         />
       </View>
     </SafeAreaView>

@@ -13,12 +13,20 @@ import {
 } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Section } from "../components/Section";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { todayKey } from "../lib/dateUtils";
+import { tapLight } from "../lib/haptics";
 import {
   addRoutine,
   deleteRoutine,
+  listCheckedRoutineIds,
   listRoutines,
+  routinesForDate,
   setRoutineActive,
+  setRoutineChecked,
 } from "../lib/routines";
+import { RootStackParamList } from "../navigation/types";
 import { RoutineRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -85,13 +93,35 @@ export function RoutineManageScreen() {
     }
   };
 
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const today = todayKey();
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+
   const reload = useCallback(async () => {
     try {
       setRoutines(await listRoutines());
+      setChecked(await listCheckedRoutineIds(today));
     } catch (e) {
       setError(e instanceof Error ? e.message : "루틴을 불러오지 못했어요.");
     }
-  }, []);
+  }, [today]);
+
+  /** 오늘 체크 토글 */
+  const toggleToday = async (r: RoutineRow) => {
+    const next = !checked.has(r.id);
+    if (next) tapLight();
+    setChecked((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(r.id);
+      else s.delete(r.id);
+      return s;
+    });
+    try {
+      await setRoutineChecked(r.id, today, next);
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "체크에 실패했어요.");
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -152,6 +182,54 @@ export function RoutineManageScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      {/* 오늘 체크 + 플레이어 */}
+      <Section
+        title="오늘"
+        right={
+          <View style={{ flexDirection: "row", gap: spacing.md }}>
+            {routinesForDate(routines, today).some((r) => r.time_slot === "morning") ? (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("RoutinePlayer", { slot: "morning" })}
+                hitSlop={8}
+              >
+                <Text style={styles.startLink}>🌅 아침 시작</Text>
+              </TouchableOpacity>
+            ) : null}
+            {routinesForDate(routines, today).some((r) => r.time_slot === "evening") ? (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("RoutinePlayer", { slot: "evening" })}
+                hitSlop={8}
+              >
+                <Text style={styles.startLink}>🌙 저녁 시작</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        }
+      >
+        {routinesForDate(routines, today).length === 0 ? (
+          <Text style={styles.emptyText}>오늘 할 루틴이 없어요.</Text>
+        ) : (
+          routinesForDate(routines, today).map((r) => {
+            const isChecked = checked.has(r.id);
+            return (
+              <TouchableOpacity
+                key={r.id}
+                style={styles.todayRow}
+                onPress={() => toggleToday(r)}
+              >
+                <View style={[styles.todayCheck, isChecked && styles.todayCheckDone]}>
+                  {isChecked ? <Ionicons name="checkmark" size={14} color={c.white} /> : null}
+                </View>
+                <Text style={[styles.todayTitle, isChecked && styles.todayTitleDone]}>
+                  {r.title}
+                </Text>
+                <Text style={styles.todaySlot}>{slotLabel(r.time_slot)}</Text>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </Section>
 
       <Section title="갓생 루틴 세트 (탭 한 번에 추가)">
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
@@ -287,6 +365,26 @@ const createStyles = (c: ThemeColors) =>
       backgroundColor: c.inputBg,
     },
     dayChipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    startLink: { fontSize: fontSizes.caption, fontWeight: "800", color: c.primary },
+    todayRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm + 2,
+      paddingVertical: spacing.sm,
+    },
+    todayCheck: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: c.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    todayCheckDone: { backgroundColor: c.success, borderColor: c.success },
+    todayTitle: { flex: 1, fontSize: fontSizes.body, color: c.text, fontWeight: "600" },
+    todayTitleDone: { color: c.textMuted, textDecorationLine: "line-through" },
+    todaySlot: { fontSize: fontSizes.caption, color: c.textMuted },
     presetButton: {
       flex: 1,
       backgroundColor: c.primarySoft,

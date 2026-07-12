@@ -61,7 +61,16 @@ function KindIcon({ kindKey, size, active }: { kindKey: string; size: number; ac
   return <entry.Icon size={size} weight="duotone" color={active ? "#FFFFFF" : entry.color} />;
 }
 
-export function LifeLogSection({ dateKey }: { dateKey: string }) {
+export function LifeLogSection({
+  dateKey,
+  readOnly,
+  onOpen,
+}: {
+  dateKey: string;
+  /** true면 보기 전용 — 기록은 관심사 탭 생활 기록에서 */
+  readOnly?: boolean;
+  onOpen?: () => void;
+}) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const [logs, setLogs] = useState<DailyLogRow[]>([]);
@@ -124,6 +133,39 @@ export function LifeLogSection({ dateKey }: { dateKey: string }) {
       Alert.alert("오류", e instanceof Error ? e.message : "기록에 실패했어요.");
     }
   };
+
+  // 읽기 전용 (오늘 탭): 목록만 보여주고 기록은 관심사 탭으로
+  if (readOnly) {
+    return (
+      <Section
+        title="생활 기록"
+        right={
+          onOpen ? (
+            <TouchableOpacity onPress={onOpen} hitSlop={8}>
+              <Text style={styles.openLink}>기록하러 가기 →</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      >
+        {logs.length === 0 ? (
+          <Text style={styles.readOnlyEmpty}>오늘 기록이 없어요.</Text>
+        ) : (
+          logs.map((row) => {
+            const k = logKindOf(row.kind);
+            return (
+              <View key={row.id} style={styles.logRow}>
+                <KindIcon kindKey={row.kind} size={16} />
+                <Text style={styles.logKind}>{k.label}</Text>
+                <Text style={styles.logValue} numberOfLines={2}>
+                  {formatLog(row)}
+                </Text>
+              </View>
+            );
+          })
+        )}
+      </Section>
+    );
+  }
 
   return (
     <Section
@@ -239,4 +281,6 @@ const createStyles = (c: ThemeColors) =>
       justifyContent: "center",
     },
     addText: { color: c.white, fontSize: fontSizes.small, fontWeight: "800" },
+    openLink: { fontSize: fontSizes.small, fontWeight: "700", color: c.primary },
+    readOnlyEmpty: { fontSize: fontSizes.small, color: c.textMuted },
   });

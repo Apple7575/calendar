@@ -14,6 +14,7 @@ import { MealsScreen } from "../screens/MealsScreen";
 import { AvoidScreen } from "../screens/AvoidScreen";
 import { BodyScreen } from "../screens/BodyScreen";
 import { RecapScreen } from "../screens/RecapScreen";
+import { LifeLogScreen } from "../screens/LifeLogScreen";
 import { PomodoroScreen } from "../screens/PomodoroScreen";
 import { RoutinePlayerScreen } from "../screens/RoutinePlayerScreen";
 import { WeeklyReviewScreen } from "../screens/WeeklyReviewScreen";
@@ -175,6 +176,11 @@ export function RootNavigator() {
             name="Pomodoro"
             component={PomodoroScreen}
             options={{ title: "뽀모도로" }}
+          />
+          <Stack.Screen
+            name="LifeLog"
+            component={LifeLogScreen}
+            options={{ title: "생활 기록" }}
           />
         </>
       ) : (

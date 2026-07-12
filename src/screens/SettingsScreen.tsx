@@ -33,6 +33,8 @@ import {
   setReviewReminder,
 } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { INTERESTS_HIDDEN_KEY, MODULE_TITLES } from "./InterestsScreen";
 import { useThemeControls } from "../theme/ThemeContext";
 import { THEMES, ThemeColors } from "../theme/themes";
 import { fontSizes, spacing } from "../theme/tokens";
@@ -50,6 +52,19 @@ export function SettingsScreen() {
   const [briefingPref, setBriefingPref] = useState<BriefingReminderPref | null>(null);
   const [momentPref, setMomentPref] = useState<MomentReminderPref | null>(null);
   const [reviewPref, setReviewPref] = useState<ReviewReminderPref | null>(null);
+  const [hiddenInterests, setHiddenInterests] = useState<string[]>([]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(INTERESTS_HIDDEN_KEY)
+      .then((raw) => setHiddenInterests(raw ? (JSON.parse(raw) as string[]) : []))
+      .catch(() => {});
+  }, []);
+
+  const restoreInterest = async (id: string) => {
+    const next = hiddenInterests.filter((x) => x !== id);
+    setHiddenInterests(next);
+    await AsyncStorage.setItem(INTERESTS_HIDDEN_KEY, JSON.stringify(next));
+  };
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -370,6 +385,23 @@ export function SettingsScreen() {
           ) : null}
         </Section>
 
+        <Section title="관심사 아카이브">
+          {hiddenInterests.length === 0 ? (
+            <Text style={styles.scopeHint}>
+              숨긴 관심사가 없어요. 관심사 탭에서 카드의 ✕를 누르면 여기로 들어와요.
+            </Text>
+          ) : (
+            hiddenInterests.map((id) => (
+              <View key={id} style={[styles.statusRow, { marginBottom: spacing.sm }]}>
+                <Text style={styles.rowText}>{MODULE_TITLES[id] ?? id}</Text>
+                <TouchableOpacity onPress={() => restoreInterest(id)} hitSlop={8}>
+                  <Text style={styles.restoreText}>복원</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </Section>
+
         <Section title="데이터">
           <PrimaryButton
             title="일기 백업 내보내기 (마크다운)"
@@ -408,6 +440,7 @@ const createStyles = (c: ThemeColors) =>
       justifyContent: "space-between",
     },
     statusText: { fontSize: fontSizes.body, fontWeight: "700", color: c.textMuted },
+    restoreText: { fontSize: fontSizes.small, fontWeight: "800", color: c.primary },
     scopeHint: {
       fontSize: fontSizes.caption,
       color: c.textMuted,

@@ -13,7 +13,9 @@ import { ForkKnife } from "phosphor-react-native/src/icons/ForkKnife";
 import { Prohibit } from "phosphor-react-native/src/icons/Prohibit";
 import { ChatCircleDots } from "phosphor-react-native/src/icons/ChatCircleDots";
 import { Gear } from "phosphor-react-native/src/icons/Gear";
+import { ListChecks } from "phosphor-react-native/src/icons/ListChecks";
 import { MapPin } from "phosphor-react-native/src/icons/MapPin";
+import { NotePencil } from "phosphor-react-native/src/icons/NotePencil";
 import { PathIcon } from "phosphor-react-native/src/icons/Path";
 import { Target } from "phosphor-react-native/src/icons/Target";
 import { Timer } from "phosphor-react-native/src/icons/Timer";
@@ -39,7 +41,9 @@ type ModuleScreen =
   | "Avoid"
   | "Body"
   | "WeeklyReview"
-  | "Pomodoro";
+  | "Pomodoro"
+  | "Routines"
+  | "LifeLog";
 
 type ModuleDef = {
   id: string;
@@ -99,6 +103,24 @@ const MODULES: ModuleDef[] = [
     tintBg: "#FFE9DB",
   },
   {
+    id: "routines",
+    title: "루틴",
+    desc: "모닝·나이트 루틴 체크와 플레이어",
+    icon: ListChecks,
+    screen: "Routines",
+    tint: "#8B72E8",
+    tintBg: "#EEE9FF",
+  },
+  {
+    id: "lifelog",
+    title: "생활 기록",
+    desc: "식단·몸무게·운동·지출·학습 — 말로도 기록",
+    icon: NotePencil,
+    screen: "LifeLog",
+    tint: "#E8920A",
+    tintBg: "#FFF1D6",
+  },
+  {
     id: "pomodoro",
     title: "뽀모도로",
     desc: "25분 집중 + 5분 휴식 — 🍅는 학습 기록으로 저장",
@@ -153,6 +175,12 @@ const MODULES: ModuleDef[] = [
     tintBg: "#FFE7EC",
   },
 ];
+
+/** 설정의 아카이브 등에서 쓰는 id → 제목 매핑 */
+export const MODULE_TITLES: Record<string, string> = Object.fromEntries(
+  MODULES.map((m) => [m.id, m.title])
+);
+export const INTERESTS_HIDDEN_KEY = HIDDEN_KEY;
 
 export function InterestsScreen() {
   const { colors: c } = useTheme();
