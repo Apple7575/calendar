@@ -45,7 +45,9 @@ function say(text: string) {
   }
 }
 
-export function RoutinePlayerScreen({ navigation }: RootScreenProps<"RoutinePlayer">) {
+export function RoutinePlayerScreen({ navigation, route }: RootScreenProps<"RoutinePlayer">) {
+  const slot = route.params?.slot;
+  const slotName = slot === "morning" ? "모닝루틴" : slot === "evening" ? "나이트루틴" : "루틴";
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const today = todayKey();
@@ -60,15 +62,18 @@ export function RoutinePlayerScreen({ navigation }: RootScreenProps<"RoutinePlay
   useEffect(() => {
     Promise.all([listRoutines(), listCheckedRoutineIds(today)])
       .then(([all, checked]) => {
-        const todays = routinesForDate(all, today).filter((r) => !checked.has(r.id));
+        const todays = routinesForDate(all, today)
+          .filter((r) => !checked.has(r.id))
+          .filter((r) => (slot ? r.time_slot === slot : true));
         setSteps(todays);
         if (todays.length > 0) {
-          say(`루틴 시작! 첫 번째, ${todays[0].title}`);
+          say(`${slotName} 시작! 첫 번째, ${todays[0].title}`);
           stepStart.current = Date.now();
         }
       })
       .catch((e) => Alert.alert("오류", e instanceof Error ? e.message : "불러오지 못했어요."));
-  }, [today]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today, slot]);
 
   // 타이머
   useEffect(() => {
@@ -108,7 +113,7 @@ export function RoutinePlayerScreen({ navigation }: RootScreenProps<"RoutinePlay
     } else {
       setDone(true);
       const total = [...times, { title: current.title, sec }].reduce((s, t) => s + t.sec, 0);
-      say(`루틴 끝! 총 ${Math.max(1, Math.round(total / 60))}분 걸렸어요. 오늘도 해냈어요.`);
+      say(`${slotName} 끝! 총 ${Math.max(1, Math.round(total / 60))}분 걸렸어요. 오늘도 해냈어요.`);
     }
   };
 
@@ -125,7 +130,7 @@ export function RoutinePlayerScreen({ navigation }: RootScreenProps<"RoutinePlay
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.doneEmoji}>🎉</Text>
-          <Text style={styles.doneTitle}>오늘 남은 루틴이 없어요</Text>
+          <Text style={styles.doneTitle}>오늘 남은 {slotName}이 없어요</Text>
           <TouchableOpacity style={styles.exitButton} onPress={() => navigation.goBack()}>
             <Text style={styles.exitText}>닫기</Text>
           </TouchableOpacity>

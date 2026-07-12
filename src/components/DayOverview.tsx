@@ -50,8 +50,8 @@ type Props = {
   onGoSettings?: () => void;
   onOpenPhotos?: (photos: ViewerPhoto[], index: number) => void;
   onManageRoutines?: () => void;
-  /** 루틴 플레이어 시작 (오늘만) */
-  onStartRoutines?: () => void;
+  /** 루틴 플레이어 시작 (오늘만) — slot: 아침/저녁 */
+  onStartRoutines?: (slot?: "morning" | "evening") => void;
 };
 
 function timeLabel(e: CalendarEvent): string {
@@ -305,8 +305,20 @@ export function DayOverview({
           title="루틴"
           right={
             <View style={{ flexDirection: "row", gap: spacing.md }}>
-              {onStartRoutines && day.routines.length > 0 ? (
-                <TouchableOpacity onPress={onStartRoutines} hitSlop={8}>
+              {onStartRoutines && day.routines.some((r) => r.time_slot === "morning") ? (
+                <TouchableOpacity onPress={() => onStartRoutines("morning")} hitSlop={8}>
+                  <Text style={styles.addLinkText}>🌅 아침</Text>
+                </TouchableOpacity>
+              ) : null}
+              {onStartRoutines && day.routines.some((r) => r.time_slot === "evening") ? (
+                <TouchableOpacity onPress={() => onStartRoutines("evening")} hitSlop={8}>
+                  <Text style={styles.addLinkText}>🌙 저녁</Text>
+                </TouchableOpacity>
+              ) : null}
+              {onStartRoutines &&
+              day.routines.length > 0 &&
+              !day.routines.some((r) => r.time_slot === "morning" || r.time_slot === "evening") ? (
+                <TouchableOpacity onPress={() => onStartRoutines(undefined)} hitSlop={8}>
                   <Text style={styles.addLinkText}>▶ 시작</Text>
                 </TouchableOpacity>
               ) : null}

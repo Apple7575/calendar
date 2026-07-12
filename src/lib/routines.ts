@@ -26,7 +26,11 @@ export function routinesForDate(routines: RoutineRow[], dateKey: string): Routin
   );
 }
 
-export async function addRoutine(title: string, repeatDays: number[]): Promise<RoutineRow> {
+export async function addRoutine(
+  title: string,
+  repeatDays: number[],
+  timeSlot: string = "any"
+): Promise<RoutineRow> {
   const userId = await requireUserId();
   const { data: maxRows } = await supabase
     .from("routines")
@@ -41,6 +45,7 @@ export async function addRoutine(title: string, repeatDays: number[]): Promise<R
       user_id: userId,
       title: title.trim(),
       repeat_days: [...new Set(repeatDays)].sort(),
+      time_slot: timeSlot,
       position: nextPosition,
     })
     .select()

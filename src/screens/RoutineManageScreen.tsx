@@ -25,6 +25,15 @@ import { ThemeColors } from "../theme/themes";
 import { fontSizes, radii, spacing } from "../theme/tokens";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
+const SLOTS = [
+  { key: "morning", label: "🌅 아침" },
+  { key: "evening", label: "🌙 저녁" },
+  { key: "any", label: "기타" },
+] as const;
+
+export function slotLabel(slot: string): string {
+  return SLOTS.find((s) => s.key === slot)?.label ?? "기타";
+}
 
 function repeatLabel(days: number[]): string {
   if (days.length === 0 || days.length === 7) return "매일";
@@ -38,6 +47,7 @@ export function RoutineManageScreen() {
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [days, setDays] = useState<number[]>([]);
+  const [slot, setSlot] = useState<string>("morning");
   const [adding, setAdding] = useState(false);
 
   const reload = useCallback(async () => {
@@ -66,7 +76,7 @@ export function RoutineManageScreen() {
     }
     setAdding(true);
     try {
-      await addRoutine(trimmed, days);
+      await addRoutine(trimmed, days, slot);
       setTitle("");
       setDays([]);
       await reload();
@@ -116,6 +126,20 @@ export function RoutineManageScreen() {
           value={title}
           onChangeText={setTitle}
         />
+        <Text style={styles.dayLabel}>루틴 시점</Text>
+        <View style={styles.dayRow}>
+          {SLOTS.map((s) => (
+            <TouchableOpacity
+              key={s.key}
+              style={[styles.slotChip, slot === s.key && styles.dayChipSelected]}
+              onPress={() => setSlot(s.key)}
+            >
+              <Text style={[styles.dayChipText, slot === s.key && styles.dayChipTextSelected]}>
+                {s.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <Text style={styles.dayLabel}>
           반복 요일 <Text style={styles.dayHint}>(선택 안 하면 매일)</Text>
         </Text>
@@ -148,7 +172,9 @@ export function RoutineManageScreen() {
                 <Text style={[styles.routineTitle, !r.active && styles.routineInactive]}>
                   {r.title}
                 </Text>
-                <Text style={styles.routineRepeat}>{repeatLabel(r.repeat_days)}</Text>
+                <Text style={styles.routineRepeat}>
+                  {slotLabel(r.time_slot)} · {repeatLabel(r.repeat_days)}
+                </Text>
               </View>
               <Switch
                 value={r.active}
@@ -203,6 +229,14 @@ const createStyles = (c: ThemeColors) =>
       backgroundColor: c.inputBg,
     },
     dayChipSelected: { backgroundColor: c.primary, borderColor: c.primary },
+    slotChip: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.inputBg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
     dayChipText: { fontSize: fontSizes.small, color: c.text, fontWeight: "600" },
     dayChipTextSelected: { color: c.white },
     routineRow: {

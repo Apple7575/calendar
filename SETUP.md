@@ -63,6 +63,7 @@
    15. `0015_monthtop_workouts.sql` — 이달의 TOP 5 사진, 운동 종목/기록
    16. `0016_meals_avoid.sql` — 식단(끼니별 사진·칼로리), 하지 않기
    17. `0017_meal_macros.sql` — 식단 3대 영양소 (영양 DB 검색용)
+   18. `0018_routine_slots.sql` — 루틴 아침/저녁 구분
 
 ## 6-1. 식품 영양 DB (선택)
 

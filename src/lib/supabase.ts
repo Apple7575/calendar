@@ -88,6 +88,8 @@ export type RoutineRow = {
   title: string;
   /** 빈 배열 = 매일, 아니면 요일 배열 (0=일 … 6=토) */
   repeat_days: number[];
+  /** 아침/저녁/기타 (morning | evening | any) */
+  time_slot: string;
   active: boolean;
   position: number;
   created_at: string;
