@@ -21,7 +21,7 @@ import { Target } from "phosphor-react-native/src/icons/Target";
 import { Timer } from "phosphor-react-native/src/icons/Timer";
 import { XCircle } from "phosphor-react-native/src/icons/XCircle";
 import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
@@ -220,7 +220,7 @@ export function InterestsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.body}>
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {visible.map((m) => (
           <TouchableOpacity
             key={m.id}
@@ -263,7 +263,7 @@ export function InterestsScreen() {
         <Text style={styles.hint}>
           앞으로 관심 있는 주제가 생기면 여기에 새 카드를 추가해 갈 수 있어요.
         </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -284,7 +284,7 @@ const createStyles = (c: ThemeColors) =>
       color: c.text,
       letterSpacing: -0.5,
     },
-    body: { padding: spacing.md, gap: spacing.sm },
+    body: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm },
     card: {
       flexDirection: "row",
       alignItems: "center",
