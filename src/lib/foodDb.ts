@@ -39,8 +39,19 @@ export async function searchFood(query: string): Promise<FoodItem[]> {
   const url =
     `${ENDPOINT}?serviceKey=${encodeURIComponent(key)}` +
     `&type=json&pageNo=1&numOfRows=10&FOOD_NM_KR=${encodeURIComponent(query.trim())}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`영양 DB 요청 실패 (${res.status})`);
+  // 공공데이터 게이트웨이가 간헐적으로 403을 내서 1회 재시도한다
+  let res = await fetch(url);
+  if (!res.ok) {
+    await new Promise((r) => setTimeout(r, 700));
+    res = await fetch(url);
+  }
+  if (!res.ok) {
+    throw new Error(
+      `영양 DB 요청 실패 (${res.status})${
+        res.status === 403 ? " — 방금 발급한 키면 반영까지 잠시 기다려 주세요" : ""
+      }`
+    );
+  }
   const data = (await res.json()) as {
     header?: { resultCode?: string; resultMsg?: string };
     body?: { items?: unknown };

@@ -19,6 +19,14 @@ import {
 import { MagnifyingGlass } from "phosphor-react-native/src/icons/MagnifyingGlass";
 import { addDays, formatKoreanDate, todayKey } from "../lib/dateUtils";
 import { FoodItem, isFoodDbConfigured, scaleNutrient, searchFood } from "../lib/foodDb";
+import {
+  loadSavedFoods,
+  recordFood,
+  removeSavedFood,
+  SavedFood,
+  sortedSavedFoods,
+  toggleFavFood,
+} from "../lib/foodFavorites";
 import { tapSuccess } from "../lib/haptics";
 import { addMeal, deleteMeal, listMeals, Meal, MEAL_SLOTS, MealSlot } from "../lib/meals";
 import { useTheme } from "../theme/ThemeContext";
@@ -42,6 +50,36 @@ export function MealsScreen() {
   const [searchResults, setSearchResults] = useState<FoodItem[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  // 자주 먹는 것 (즐겨찾기 + 최근)
+  const [savedFoods, setSavedFoods] = useState<SavedFood[]>([]);
+
+  useEffect(() => {
+    loadSavedFoods().then(setSavedFoods).catch(() => {});
+  }, []);
+
+  /** 저장된 음식 칩 → 폼 채우기 */
+  const applySaved = (f: SavedFood) => {
+    setTitle(f.name);
+    setSelectedFood(f.per100 ? { name: f.name, maker: null, per100: f.per100 } : null);
+    setGrams(f.grams != null ? String(f.grams) : "");
+    setKcal(f.kcal != null ? String(f.kcal) : "");
+    setSearchResults(null);
+  };
+
+  const savedFoodMenu = (f: SavedFood) => {
+    Alert.alert(f.name, undefined, [
+      {
+        text: f.fav ? "☆ 즐겨찾기 해제" : "★ 즐겨찾기",
+        onPress: () => toggleFavFood(f.name).then(setSavedFoods),
+      },
+      {
+        text: "목록에서 삭제",
+        style: "destructive",
+        onPress: () => removeSavedFood(f.name).then(setSavedFoods),
+      },
+      { text: "취소", style: "cancel" },
+    ]);
+  };
 
   const reload = (key: string) => {
     setMeals(null);
@@ -138,6 +176,15 @@ export function MealsScreen() {
         fatG: selectedFood ? scaleNutrient(selectedFood.per100.fat, g) : null,
         localUri: photoUri,
       });
+      // 자주 먹는 것 목록에 반영
+      recordFood({
+        name: title.trim() || "사진 기록",
+        per100: selectedFood?.per100 ?? null,
+        grams: g,
+        kcal: kcal.trim() ? Number(kcal.replace(/,/g, "")) : null,
+      })
+        .then(setSavedFoods)
+        .catch(() => {});
       setTitle("");
       setGrams("");
       setKcal("");
@@ -208,6 +255,28 @@ export function MealsScreen() {
             )}
           </TouchableOpacity>
         </View>
+        {/* 자주 먹는 것: ★ 즐겨찾기 먼저, 최근순. 탭하면 채워지고 길게 누르면 관리 */}
+        {savedFoods.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
+            <View style={styles.savedRow}>
+              {sortedSavedFoods(savedFoods).map((f) => (
+                <TouchableOpacity
+                  key={f.name}
+                  style={[styles.savedChip, f.fav && styles.savedChipFav]}
+                  onPress={() => applySaved(f)}
+                  onLongPress={() => savedFoodMenu(f)}
+                >
+                  <Text style={[styles.savedText, f.fav && styles.savedTextFav]} numberOfLines={1}>
+                    {f.fav ? "★ " : ""}
+                    {f.name}
+                    {f.kcal != null ? ` ${Math.round(f.kcal)}kcal` : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        ) : null}
+
         <View style={styles.numRow}>
           <TextInput
             style={[styles.input, { flex: 1 }]}
@@ -405,6 +474,17 @@ const createStyles = (c: ThemeColors) =>
       justifyContent: "center",
     },
     searchEmpty: { fontSize: fontSizes.caption, color: c.textMuted },
+    savedRow: { flexDirection: "row", gap: spacing.xs + 2 },
+    savedChip: {
+      backgroundColor: c.surface,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 2,
+      paddingVertical: spacing.xs + 2,
+      maxWidth: 180,
+    },
+    savedChipFav: { backgroundColor: "#FFF1D6" },
+    savedText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.text },
+    savedTextFav: { color: "#B8720A" },
     foodRow: {
       flexDirection: "row",
       alignItems: "center",

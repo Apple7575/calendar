@@ -79,7 +79,7 @@
       "@bacons/apple-targets"
     ],
     "extra": {
-      "foodApiKey": "REPLACE_WITH_FOOD_API_KEY",
+      "foodApiKey": "24663cfb05d93c00c886811a36d347e36b4ec905b47ca90972e165c967ed5e41",
       "supabaseUrl": "https://qlurqptsnvxvlbsvpjie.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsdXJxcHRzbnZ4dmxic3ZwamllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODg2NjEsImV4cCI6MjA5OTA2NDY2MX0.rQhKMJAZ10hUClgLbmDR6qejnhPQo8dxCR3Qe8Pur9c",
       "eas": {
