@@ -3,7 +3,16 @@
 
 import * as Speech from "expo-speech";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { MicButton } from "../components/MicButton";
 import { addLog } from "../lib/dailyLogs";
 import { todayKey } from "../lib/dateUtils";
 import { tapSuccess } from "../lib/haptics";
@@ -39,7 +48,38 @@ export function PomodoroScreen() {
   const [remaining, setRemaining] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const [tomatoes, setTomatoes] = useState(0); // 오늘 이 화면에서 완료한 집중 세션
+  const [autoNext, setAutoNext] = useState(true);
+  // 방금 끝난 집중 — 무엇을 공부했는지 입력 대기
+  const [pendingNote, setPendingNote] = useState<{ min: number; n: number } | null>(null);
+  const [noteText, setNoteText] = useState("");
   const endAt = useRef(0);
+
+  /** 공부 내용과 함께 기록 저장 (비우면 내용 없이) */
+  const saveNote = async (text: string) => {
+    if (!pendingNote) return;
+    const body = text.trim();
+    try {
+      await addLog(
+        todayKey(),
+        "study",
+        `뽀모도로 ${pendingNote.min}분 (🍅${pendingNote.n})${body ? `: ${body}` : ""}`
+      );
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "기록 저장에 실패했어요.");
+      return;
+    }
+    setPendingNote(null);
+    setNoteText("");
+  };
+
+  /** 남은 시간 ± 조절 (진행 중에도 동작) */
+  const adjust = (deltaMin: number) => {
+    setRemaining((prev) => {
+      const next = Math.max(10, prev + deltaMin * 60); // 최소 10초
+      if (running) endAt.current = Date.now() + next * 1000;
+      return next;
+    });
+  };
 
   const phaseDuration = (p: Phase) =>
     (p === "focus" ? focusMin : p === "break" ? breakMin : 15) * 60;
@@ -77,12 +117,14 @@ export function PomodoroScreen() {
         if (phase === "focus") {
           const n = tomatoes + 1;
           setTomatoes(n);
-          // 완료한 집중 세션을 생활 기록으로
-          addLog(todayKey(), "study", `뽀모도로 집중 ${focusMin}분 (🍅${n})`).catch(() => {});
+          // 무엇을 공부했는지 입력 대기 (말하거나 타이핑)
+          setPendingNote({ min: focusMin, n });
           nextPhase("focus", n);
         } else {
           nextPhase(phase, tomatoes);
         }
+        // 자동 진행: 다음 페이즈 타이머 바로 시작
+        if (autoNext) setTimeout(() => setRunning(true), 400);
       }
     }, 250);
     return () => clearInterval(t);
@@ -112,15 +154,70 @@ export function PomodoroScreen() {
       <Text style={[styles.timer, { color: accent }]}>{fmt(remaining)}</Text>
       <Text style={styles.tomatoRow}>{tomatoes > 0 ? "🍅".repeat(Math.min(tomatoes, 12)) : "오늘의 첫 🍅를 만들어보세요"}</Text>
 
+      {/* 시간 ± 조절 (진행 중에도) */}
+      <View style={styles.adjustRow}>
+        {[-5, -1, +1, +5].map((d) => (
+          <TouchableOpacity key={d} style={styles.adjustChip} onPress={() => adjust(d)}>
+            <Text style={styles.adjustText}>
+              {d > 0 ? `+${d}` : d}분
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <TouchableOpacity
         style={[styles.mainButton, { backgroundColor: accent }]}
         onPress={() => setRunning((r) => !r)}
       >
         <Text style={styles.mainButtonText}>{running ? "일시정지" : "시작"}</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={reset} hitSlop={8}>
-        <Text style={styles.resetText}>초기화</Text>
-      </TouchableOpacity>
+      <View style={styles.subRow}>
+        <TouchableOpacity onPress={reset} hitSlop={8}>
+          <Text style={styles.resetText}>초기화</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setAutoNext((v) => !v)} hitSlop={8}>
+          <Text style={[styles.resetText, autoNext && { color: TOMATO, fontWeight: "800" }]}>
+            자동 진행 {autoNext ? "ON" : "OFF"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 방금 끝난 집중 — 무엇을 공부했나요? */}
+      {pendingNote ? (
+        <View style={styles.noteCard}>
+          <Text style={styles.noteTitle}>
+            🍅 {pendingNote.n}번째 집중 완료 — 무엇을 공부했나요?
+          </Text>
+          <View style={styles.noteRow}>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="예: 일본어 문법 て형, 알고리즘 DFS"
+              placeholderTextColor={c.textMuted}
+              value={noteText}
+              onChangeText={setNoteText}
+              onSubmitEditing={() => saveNote(noteText)}
+              returnKeyType="done"
+            />
+            <MicButton
+              size={40}
+              onText={(t) =>
+                setNoteText((prev) => (prev.trim() ? `${prev.trimEnd()} ${t}` : t))
+              }
+            />
+          </View>
+          <View style={styles.noteButtons}>
+            <TouchableOpacity
+              style={[styles.noteSave, !noteText.trim() && { opacity: 0.5 }]}
+              onPress={() => saveNote(noteText)}
+            >
+              <Text style={styles.noteSaveText}>기록 저장</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => saveNote("")} hitSlop={6}>
+              <Text style={styles.noteSkip}>내용 없이 저장</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
 
       {/* 시간 설정 (정지 상태에서만) */}
       {!running ? (
@@ -180,6 +277,47 @@ const createStyles = (c: ThemeColors) =>
     },
     mainButtonText: { color: "#FFFFFF", fontSize: fontSizes.emphasis, fontWeight: "900" },
     resetText: { color: c.textMuted, fontSize: fontSizes.small, fontWeight: "700" },
+    subRow: { flexDirection: "row", gap: spacing.lg },
+    adjustRow: { flexDirection: "row", gap: spacing.sm },
+    adjustChip: {
+      backgroundColor: c.surface,
+      borderRadius: 999,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs + 3,
+    },
+    adjustText: { fontSize: fontSizes.small, fontWeight: "800", color: c.text },
+    noteCard: {
+      alignSelf: "stretch",
+      backgroundColor: c.card,
+      borderRadius: radii.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.border,
+      padding: spacing.md,
+      gap: spacing.sm,
+      ...cardShadow(c.shadow),
+    },
+    noteTitle: { fontSize: fontSizes.small, fontWeight: "800", color: c.text },
+    noteRow: { flexDirection: "row", gap: spacing.sm, alignItems: "center" },
+    noteInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      backgroundColor: c.inputBg,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.sm,
+      fontSize: fontSizes.small,
+      color: c.text,
+    },
+    noteButtons: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    noteSave: {
+      backgroundColor: TOMATO,
+      borderRadius: 999,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    noteSaveText: { color: "#FFF", fontSize: fontSizes.small, fontWeight: "800" },
+    noteSkip: { fontSize: fontSizes.caption, color: c.textMuted, fontWeight: "700" },
     settings: { alignSelf: "stretch", gap: spacing.xs },
     settingLabel: { fontSize: fontSizes.caption, fontWeight: "800", color: c.textMuted },
     chipRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xs },
