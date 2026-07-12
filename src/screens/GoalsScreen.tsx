@@ -2,7 +2,7 @@
 // 코칭은 목표 + 최근 2주 기록(수면/에너지/루틴/할일)을 근거로 쓰며 주 단위로 캐시된다.
 
 import { CheckCircle } from "phosphor-react-native/src/icons/CheckCircle";
-import { CircleIcon } from "phosphor-react-native/src/icons/Circle";
+import { CircleDashed } from "phosphor-react-native/src/icons/CircleDashed";
 import { Trash } from "phosphor-react-native/src/icons/Trash";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -224,7 +224,7 @@ export function GoalsScreen() {
                   {g.done ? (
                     <CheckCircle size={22} weight="fill" color={c.success} />
                   ) : (
-                    <CircleIcon size={22} color={c.border} />
+                    <CircleDashed size={22} weight="bold" color={c.primary} />
                   )}
                 </TouchableOpacity>
                 <View style={{ flex: 1 }}>

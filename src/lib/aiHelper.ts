@@ -101,6 +101,24 @@ async function collectDayContext(dateKey: string) {
   };
 }
 
+// ===== 음성 일기 받아쓰기 분류 =====
+
+export type DiaryDictation = {
+  mood: string | null;
+  energy: number | null;
+  sleepHours: number | null;
+  gratitude: string | null;
+  people: string[];
+  content: string;
+};
+
+/** 전사된 말을 일기 필드(기분/에너지/수면/감사/사람/본문)로 분류 */
+export async function parseDiaryDictation(transcript: string): Promise<DiaryDictation> {
+  return invokeHelper<DiaryDictation>("diary_dictation", {
+    transcript: transcript.slice(0, 4000),
+  });
+}
+
 // ===== 주간 한 줄 요약 (캘린더 주차 아코디언) =====
 
 export type WeekLineInput = {

@@ -22,13 +22,14 @@ export async function listLifeEvents(): Promise<LifeEventRow[]> {
 
 export async function addLifeEvent(
   year: number,
+  month: number | null,
   emoji: string,
   title: string
 ): Promise<LifeEventRow> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("life_events")
-    .insert({ user_id: userId, year, emoji, title })
+    .insert({ user_id: userId, year, month, emoji, title })
     .select()
     .single();
   if (error) throw new Error(`타임라인 저장에 실패했어요: ${error.message}`);

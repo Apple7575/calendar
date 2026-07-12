@@ -111,9 +111,9 @@ export function SpeechScreen() {
               <Text style={styles.cardEmoji}>{s.emoji}</Text>
               <Text style={styles.cardTitle}>{s.title}</Text>
               {expanded ? (
-                <CaretUp size={16} color={c.textMuted} />
+                <CaretUp size={16} weight="bold" color={c.primary} />
               ) : (
-                <CaretDown size={16} color={c.textMuted} />
+                <CaretDown size={16} weight="bold" color={c.primary} />
               )}
             </TouchableOpacity>
             {expanded

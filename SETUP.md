@@ -59,6 +59,7 @@
    11. `0011_quarterly_report.sql` — 분기 리포트 타입
    12. `0012_goals_coach.sql` — 방면별 목표, 갓생 코칭 리포트 타입
    13. `0013_life_records.sql` — 생활 기록(식단·몸무게 등), 인생 타임라인, 목표 진전
+   14. `0014_timeline_month_cover.sql` — 타임라인 월, 일기 대표사진
 
 ## 5. Edge Function 배포 (구글 토큰 갱신용)
 

@@ -207,6 +207,38 @@ Deno.serve(async (req) => {
       return json({ result: text.trim().replace(/^["']|["']$/g, "") }, 200);
     }
 
+    if (task === "diary_dictation") {
+      const text = await callOpenAI({
+        system:
+          "너는 음성으로 불러준 일기를 필드로 분류하는 도우미야. 전사된 말에서: " +
+          "mood(기분): 좋음/행복/최고→😊, 괜찮음/무난→🙂, 그저그럼/보통→😐, 슬픔/우울/힘듦→😢, 화남/짜증→😠 (언급 없으면 null). " +
+          "energy: '에너지 5', '컨디션 3단계' 같은 언급 → 1~5 정수 (없으면 null). " +
+          "sleepHours: '수면 5시간', '5시간 잤다' → 숫자 (없으면 null). " +
+          "gratitude: '감사한 것은 ~' 언급 (없으면 null). " +
+          "people: 함께한 사람 이름들 (없으면 빈 배열). " +
+          "content: 위 필드로 분류한 문장은 빼고, 나머지 이야기를 자연스러운 일기 문장으로 다듬어(말투는 편하게, 내용 추가 금지). 필드 언급만 있었으면 빈 문자열.",
+        user: JSON.stringify(input, null, 1),
+        maxTokens: 2000,
+        jsonSchema: {
+          name: "diary_dictation",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              mood: { type: ["string", "null"], enum: ["😊", "🙂", "😐", "😢", "😠", null] },
+              energy: { type: ["integer", "null"] },
+              sleepHours: { type: ["number", "null"] },
+              gratitude: { type: ["string", "null"] },
+              people: { type: "array", items: { type: "string" } },
+              content: { type: "string" },
+            },
+            required: ["mood", "energy", "sleepHours", "gratitude", "people", "content"],
+          },
+        },
+      });
+      return json({ result: JSON.parse(text) }, 200);
+    }
+
     if (task === "parse_logs") {
       const text = await callOpenAI({
         system:

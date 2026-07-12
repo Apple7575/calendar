@@ -1,5 +1,5 @@
 import * as Crypto from "expo-crypto";
-import { File } from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import { ViewerPhoto } from "../navigation/types";
 import { monthsAgoKey } from "./dateUtils";
 import { DiaryPhotoRow, DiaryRow, supabase } from "./supabase";
@@ -243,6 +243,34 @@ export async function addPhoto(
     throw new Error(`사진 정보 저장에 실패했어요: ${error.message}`);
   }
   return data as DiaryPhotoRow;
+}
+
+/**
+ * 대표사진 지정: 그 일기의 다른 사진 is_cover를 내리고 이 사진만 올린다.
+ * 캘린더 꾸미기 배경으로도 설정한다 (사진을 내려받아 256px로 압축 업로드).
+ */
+export async function setCoverPhoto(dateKey: string, photo: DiaryPhoto): Promise<void> {
+  const { error: clearError } = await supabase
+    .from("diary_photos")
+    .update({ is_cover: false })
+    .eq("diary_id", photo.diary_id);
+  if (clearError) throw new Error(`대표사진 설정에 실패했어요: ${clearError.message}`);
+  const { error } = await supabase
+    .from("diary_photos")
+    .update({ is_cover: true })
+    .eq("id", photo.id);
+  if (error) throw new Error(`대표사진 설정에 실패했어요: ${error.message}`);
+
+  // 달력 배경으로: 서명 URL로 내려받아 로컬 파일 → 꾸미기 이미지로 등록
+  const { setImageHighlight } = await import("./highlights");
+  const local = new File(Paths.cache, `cover-${photo.id}.jpg`);
+  try {
+    if (local.exists) local.delete();
+  } catch {
+    // 무시
+  }
+  await File.downloadFileAsync(photo.url, local);
+  await setImageHighlight(dateKey, local.uri);
 }
 
 /** 사진 좋아요(하트) 토글 */

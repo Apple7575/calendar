@@ -25,6 +25,7 @@ export function TimelineScreen() {
   const styles = useMemo(() => createStyles(c), [c]);
   const [rows, setRows] = useState<LifeEventRow[] | null>(null);
   const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [month, setMonth] = useState(String(new Date().getMonth() + 1));
   const [emoji, setEmoji] = useState<string>("⭐");
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,9 +42,12 @@ export function TimelineScreen() {
       Alert.alert("알림", "연도(예: 2026)와 내용을 확인해 주세요.");
       return;
     }
+    // 월은 선택 — 비우거나 범위 밖이면 연 단위 사건
+    const m = Number(month);
+    const monthValue = Number.isInteger(m) && m >= 1 && m <= 12 ? m : null;
     setSaving(true);
     try {
-      const row = await addLifeEvent(y, emoji, title.trim());
+      const row = await addLifeEvent(y, monthValue, emoji, title.trim());
       setRows((prev) => [row, ...(prev ?? [])]);
       setTitle("");
     } catch (e) {
@@ -71,11 +75,14 @@ export function TimelineScreen() {
     ]);
   };
 
-  // 연도별 그룹 (최신 연도부터)
+  // 연도별 그룹 (최신 연도부터, 연도 안에서는 최신 월부터)
   const byYear = useMemo(() => {
     const map = new Map<number, LifeEventRow[]>();
     for (const r of rows ?? []) {
       map.set(r.year, [...(map.get(r.year) ?? []), r]);
+    }
+    for (const items of map.values()) {
+      items.sort((a, b) => (b.month ?? 0) - (a.month ?? 0));
     }
     return [...map.entries()].sort((a, b) => b[0] - a[0]);
   }, [rows]);
@@ -91,6 +98,15 @@ export function TimelineScreen() {
             onChangeText={setYear}
             keyboardType="number-pad"
             maxLength={4}
+          />
+          <TextInput
+            style={styles.monthInput}
+            value={month}
+            onChangeText={setMonth}
+            keyboardType="number-pad"
+            maxLength={2}
+            placeholder="월"
+            placeholderTextColor={c.textMuted}
           />
           <View style={styles.emojiRow}>
             {EMOJIS.map((e) => (
@@ -146,6 +162,7 @@ export function TimelineScreen() {
               {items.map((r) => (
                 <View key={r.id} style={styles.eventRow}>
                   <Text style={styles.eventEmoji}>{r.emoji}</Text>
+                  {r.month ? <Text style={styles.eventMonth}>{r.month}월</Text> : null}
                   <Text style={styles.eventTitle}>{r.title}</Text>
                   <TouchableOpacity onPress={() => handleDelete(r)} hitSlop={8}>
                     <Trash size={15} color={c.textMuted} />
@@ -175,6 +192,19 @@ const createStyles = (c: ThemeColors) =>
       ...cardShadow(c.shadow),
     },
     formRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    monthInput: {
+      width: 46,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radii.button,
+      backgroundColor: c.inputBg,
+      paddingVertical: spacing.sm,
+      textAlign: "center",
+      fontSize: fontSizes.body,
+      fontWeight: "800",
+      color: c.text,
+    },
+    eventMonth: { fontSize: fontSizes.caption, fontWeight: "800", color: c.primary, width: 30 },
     yearInput: {
       width: 72,
       borderWidth: 1,

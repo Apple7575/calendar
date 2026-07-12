@@ -118,6 +118,8 @@ export type DiaryPhotoRow = {
   lng: number | null;
   /** 역지오코딩한 장소명 */
   place: string | null;
+  /** 대표사진 (그 날 달력 꾸미기 배경) */
+  is_cover: boolean;
   created_at: string;
 };
 
@@ -147,6 +149,8 @@ export type LifeEventRow = {
   id: string;
   user_id: string;
   year: number;
+  /** 1~12, null이면 연 단위 사건 */
+  month: number | null;
   title: string;
   emoji: string;
   note: string | null;

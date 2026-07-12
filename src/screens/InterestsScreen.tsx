@@ -30,6 +30,9 @@ type ModuleDef = {
   desc: string;
   icon: typeof BookOpenText;
   screen: ModuleScreen;
+  /** 카드 아이콘 색 (모듈마다 다른 파스텔) */
+  tint: string;
+  tintBg: string;
 };
 
 const MODULES: ModuleDef[] = [
@@ -39,6 +42,8 @@ const MODULES: ModuleDef[] = [
     desc: "직장·꿈·돈·집… 방면별 목표와 AI 갓생 코칭",
     icon: Target,
     screen: "Goals",
+    tint: "#E8920A",
+    tintBg: "#FFF1D6",
   },
   {
     id: "expressions",
@@ -46,6 +51,8 @@ const MODULES: ModuleDef[] = [
     desc: "내 일기에서 뽑은 영어·일본어 표현 모음",
     icon: BookOpenText,
     screen: "Expressions",
+    tint: "#8B72E8",
+    tintBg: "#EEE9FF",
   },
   {
     id: "memoryMap",
@@ -53,6 +60,8 @@ const MODULES: ModuleDef[] = [
     desc: "사진을 찍은 장소들을 모아봐요",
     icon: MapPin,
     screen: "MemoryMap",
+    tint: "#3E93E0",
+    tintBg: "#E1F0FF",
   },
   {
     id: "timeline",
@@ -60,6 +69,8 @@ const MODULES: ModuleDef[] = [
     desc: "입학·취업·이사… 인생의 큰 순간들을 연도별로",
     icon: PathIcon,
     screen: "Timeline",
+    tint: "#2FA36B",
+    tintBg: "#DEF5E9",
   },
   {
     id: "speech",
@@ -67,6 +78,8 @@ const MODULES: ModuleDef[] = [
     desc: "1:1 대화, 모임, 발표, 대화 주제까지 실전 팁",
     icon: ChatCircleDots,
     screen: "Speech",
+    tint: "#E8637E",
+    tintBg: "#FFE7EC",
   },
 ];
 
@@ -116,8 +129,8 @@ export function InterestsScreen() {
             onPress={() => navigation.navigate(m.screen)}
             activeOpacity={0.8}
           >
-            <View style={styles.cardIcon}>
-              <m.icon size={22} weight="duotone" color={c.primary} />
+            <View style={[styles.cardIcon, { backgroundColor: m.tintBg }]}>
+              <m.icon size={22} weight="duotone" color={m.tint} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{m.title}</Text>

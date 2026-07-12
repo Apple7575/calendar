@@ -28,7 +28,12 @@ import { MoodFace } from "../components/cute/MoodFace";
 import { MicButton } from "../components/MicButton";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { linkDiaryToGoals } from "../lib/goals";
-import { DiaryQuestion, generateDiaryQuestions, generateHighlight } from "../lib/aiHelper";
+import {
+  DiaryQuestion,
+  generateDiaryQuestions,
+  generateHighlight,
+  parseDiaryDictation,
+} from "../lib/aiHelper";
 import { formatKoreanDate } from "../lib/dateUtils";
 import {
   addPhoto,
@@ -38,6 +43,7 @@ import {
   parseExifGps,
   parseExifTakenAt,
   recentPeople,
+  setCoverPhoto,
   toViewerPhoto,
   upsertDiary,
 } from "../lib/diary";
@@ -64,6 +70,53 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   >([]);
   const [saving, setSaving] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  // 말로 쓰기: 전사 결과 확인 → AI가 기분/에너지/수면/감사/사람/본문으로 분류
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [classifying, setClassifying] = useState(false);
+
+  const applyDictation = async () => {
+    if (!transcript) return;
+    setClassifying(true);
+    try {
+      const r = await parseDiaryDictation(transcript);
+      const filled: string[] = [];
+      if (r.mood) {
+        setMood(r.mood);
+        filled.push(`기분 ${r.mood}`);
+      }
+      if (r.energy != null) {
+        setEnergy(Math.min(5, Math.max(1, Math.round(r.energy))));
+        filled.push(`에너지 ${r.energy}`);
+      }
+      if (r.sleepHours != null) {
+        setSleepHours(r.sleepHours);
+        filled.push(`수면 ${r.sleepHours}시간`);
+      }
+      if (r.gratitude) {
+        setGratitude(r.gratitude);
+        filled.push("감사");
+      }
+      if (r.people.length > 0) {
+        setPeople((prev) => [...new Set([...prev, ...r.people])]);
+        filled.push(`함께한 사람 ${r.people.length}명`);
+      }
+      if (r.content.trim()) {
+        setContent((prev) =>
+          prev.trim() ? `${prev.trimEnd()}\n${r.content.trim()}` : r.content.trim()
+        );
+        filled.push("본문");
+      }
+      setTranscript(null);
+      Alert.alert(
+        "채웠어요 ✨",
+        filled.length > 0 ? filled.join(" · ") : "분류할 내용을 찾지 못했어요."
+      );
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "분류에 실패했어요.");
+    } finally {
+      setClassifying(false);
+    }
+  };
 
   // 질문-답변 모드
   const [writeMode, setWriteMode] = useState<"free" | "qa">("free");
@@ -197,6 +250,25 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
     setPending((prev) => prev.filter((p) => p.uri !== uri));
   };
 
+  const photoMenu = (photo: DiaryPhoto) => {
+    Alert.alert("사진", undefined, [
+      {
+        text: "⭐ 대표사진 (달력 배경으로)",
+        onPress: async () => {
+          try {
+            await setCoverPhoto(date, photo);
+            setPhotos((prev) => prev.map((p) => ({ ...p, is_cover: p.id === photo.id })));
+            Alert.alert("설정 완료", "이 사진이 달력에서 그 날의 배경이 됐어요.");
+          } catch (e) {
+            Alert.alert("오류", e instanceof Error ? e.message : "대표사진 설정에 실패했어요.");
+          }
+        },
+      },
+      { text: "삭제", style: "destructive", onPress: () => removeSaved(photo) },
+      { text: "취소", style: "cancel" },
+    ]);
+  };
+
   const removeSaved = (photo: DiaryPhoto) => {
     Alert.alert("사진 삭제", "이 사진을 삭제할까요?", [
       { text: "취소", style: "cancel" },
@@ -285,6 +357,38 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       keyboardVerticalOffset={90}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {/* 사진 — 맨 위. 길게 누르면 대표사진(달력 배경)/삭제 메뉴 */}
+        <View style={styles.photoGrid}>
+          {photos.map((p, i) => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => openViewer(i)}
+              onLongPress={() => photoMenu(p)}
+            >
+              <Image source={{ uri: p.url }} style={styles.thumb} />
+              {p.is_cover ? <Text style={styles.coverBadge}>⭐</Text> : null}
+            </TouchableOpacity>
+          ))}
+          {pending.map((p, i) => (
+            <TouchableOpacity
+              key={p.uri}
+              onPress={() => openViewer(photos.length + i)}
+              onLongPress={() => removePending(p.uri)}
+            >
+              <Image source={{ uri: p.uri }} style={[styles.thumb, styles.thumbPending]} />
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.addThumb} onPress={pickPhotos}>
+            <Camera size={26} color={c.textMuted} />
+            <Text style={styles.addThumbLabel}>사진</Text>
+          </TouchableOpacity>
+        </View>
+        {photos.length > 0 || pending.length > 0 ? (
+          <Text style={styles.hint}>
+            누르면 크게 보고, 길게 누르면 ⭐대표사진(달력 배경)·삭제 메뉴가 열려요.
+          </Text>
+        ) : null}
+
         <View style={styles.moodRow}>
           <Text style={styles.moodLabel}>오늘 기분</Text>
           {MOODS.map((m) => (
@@ -465,15 +569,50 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
             onChangeText={setContent}
             multiline
           />
-          {/* 음성 일기: 말하면 받아 적어 이어붙인다 */}
+          {/* 음성 일기: 전사 → 아래 확인 카드에서 분류/붙이기 선택 */}
           <View style={styles.micWrap}>
-            <MicButton
-              onText={(text) =>
-                setContent((prev) => (prev.trim() ? `${prev.trimEnd()} ${text}` : text))
-              }
-            />
+            <MicButton onText={setTranscript} />
           </View>
         </View>
+
+        {/* 받아쓰기 확인 카드 — 인식된 내용을 보여주고 어떻게 쓸지 고른다 */}
+        {transcript ? (
+          <View style={styles.dictCard}>
+            <Text style={styles.dictLabel}>🎙️ 이렇게 들었어요</Text>
+            <Text style={styles.dictText}>{transcript}</Text>
+            <TouchableOpacity
+              style={styles.dictPrimary}
+              onPress={applyDictation}
+              disabled={classifying}
+            >
+              {classifying ? (
+                <ActivityIndicator size="small" color={c.white} />
+              ) : (
+                <Text style={styles.dictPrimaryText}>✨ 자동 분류해서 채우기</Text>
+              )}
+            </TouchableOpacity>
+            <View style={styles.dictRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  setContent((prev) =>
+                    prev.trim() ? `${prev.trimEnd()} ${transcript}` : transcript
+                  );
+                  setTranscript(null);
+                }}
+                hitSlop={6}
+              >
+                <Text style={styles.dictSecondaryText}>본문에 그대로 붙이기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setTranscript(null)} hitSlop={6}>
+                <Text style={styles.dictDiscard}>버리기</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.dictHint}>
+              "기분은 좋음, 에너지 4, 수면 6시간, 감사한 건 ○○" 처럼 말하면 각 칸으로 쏙
+              들어가요.
+            </Text>
+          </View>
+        ) : null}
 
         {/* 오늘의 한 줄 */}
         <Text style={styles.fieldLabel}>
@@ -549,33 +688,6 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </View>
         ) : null}
 
-        <View style={styles.photoGrid}>
-          {photos.map((p, i) => (
-            <TouchableOpacity
-              key={p.id}
-              onPress={() => openViewer(i)}
-              onLongPress={() => removeSaved(p)}
-            >
-              <Image source={{ uri: p.url }} style={styles.thumb} />
-            </TouchableOpacity>
-          ))}
-          {pending.map((p, i) => (
-            <TouchableOpacity
-              key={p.uri}
-              onPress={() => openViewer(photos.length + i)}
-              onLongPress={() => removePending(p.uri)}
-            >
-              <Image source={{ uri: p.uri }} style={[styles.thumb, styles.thumbPending]} />
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.addThumb} onPress={pickPhotos}>
-            <Camera size={26} color={c.textMuted} />
-            <Text style={styles.addThumbLabel}>사진</Text>
-          </TouchableOpacity>
-        </View>
-        {photos.length > 0 || pending.length > 0 ? (
-          <Text style={styles.hint}>사진을 누르면 크게 보고, 길게 누르면 삭제해요.</Text>
-        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -762,6 +874,34 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: 2,
     },
     micWrap: { position: "absolute", right: spacing.sm, bottom: spacing.sm },
+    dictCard: {
+      backgroundColor: c.primarySoft,
+      borderRadius: radii.card,
+      padding: spacing.md,
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    dictLabel: { fontSize: fontSizes.caption, fontWeight: "800", color: c.primary },
+    dictText: { fontSize: fontSizes.small, color: c.text, lineHeight: 21 },
+    dictPrimary: {
+      backgroundColor: c.primary,
+      borderRadius: 999,
+      paddingVertical: spacing.sm + 4,
+      alignItems: "center",
+    },
+    dictPrimaryText: { color: c.white, fontSize: fontSizes.small, fontWeight: "800" },
+    dictRow: { flexDirection: "row", justifyContent: "space-between" },
+    dictSecondaryText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.primary },
+    dictDiscard: { fontSize: fontSizes.caption, fontWeight: "700", color: c.danger },
+    dictHint: { fontSize: fontSizes.caption, color: c.textMuted, lineHeight: 16 },
+    coverBadge: {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      fontSize: 14,
+      textShadowColor: "rgba(0,0,0,0.5)",
+      textShadowRadius: 3,
+    },
     diaryInput: {
       minHeight: 180,
       fontSize: fontSizes.body,
