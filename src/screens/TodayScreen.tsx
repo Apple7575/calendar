@@ -1,14 +1,22 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import {
+  LayoutAnimation,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BriefingCard } from "../components/BriefingCard";
 import { DaySky } from "../components/cute/DaySky";
 import { DayOverview } from "../components/DayOverview";
 import { DdayRow } from "../components/DdayRow";
 import { MemoriesRow } from "../components/MemoriesRow";
-import { formatKoreanDate, todayKey } from "../lib/dateUtils";
+import { addDays, formatKoreanDate, todayKey } from "../lib/dateUtils";
+import { tapLight } from "../lib/haptics";
 import { updateWidget } from "../lib/widget";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
@@ -22,6 +30,7 @@ export function TodayScreen() {
   const styles = useMemo(() => createStyles(c), [c]);
   const navigation = useNavigation<Nav>();
   const [dateKey, setDateKey] = useState(todayKey());
+  const isToday = dateKey === todayKey();
 
   // 자정을 넘겨 다시 열었을 때 오늘 날짜 갱신 + 홈 위젯 데이터 갱신
   useFocusEffect(
@@ -31,32 +40,65 @@ export function TodayScreen() {
     }, [])
   );
 
+  // 좌우 스와이프로 이전날/다음날 이동
+  const changeDay = (delta: number) => {
+    tapLight();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setDateKey((prev) => addDays(prev, delta));
+  };
+  const changeDayRef = useRef(changeDay);
+  changeDayRef.current = changeDay;
+  const swipe = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -40) changeDayRef.current(1);
+        else if (g.dx > 40) changeDayRef.current(-1);
+      },
+    })
+  ).current;
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <DaySky size={26} />
-          <Text style={styles.headerTitle}>오늘</Text>
+          <Text style={styles.headerTitle}>{isToday ? "오늘" : "다른 날"}</Text>
           <Text style={styles.headerDate}>{formatKoreanDate(dateKey)}</Text>
         </View>
+        {!isToday ? (
+          <TouchableOpacity
+            style={styles.todayChip}
+            onPress={() => {
+              tapLight();
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setDateKey(todayKey());
+            }}
+          >
+            <Text style={styles.todayChipText}>오늘로</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
-      <DdayRow todayKey={dateKey} />
-      <BriefingCard dateKey={dateKey} />
-      <MemoriesRow
-        todayKey={dateKey}
-        onPressMemory={(date) => navigation.navigate("DayDetail", { date })}
-      />
-      <DayOverview
-        dateKey={dateKey}
-        onEditEvent={(eventId) =>
-          navigation.navigate("EventEdit", { date: dateKey, eventId })
-        }
-        onEditDiary={() => navigation.navigate("DiaryEdit", { date: dateKey })}
-        onOpenPhotos={(photos, index) =>
-          navigation.navigate("PhotoViewer", { photos, index })
-        }
-        onManageRoutines={() => navigation.navigate("Routines")}
-      />
+      <View style={{ flex: 1 }} {...swipe.panHandlers}>
+        <DdayRow todayKey={dateKey} />
+        {isToday ? <BriefingCard dateKey={dateKey} /> : null}
+        <MemoriesRow
+          todayKey={dateKey}
+          onPressMemory={(date) => navigation.navigate("DayDetail", { date })}
+        />
+        <DayOverview
+          dateKey={dateKey}
+          onEditEvent={(eventId) =>
+            navigation.navigate("EventEdit", { date: dateKey, eventId })
+          }
+          onEditDiary={() => navigation.navigate("DiaryEdit", { date: dateKey })}
+          onOpenPhotos={(photos, index) =>
+            navigation.navigate("PhotoViewer", { photos, index })
+          }
+          onManageRoutines={() => navigation.navigate("Routines")}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -80,4 +122,11 @@ const createStyles = (c: ThemeColors) =>
       letterSpacing: -0.5,
     },
     headerDate: { fontSize: fontSizes.small, color: c.textMuted, marginLeft: spacing.sm },
+    todayChip: {
+      backgroundColor: c.primary,
+      borderRadius: 999,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: spacing.xs + 2,
+    },
+    todayChipText: { color: c.white, fontSize: fontSizes.caption, fontWeight: "800" },
   });

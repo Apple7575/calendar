@@ -68,6 +68,13 @@
           "locationWhenInUsePermission": "사진에 찍은 장소를 기록하기 위해 촬영 순간의 위치를 사용합니다."
         }
       ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "음성으로 일기와 기록을 작성하기 위해 마이크를 사용합니다.",
+          "speechRecognitionPermission": "말하는 내용을 실시간으로 글로 바꾸기 위해 음성 인식을 사용합니다."
+        }
+      ],
       "expo-font",
       "@bacons/apple-targets"
     ],

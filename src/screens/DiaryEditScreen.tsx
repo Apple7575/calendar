@@ -71,7 +71,9 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const [saving, setSaving] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   // 말로 쓰기: 전사 결과 확인 → AI가 기분/에너지/수면/감사/사람/본문으로 분류
+  // (TestFlight 빌드에서는 말하는 동안 실시간으로 텍스트가 카드에 흐른다)
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
   const [classifying, setClassifying] = useState(false);
 
   const applyDictation = async () => {
@@ -571,46 +573,62 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           />
           {/* 음성 일기: 전사 → 아래 확인 카드에서 분류/붙이기 선택 */}
           <View style={styles.micWrap}>
-            <MicButton onText={setTranscript} />
+            <MicButton
+              onText={setTranscript}
+              onPartial={setTranscript}
+              onListeningChange={setListening}
+            />
           </View>
         </View>
 
-        {/* 받아쓰기 확인 카드 — 인식된 내용을 보여주고 어떻게 쓸지 고른다 */}
+        {/* 받아쓰기 카드 — 실시간(빌드)/종료 후(Expo Go) 인식 내용을 보여준다 */}
+        {listening && !transcript ? (
+          <View style={styles.dictCard}>
+            <Text style={styles.dictLabel}>🎙️ 듣고 있어요… 말해 보세요</Text>
+          </View>
+        ) : null}
         {transcript ? (
           <View style={styles.dictCard}>
-            <Text style={styles.dictLabel}>🎙️ 이렇게 들었어요</Text>
-            <Text style={styles.dictText}>{transcript}</Text>
-            <TouchableOpacity
-              style={styles.dictPrimary}
-              onPress={applyDictation}
-              disabled={classifying}
-            >
-              {classifying ? (
-                <ActivityIndicator size="small" color={c.white} />
-              ) : (
-                <Text style={styles.dictPrimaryText}>✨ 자동 분류해서 채우기</Text>
-              )}
-            </TouchableOpacity>
-            <View style={styles.dictRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  setContent((prev) =>
-                    prev.trim() ? `${prev.trimEnd()} ${transcript}` : transcript
-                  );
-                  setTranscript(null);
-                }}
-                hitSlop={6}
-              >
-                <Text style={styles.dictSecondaryText}>본문에 그대로 붙이기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setTranscript(null)} hitSlop={6}>
-                <Text style={styles.dictDiscard}>버리기</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.dictHint}>
-              "기분은 좋음, 에너지 4, 수면 6시간, 감사한 건 ○○" 처럼 말하면 각 칸으로 쏙
-              들어가요.
+            <Text style={styles.dictLabel}>
+              {listening ? "🎙️ 듣는 중… (끝나면 마이크를 다시 누르세요)" : "🎙️ 이렇게 들었어요"}
             </Text>
+            <Text style={styles.dictText}>{transcript}</Text>
+            {/* 버튼들은 말이 끝난 뒤에만 */}
+            {!listening ? (
+              <>
+                <TouchableOpacity
+                  style={styles.dictPrimary}
+                  onPress={applyDictation}
+                  disabled={classifying}
+                >
+                  {classifying ? (
+                    <ActivityIndicator size="small" color={c.white} />
+                  ) : (
+                    <Text style={styles.dictPrimaryText}>✨ 자동 분류해서 채우기</Text>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.dictRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setContent((prev) =>
+                        prev.trim() ? `${prev.trimEnd()} ${transcript}` : transcript
+                      );
+                      setTranscript(null);
+                    }}
+                    hitSlop={6}
+                  >
+                    <Text style={styles.dictSecondaryText}>본문에 그대로 붙이기</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setTranscript(null)} hitSlop={6}>
+                    <Text style={styles.dictDiscard}>버리기</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.dictHint}>
+                  "기분은 좋음, 에너지 4, 수면 6시간, 감사한 건 ○○" 처럼 말하면 각 칸으로 쏙
+                  들어가요.
+                </Text>
+              </>
+            ) : null}
           </View>
         ) : null}
 
