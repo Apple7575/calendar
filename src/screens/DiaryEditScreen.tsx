@@ -581,6 +581,17 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </View>
         </View>
 
+        {/* 쓴 일기 듣기 — 배속·구간·쉐도잉 플레이어로 */}
+        {content.trim() ? (
+          <TouchableOpacity
+            style={styles.listenRow}
+            onPress={() => navigation.navigate("DiaryListen", { text: content })}
+            hitSlop={6}
+          >
+            <Text style={styles.listenText}>🎧 듣기 · 쉐도잉</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* 받아쓰기 카드 — 실시간(빌드)/종료 후(Expo Go) 인식 내용을 보여준다 */}
         {listening && !transcript ? (
           <View style={styles.dictCard}>
@@ -892,6 +903,8 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: 2,
     },
     micWrap: { position: "absolute", right: spacing.sm, bottom: spacing.sm },
+    listenRow: { alignSelf: "flex-end", marginTop: spacing.xs },
+    listenText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.primary },
     dictCard: {
       backgroundColor: c.primarySoft,
       borderRadius: radii.card,

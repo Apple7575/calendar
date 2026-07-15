@@ -116,16 +116,24 @@ export type MarkedDates = Record<
 
 /**
  * 월간 그리드 dot 마커 맵.
- * 일정(로컬/구글 색 구분), 할 일, 일기 순으로 dot을 쌓는다 (날짜당 최대 3종).
+ * 일정(로컬/구글 색 구분), 할 일, 일기, 코디(OOTD) 순으로 dot을 쌓는다.
  */
 export function buildMarkedDates(params: {
   events: CalendarEvent[];
   taskDates: string[];
   diaryDates: string[];
-  colors: { event: string; googleEvent: string; task: string; diary: string; selected?: string };
+  ootdDates?: string[];
+  colors: {
+    event: string;
+    googleEvent: string;
+    task: string;
+    diary: string;
+    ootd?: string;
+    selected?: string;
+  };
   selectedDate?: string;
 }): MarkedDates {
-  const { events, taskDates, diaryDates, colors, selectedDate } = params;
+  const { events, taskDates, diaryDates, ootdDates, colors, selectedDate } = params;
   const marked: MarkedDates = {};
   const ensure = (key: string) => (marked[key] ??= { dots: [] });
   const addDot = (dateKey: string, dot: Dot) => {
@@ -140,6 +148,8 @@ export function buildMarkedDates(params: {
   }
   for (const dateKey of taskDates) addDot(dateKey, { key: "task", color: colors.task });
   for (const dateKey of diaryDates) addDot(dateKey, { key: "diary", color: colors.diary });
+  if (colors.ootd)
+    for (const dateKey of ootdDates ?? []) addDot(dateKey, { key: "ootd", color: colors.ootd });
 
   if (selectedDate) {
     const entry = ensure(selectedDate);

@@ -158,7 +158,7 @@ export function MonthGrid({
                       </View>
                     </View>
                     <View style={styles.dotRow}>
-                      {dots.slice(0, 4).map((d) => (
+                      {dots.slice(0, 5).map((d) => (
                         <View
                           key={d.key}
                           style={[

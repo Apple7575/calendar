@@ -6,6 +6,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MoodFace } from "../components/cute/MoodFace";
+import { listOotd, OotdLog } from "../lib/closet";
 import { GalleryPhoto, galleryPhotoToViewer, listLikedPhotos } from "../lib/gallery";
 import { RootScreenProps, RootStackParamList } from "../navigation/types";
 import { supabase } from "../lib/supabase";
@@ -25,16 +26,20 @@ export function RecapScreen({ route }: RootScreenProps<"Recap">) {
   const [stats, setStats] = useState<Stat[]>([]);
   const [topMood, setTopMood] = useState<string | null>(null);
   const [liked, setLiked] = useState<GalleryPhoto[]>([]);
+  const [ootd, setOotd] = useState<OotdLog[]>([]);
 
   useEffect(() => {
     (async () => {
-      const [{ data: diaries }, likedAll, exercises, records, { data: logs }] = await Promise.all([
-        supabase.from("diaries").select("date, mood, people").like("date", `${periodKey}%`),
-        listLikedPhotos().catch(() => []),
-        listExercises().catch(() => []),
-        listRecentRecords().catch(() => []),
-        supabase.from("daily_logs").select("date, kind, value_num").like("date", `${periodKey}%`),
-      ]);
+      const [{ data: diaries }, likedAll, exercises, records, { data: logs }, ootdAll] =
+        await Promise.all([
+          supabase.from("diaries").select("date, mood, people").like("date", `${periodKey}%`),
+          listLikedPhotos().catch(() => []),
+          listExercises().catch(() => []),
+          listRecentRecords().catch(() => []),
+          supabase.from("daily_logs").select("date, kind, value_num").like("date", `${periodKey}%`),
+          listOotd().catch(() => [] as OotdLog[]),
+        ]);
+      setOotd(ootdAll.filter((o) => o.date.startsWith(periodKey) && o.url).slice(0, 6));
       const dRows = (diaries ?? []) as { date: string; mood: string | null; people: string[] }[];
       // 최다 기분
       const moods = new Map<string, number>();
@@ -110,6 +115,26 @@ export function RecapScreen({ route }: RootScreenProps<"Recap">) {
                 }
               >
                 <Image source={{ uri: p.url }} style={styles.photo} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ) : null}
+      {ootd.length > 0 ? (
+        <View style={styles.photoCard}>
+          <Text style={styles.statLabel}>👗 {label}의 코디</Text>
+          <View style={styles.photoGrid}>
+            {ootd.map((o, i) => (
+              <TouchableOpacity
+                key={o.id}
+                onPress={() =>
+                  navigation.navigate("PhotoViewer", {
+                    photos: ootd.map((x) => ({ url: x.url as string })),
+                    index: i,
+                  })
+                }
+              >
+                <Image source={{ uri: o.url! }} style={styles.photo} />
               </TouchableOpacity>
             ))}
           </View>

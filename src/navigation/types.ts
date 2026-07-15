@@ -71,6 +71,12 @@ export type RootStackParamList = {
   Pomodoro: undefined;
   /** 생활 기록 (기록용 화면) */
   LifeLog: undefined;
+  /** 코디: 옷장(옷·신발·헤어·향수) + OOTD */
+  Style: undefined;
+  /** 일기 듣기 · 쉐도잉 플레이어 (TTS) */
+  DiaryListen: { text: string };
+  /** 단어장 (영어·일본어 표현 + 퀴즈) */
+  Vocab: undefined;
   /** 루틴 관리 */
   Routines: undefined;
   /** 사진첩 (리포트 탭 안에서도 접근하지만, 다른 화면에서 바로 열 때 사용) */

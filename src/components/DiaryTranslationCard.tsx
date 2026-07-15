@@ -1,8 +1,10 @@
-// 일기 번역 카드: 한국어|English|日本語 탭 + (외국어 원문일 때) AI 첨삭.
+// 일기 번역 카드: 한국어|English|日本語 탭 + (외국어 원문일 때) AI 첨삭 + TTS 듣기.
 // 언어 칩을 처음 누를 때 번역을 만들고, 이후에는 캐시로 바로 보여준다.
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +14,8 @@ import {
   View,
 } from "react-native";
 import { DiaryTranslations, getDiaryTranslations, LANG_LABELS } from "../lib/diaryLang";
+import { stopSpeaking, toggleSpeak } from "../lib/tts";
+import { RootStackParamList } from "../navigation/types";
 import { DiaryLang, DiaryRow } from "../lib/supabase";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -22,10 +26,23 @@ const LANGS: DiaryLang[] = ["ko", "en", "ja"];
 export function DiaryTranslationCard({ diary }: { diary: DiaryRow }) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [selected, setSelected] = useState<DiaryLang | null>(null);
   const [translations, setTranslations] = useState<DiaryTranslations | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  // 화면을 떠나면 읽기 중단
+  useEffect(() => stopSpeaking, []);
+
+  /** 선택한 언어의 번역(없으면 원문)을 그 언어 목소리로 읽어준다 */
+  const handleSpeak = async () => {
+    const text =
+      selected && translations ? translations.byLang[selected] : diary.content;
+    const lang = selected && translations ? selected : null;
+    setSpeaking(await toggleSpeak(text, lang, () => setSpeaking(false)));
+  };
 
   const selectLang = async (lang: DiaryLang) => {
     if (selected === lang) {
@@ -62,6 +79,31 @@ export function DiaryTranslationCard({ diary }: { diary: DiaryRow }) {
             </Text>
           </TouchableOpacity>
         ))}
+        <TouchableOpacity
+          style={[styles.speakButton, speaking && styles.speakButtonActive]}
+          onPress={handleSpeak}
+          hitSlop={6}
+        >
+          <Ionicons
+            name={speaking ? "stop" : "volume-high-outline"}
+            size={15}
+            color={speaking ? c.white : c.primary}
+          />
+        </TouchableOpacity>
+        {/* 배속·구간·쉐도잉 플레이어 — 보고 있는 텍스트(번역 또는 원문)로 */}
+        <TouchableOpacity
+          style={styles.speakButton}
+          onPress={() => {
+            stopSpeaking();
+            setSpeaking(false);
+            navigation.navigate("DiaryListen", {
+              text: selected && translations ? translations.byLang[selected] : diary.content,
+            });
+          }}
+          hitSlop={6}
+        >
+          <Ionicons name="headset-outline" size={15} color={c.primary} />
+        </TouchableOpacity>
       </View>
 
       {selected && loading ? (
@@ -73,7 +115,9 @@ export function DiaryTranslationCard({ diary }: { diary: DiaryRow }) {
 
       {selected && translations ? (
         <>
-          <Text style={styles.body}>{translations.byLang[selected]}</Text>
+          <Text style={styles.body} selectable>
+            {translations.byLang[selected]}
+          </Text>
           {selected === translations.detected ? (
             <Text style={styles.originalHint}>원문 ({LANG_LABELS[translations.detected]})</Text>
           ) : null}
@@ -130,6 +174,18 @@ const createStyles = (c: ThemeColors) =>
       borderColor: c.border,
     },
     chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+    speakButton: {
+      marginLeft: "auto",
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    speakButtonActive: { backgroundColor: c.primary, borderColor: c.primary },
     chipText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.textMuted },
     chipTextActive: { color: c.white },
     loadingRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

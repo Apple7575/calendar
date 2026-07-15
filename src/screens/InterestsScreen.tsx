@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Barbell } from "phosphor-react-native/src/icons/Barbell";
 import { BookOpenText } from "phosphor-react-native/src/icons/BookOpenText";
+import { Cards } from "phosphor-react-native/src/icons/Cards";
 import { CalendarCheck } from "phosphor-react-native/src/icons/CalendarCheck";
 import { Heartbeat } from "phosphor-react-native/src/icons/Heartbeat";
 import { ForkKnife } from "phosphor-react-native/src/icons/ForkKnife";
@@ -18,6 +19,7 @@ import { MapPin } from "phosphor-react-native/src/icons/MapPin";
 import { NotePencil } from "phosphor-react-native/src/icons/NotePencil";
 import { PathIcon } from "phosphor-react-native/src/icons/Path";
 import { Target } from "phosphor-react-native/src/icons/Target";
+import { TShirt } from "phosphor-react-native/src/icons/TShirt";
 import { Timer } from "phosphor-react-native/src/icons/Timer";
 import { XCircle } from "phosphor-react-native/src/icons/XCircle";
 import React, { useCallback, useMemo, useState } from "react";
@@ -43,7 +45,9 @@ type ModuleScreen =
   | "WeeklyReview"
   | "Pomodoro"
   | "Routines"
-  | "LifeLog";
+  | "LifeLog"
+  | "Style"
+  | "Vocab";
 
 type ModuleDef = {
   id: string;
@@ -76,6 +80,15 @@ const MODULES: ModuleDef[] = [
     tintBg: "#EEE9FF",
   },
   {
+    id: "vocab",
+    title: "단어장",
+    desc: "일기에서 만난 영어·일본어 표현 저장 + 퀴즈 복습",
+    icon: Cards,
+    screen: "Vocab",
+    tint: "#5B8DEF",
+    tintBg: "#E1EBFF",
+  },
+  {
     id: "memoryMap",
     title: "추억 지도",
     desc: "사진을 찍은 장소들을 모아봐요",
@@ -92,6 +105,15 @@ const MODULES: ModuleDef[] = [
     screen: "Timeline",
     tint: "#2FA36B",
     tintBg: "#DEF5E9",
+  },
+  {
+    id: "style",
+    title: "코디",
+    desc: "내 옷장(옷·신발·헤어·향수)과 OOTD 사진 기록",
+    icon: TShirt,
+    screen: "Style",
+    tint: "#E85D9E",
+    tintBg: "#FFE4F1",
   },
   {
     id: "workout",

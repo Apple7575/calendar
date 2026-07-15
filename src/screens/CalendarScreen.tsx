@@ -25,14 +25,15 @@ import { invalidateGoogleCache, useGoogleEvents } from "../hooks/useGoogleEvents
 import {
   addDays,
   formatTime,
-  monthBounds,
   monthKeyOf,
+  monthWeeks,
   parseDateKey,
   toDateKey,
   todayKey,
   weekStartOf,
 } from "../lib/dateUtils";
 import { listAnniversaries } from "../lib/anniversaries";
+import { listOotdDatesInRange } from "../lib/closet";
 import { anniversaryOccurrences } from "../lib/dday";
 import { buildMarkedDates, CalendarEvent, mergeEvents } from "../lib/eventMerge";
 import { DiaryEntry, listDiaryEntriesInRange } from "../lib/diary";
@@ -51,6 +52,9 @@ import { fontSizes, spacing } from "../theme/tokens";
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ViewMode = "month" | "week" | "year";
 
+/** OOTD(코디) dot 색 — 테마 dot 4종과 겹치지 않는 하늘색 */
+const OOTD_DOT = "#38BDF8";
+
 export function CalendarScreen() {
   const theme = useTheme();
   const c = theme.colors;
@@ -65,6 +69,7 @@ export function CalendarScreen() {
 
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
   const [taskDates, setTaskDates] = useState<string[]>([]);
+  const [ootdDates, setOotdDates] = useState<string[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [highlights, setHighlights] = useState<Record<string, DayDecoration>>({});
   const [annivByDate, setAnnivByDate] = useState<Record<string, AnniversaryRow[]>>({});
@@ -86,24 +91,28 @@ export function CalendarScreen() {
       let rangeStart: Date;
       let rangeEnd: Date;
       if (mode === "month") {
-        const b = monthBounds(monthKey);
-        rangeStart = b.start;
-        rangeEnd = b.end;
+        // 그리드에 보이는 인접 월 날짜(앞뒤 주의 전월·익월)까지 포함해
+        // 점·사진·기념일 표시가 달 경계에서 끊기지 않게 한다
+        const weeks = monthWeeks(monthKey);
+        rangeStart = parseDateKey(weeks[0][0]);
+        rangeEnd = parseDateKey(addDays(weeks[weeks.length - 1][6], 1));
       } else {
         rangeStart = parseDateKey(weekStart);
         rangeEnd = parseDateKey(addDays(weekStart, 7));
       }
       const startKey = toDateKey(rangeStart);
       const endKey = toDateKey(new Date(rangeEnd.getTime() - 1));
-      const [rows, tDates, dEntries, highlightMap, annivRows] = await Promise.all([
+      const [rows, tDates, dEntries, highlightMap, annivRows, oDates] = await Promise.all([
         listLocalEventsInRange(rangeStart, rangeEnd),
         listTaskDatesInRange(startKey, endKey),
         listDiaryEntriesInRange(startKey, endKey),
         listHighlightsInRange(startKey, endKey),
         listAnniversaries().catch(() => [] as AnniversaryRow[]),
+        listOotdDatesInRange(startKey, endKey).catch(() => [] as string[]),
       ]);
       setLocalEvents(expandEventRows(rows, rangeStart, rangeEnd));
       setTaskDates(tDates);
+      setOotdDates(oDates);
       setDiaryEntries(dEntries);
       setHighlights(highlightMap);
       setAnnivByDate(anniversaryOccurrences(annivRows, startKey, endKey));
@@ -129,14 +138,16 @@ export function CalendarScreen() {
         events: mergedEvents,
         taskDates,
         diaryDates: diaryEntries.map((e) => e.date),
+        ootdDates,
         colors: {
           event: c.dotEvent,
           googleEvent: c.dotGoogle,
           task: c.dotTask,
           diary: c.dotDiary,
+          ootd: OOTD_DOT,
         },
       }),
-    [mergedEvents, taskDates, diaryEntries, c]
+    [mergedEvents, taskDates, diaryEntries, ootdDates, c]
   );
 
   const changeMonth = (delta: number) => {
@@ -296,6 +307,7 @@ export function CalendarScreen() {
             <LegendDot color={c.dotGoogle} label="구글" styles={styles} />
             <LegendDot color={c.dotTask} label="할 일" styles={styles} />
             <LegendDot color={c.dotDiary} label="일기" styles={styles} />
+            <LegendDot color={OOTD_DOT} label="코디" styles={styles} />
           </View>
 
           <MonthlyStats

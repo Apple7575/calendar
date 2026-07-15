@@ -459,7 +459,7 @@ export function DayOverview({
                 </View>
               ) : null}
               {day.diary.diary.content ? (
-                <Text style={styles.diaryPreview} numberOfLines={4}>
+                <Text style={styles.diaryPreview} numberOfLines={4} selectable>
                   {day.diary.diary.content}
                 </Text>
               ) : null}

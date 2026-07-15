@@ -27,6 +27,9 @@ import { MemoryMapScreen } from "../screens/MemoryMapScreen";
 import { QuickAddScreen } from "../screens/QuickAddScreen";
 import { RoutineManageScreen } from "../screens/RoutineManageScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
+import { StyleScreen } from "../screens/StyleScreen";
+import { DiaryListenScreen } from "../screens/DiaryListenScreen";
+import { VocabScreen } from "../screens/VocabScreen";
 import { useTheme } from "../theme/ThemeContext";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
@@ -181,6 +184,21 @@ export function RootNavigator() {
             name="LifeLog"
             component={LifeLogScreen}
             options={{ title: "생활 기록" }}
+          />
+          <Stack.Screen
+            name="Style"
+            component={StyleScreen}
+            options={{ title: "코디" }}
+          />
+          <Stack.Screen
+            name="DiaryListen"
+            component={DiaryListenScreen}
+            options={{ title: "듣기 · 쉐도잉" }}
+          />
+          <Stack.Screen
+            name="Vocab"
+            component={VocabScreen}
+            options={{ title: "단어장" }}
           />
         </>
       ) : (
