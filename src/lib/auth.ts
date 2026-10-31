@@ -1,8 +1,9 @@
 import { makeRedirectUri } from "expo-auth-session";
 import * as QueryParams from "expo-auth-session/build/QueryParams";
 import * as WebBrowser from "expo-web-browser";
-import { primeProviderToken, saveRefreshToken } from "./googleTokens";
+import { clearTokenCache, primeProviderToken, saveRefreshToken } from "./googleTokens";
 import { supabase } from "./supabase";
+import { invalidateGoogleCache } from "../hooks/useGoogleEvents";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -15,8 +16,9 @@ export type SignInResult = { canceled: boolean };
  * Expo Go에서는 tunnel 모드(exp://xxx.exp.direct)로 실행해야 한다 —
  * Supabase가 IP 호스트(exp://192.168.x.x) 리다이렉트를 차단하기 때문.
  */
-export async function signInWithGoogle(): Promise<SignInResult> {
+export async function signInWithGoogle(options: { selectAccount?: boolean } = {}): Promise<SignInResult> {
   const redirectTo = makeRedirectUri();
+  const previousUser = (await supabase.auth.getSession()).data.session?.user.id;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -26,7 +28,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
       scopes: GOOGLE_CALENDAR_SCOPE,
       queryParams: {
         access_type: "offline",
-        prompt: "consent",
+        prompt: options.selectAccount ? "select_account consent" : "consent",
       },
     },
   });
@@ -47,6 +49,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     const { data: sessionData, error: exchangeError } =
       await supabase.auth.exchangeCodeForSession(params.code);
     if (exchangeError) throw new Error(`세션 생성 실패: ${exchangeError.message}`);
+    if (previousUser !== sessionData.session?.user.id) { clearTokenCache(); invalidateGoogleCache(); }
     await captureProviderTokens(
       sessionData.session?.provider_token,
       sessionData.session?.provider_refresh_token
@@ -61,6 +64,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
       refresh_token: params.refresh_token,
     });
     if (setError) throw new Error(`세션 생성 실패: ${setError.message}`);
+    if (previousUser !== sessionData.session?.user.id) { clearTokenCache(); invalidateGoogleCache(); }
     await captureProviderTokens(
       (sessionData.session as { provider_token?: string } | null)?.provider_token ??
         params.provider_token,
@@ -88,6 +92,7 @@ async function captureProviderTokens(
 }
 
 export async function signOut(): Promise<void> {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: "local" });
   if (error) throw new Error(`로그아웃 실패: ${error.message}`);
+  clearTokenCache(); invalidateGoogleCache();
 }

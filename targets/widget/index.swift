@@ -185,7 +185,7 @@ struct HomeTodayView: View {
 struct PlaceholderView: View {
   var body: some View {
     VStack(spacing: 4) {
-      Text("나의 캘린더")
+      Text("보리와 오늘")
         .font(.system(size: 12, weight: .bold))
       Text("앱을 열면 오늘 일정이\n여기에 표시돼요")
         .font(.system(size: 10))
@@ -218,7 +218,7 @@ struct LockRectView: View {
           .foregroundStyle(.secondary)
       }
     } else {
-      Text("나의 캘린더")
+      Text("보리와 오늘")
         .font(.system(size: 12, weight: .bold))
     }
   }

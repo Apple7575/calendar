@@ -314,6 +314,21 @@ export async function deletePhoto(photo: DiaryPhotoRow): Promise<void> {
 }
 
 export type DiaryEntry = { date: string; mood: string | null };
+export type DiarySummary=Pick<DiaryRow,'id'|'date'|'content'|'mood'|'highlight'>&{photoUrl:string|null};
+/** A bounded diary shelf: two owner-scoped queries, then one batch of private image URLs. */
+export async function listDiarySummaries(limit=24,before?:string):Promise<DiarySummary[]>{
+ const owner=await requireUserId();
+ let query=supabase.from('diaries').select('id,date,content,mood,highlight').eq('user_id',owner).order('date',{ascending:false}).limit(limit);
+ if(before)query=query.lt('date',before);
+ const {data,error}=await query;
+ if(error)throw new Error('일기를 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.');
+ const rows=(data??[]) as DiarySummary[];if(!rows.length)return [];
+ const photos=await supabase.from('diary_photos').select('*').eq('user_id',owner).in('diary_id',rows.map(d=>d.id)).order('is_cover',{ascending:false}).order('position').limit(300);
+ if(photos.error)return rows.map(d=>({...d,photoUrl:null}));
+ const first=new Map<string,DiaryPhotoRow>();for(const p of (photos.data??[]) as DiaryPhotoRow[])if(!first.has(p.diary_id))first.set(p.diary_id,p);
+ const urls=await withSignedUrls([...first.values()]).catch(()=>[]);const byDiary=new Map(urls.map(p=>[p.diary_id,p.url]));
+ return rows.map(d=>({...d,photoUrl:byDiary.get(d.id)??null}));
+}
 
 /** 기간 내 일기 목록 (날짜 + 기분) — 캘린더 dot/기분 모아보기/스트릭용 */
 export async function listDiaryEntriesInRange(

@@ -1,3 +1,4 @@
+import { AutomaticDayNotes } from "../features/routine/AutomaticDayNotes";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Lightning } from "phosphor-react-native/src/icons/Lightning";
@@ -232,8 +233,9 @@ export function DayOverview({
       }
       keyboardShouldPersistTaps="handled"
     >
+      <AutomaticDayNotes date={dateKey}/>
       {day.error ? <Text style={styles.errorText}>{day.error}</Text> : null}
-      {google.error ? <Text style={styles.errorText}>{google.error}</Text> : null}
+      {google.error ? <TouchableOpacity onPress={onGoSettings}><Text style={styles.errorText}>구글 일정에 연결할 수 없어요. 여기를 눌러 다시 연결해 주세요. 다른 기록은 계속 볼 수 있어요.</Text></TouchableOpacity> : null}
       {google.notLinked ? (
         <TouchableOpacity style={styles.banner} onPress={onGoSettings}>
           <Ionicons name="link-outline" size={16} color={c.primary} />

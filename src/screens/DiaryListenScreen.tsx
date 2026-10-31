@@ -21,12 +21,14 @@ import { RootScreenProps } from "../navigation/types";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
 import { cardShadow, fontSizes, radii, spacing } from "../theme/tokens";
+import {Mascot,Copy,Link} from '../features/routine/ui';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 const RATES = [0.75, 1.0, 1.25, 1.5] as const;
 
 type Boundary = { start: number; end: number } | null;
 
-export function DiaryListenScreen({ route }: RootScreenProps<"DiaryListen">) {
+export function DiaryListenScreen({ route,navigation }: RootScreenProps<"DiaryListen">) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const { text } = route.params;
@@ -163,7 +165,10 @@ export function DiaryListenScreen({ route }: RootScreenProps<"DiaryListen">) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top','bottom']}>
+      <View style={{paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Copy weight="700">일기 듣기</Copy><Link label="닫기" onPress={()=>navigation.goBack()}/></View>
+      <View style={{padding:18,flexDirection:'row',gap:14,alignItems:'center',backgroundColor:c.primarySoft}}><Mascot size={60} mood="focus"/><View style={{flex:1}}><Text style={{fontSize:20,fontWeight:'800',color:c.text}}>내 하루로 배우는 일본어</Text><Text style={{fontSize:12,color:c.textMuted,lineHeight:18}}>문장을 눌러 듣고, 반복과 따라 말하기를 골라요. 발음 채점 기능은 없어요.</Text></View></View>
+      {route.params.original?<View style={{paddingHorizontal:18,paddingVertical:10}}><Text style={{fontSize:11,color:c.textMuted}}>한국어 원문 · 아래는 일본어로 들을 문장이에요.</Text><Text numberOfLines={3} style={{fontSize:13,lineHeight:20,color:c.textMuted}}>{route.params.original}</Text></View>:null}
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
@@ -274,7 +279,7 @@ export function DiaryListenScreen({ route }: RootScreenProps<"DiaryListen">) {
           <Text style={styles.shadowHint}>문장을 읽은 뒤 같은 길이만큼 쉬어요 — 따라 말해보세요</Text>
         ) : null}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

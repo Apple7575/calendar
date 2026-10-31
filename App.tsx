@@ -12,6 +12,7 @@ import { setupNotificationHandler, topUpMomentReminders } from "./src/lib/notifi
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { RootStackParamList } from "./src/navigation/types";
 import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
+import { MotionProvider } from "./src/features/routine/motion";
 
 setupNotificationHandler();
 
@@ -65,7 +66,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ThemedApp />
+        <MotionProvider><ThemedApp /></MotionProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

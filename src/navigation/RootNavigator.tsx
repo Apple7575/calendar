@@ -1,3 +1,14 @@
+﻿import {HabitOrderSettingsScreen} from '../features/routine/HabitOrderSettingsScreen';
+import { DeckCardsScreen } from "../features/routine/DeckCardsScreen";
+import {SettingsHubScreen,ExperienceSettingsScreen} from '../features/routine/SettingsHubScreen';
+import {TimeWalletScreen} from '../features/routine/TimeWalletScreen';
+import {DiaryDetailScreen} from '../features/routine/DiaryDetailScreen';
+import { StudyHistoryScreen } from '../features/routine/StudyHistoryScreen';
+import { StudyPreferencesScreen } from "../features/routine/StudySettingsScreens";
+import { GuidedRoutineScreen } from "../features/routine/GuidedRoutineScreen";
+import { BookStudyScreen } from "../features/routine/BookStudyScreen";
+import { BackupScreen } from "../features/routine/BackupScreen";
+import { SavedStudyScreen } from "../features/routine/SavedStudyScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -27,18 +38,31 @@ import { MemoryMapScreen } from "../screens/MemoryMapScreen";
 import { QuickAddScreen } from "../screens/QuickAddScreen";
 import { RoutineManageScreen } from "../screens/RoutineManageScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
+import { ScreenTimeTestScreen } from "../screens/ScreenTimeTestScreen";
 import { StyleScreen } from "../screens/StyleScreen";
 import { DiaryListenScreen } from "../screens/DiaryListenScreen";
 import { VocabScreen } from "../screens/VocabScreen";
 import { useTheme } from "../theme/ThemeContext";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
+import { RoutineProvider } from "../features/routine/RoutineProvider";
+import { RoutineMorningScreen, RoutineRewardScreen, RoutineWorkoutScreen } from "../features/routine/RoutineFlowScreens";
+import { RoutineStudySessionScreen, StudySettingsScreen } from "../features/routine/StudyScreens";
+import { RoutineHistoryScreen } from "../features/routine/RecordScreens";
+import { RoutineScreenTimeScreen } from "../features/routine/RoutineScreenTimeScreen";
+import { RoutineSetupScreen } from "../features/routine/RoutineSetupScreen";
+import { useReducedMotion } from "../features/routine/motion";
+import { CalendarScreen } from "../screens/CalendarScreen";
+import { TodayScreen } from "../screens/TodayScreen";
+import { ReportScreen } from "../screens/ReportScreen";
+import { InterestsScreen } from "../screens/InterestsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { colors: c } = useTheme();
   const { session, loading } = useSession();
+  const reducedMotion = useReducedMotion();
 
   if (loading) {
     return (
@@ -56,6 +80,7 @@ export function RootNavigator() {
   }
 
   return (
+    <RoutineProvider key={session?.user.id ?? "signed-out"} userId={session?.user.id}>
     <Stack.Navigator
       screenOptions={{
         headerTintColor: c.text,
@@ -64,12 +89,38 @@ export function RootNavigator() {
         headerShadowVisible: false,
         headerBackButtonDisplayMode: "minimal",
         contentStyle: { backgroundColor: c.background },
+        animation: reducedMotion ? "fade" : "default",
+        animationDuration: reducedMotion ? 120 : undefined,
+        gestureEnabled: true,
       }}
     >
       {session ? (
         <>
           <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="DayDetail" component={DayDetailScreen} options={{ title: "" }} />
+          <Stack.Screen name="SettingsHub" component={SettingsHubScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="TimeWallet" component={TimeWalletScreen} options={{headerShown:false}}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="DiaryDetail" component={DiaryDetailScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="RoutineMorning" component={RoutineMorningScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="RoutineWorkout" component={RoutineWorkoutScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="RoutineStudySession" component={RoutineStudySessionScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="RoutineReward" component={RoutineRewardScreen} options={{ headerShown: false, animation: "fade", animationDuration: reducedMotion ? 120 : 200 }} />
+          <Stack.Screen name="RoutineHistory" component={RoutineHistoryScreen} options={{ title: "학습 · 실천 기록" }} />
+          <Stack.Screen name="StudyHistory" component={StudyHistoryScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="RoutineScreenTime" component={RoutineScreenTimeScreen} options={{ title: "앱 제한 설정" }} />
+          <Stack.Screen name="RoutineSetup" component={RoutineSetupScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="GuidedRoutine" component={GuidedRoutineScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="BookStudy" component={BookStudyScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="RoutineBackup" component={BackupScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="SavedStudy" component={SavedStudyScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="DeckCards" component={DeckCardsScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="StudyPreferences" component={StudyPreferencesScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="StudySettings" component={StudySettingsScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="LegacyCalendar" component={CalendarScreen} options={{ title: "일정 캘린더" }} />
+          <Stack.Screen name="LegacyToday" component={TodayScreen} options={{ title: "오늘의 기록" }} />
+          <Stack.Screen name="LegacyReport" component={ReportScreen} options={{ title: "리포트" }} />
+          <Stack.Screen name="LegacyInterests" component={InterestsScreen} options={{ title: "관심사 · 모든 기능" }} />
+          <Stack.Screen name="DayDetail" component={DayDetailScreen} options={{ headerShown:false }} />
           <Stack.Screen
             name="EventEdit"
             component={EventEditScreen}
@@ -78,7 +129,7 @@ export function RootNavigator() {
           <Stack.Screen
             name="DiaryEdit"
             component={DiaryEditScreen}
-            options={{ title: "일기" }}
+            options={{ headerShown:false }}
           />
           <Stack.Screen
             name="PhotoViewer"
@@ -95,6 +146,8 @@ export function RootNavigator() {
             component={SettingsScreen}
             options={{ title: "설정" }}
           />
+          <Stack.Screen name="ScreenTimeTest" component={ScreenTimeTestScreen}
+            options={{ title: "스크린타임 테스트" }} />
           <Stack.Screen
             name="MemoryMap"
             component={MemoryMapScreen}
@@ -103,7 +156,7 @@ export function RootNavigator() {
           <Stack.Screen
             name="QuickAdd"
             component={QuickAddScreen}
-            options={{ title: "빠른 일정 등록" }}
+            options={{ title: "빠른 일정 등록", presentation: "modal" }}
           />
           <Stack.Screen
             name="Gallery"
@@ -193,7 +246,7 @@ export function RootNavigator() {
           <Stack.Screen
             name="DiaryListen"
             component={DiaryListenScreen}
-            options={{ title: "듣기 · 쉐도잉" }}
+            options={{ headerShown:false }}
           />
           <Stack.Screen
             name="Vocab"
@@ -205,5 +258,6 @@ export function RootNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       )}
     </Stack.Navigator>
+    </RoutineProvider>
   );
 }

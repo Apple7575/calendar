@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "나의 캘린더",
+    "name": "보리와 오늘",
     "slug": "calendar-app",
+    "owner": "hey9991s-team",
     "version": "1.0.0",
     "scheme": "calendarapp",
     "orientation": "portrait",
@@ -10,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#7C6BE8"
+      "backgroundColor": "#FFFCF3"
     },
     "ios": {
       "supportsTablet": true,
@@ -19,23 +20,48 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "수면 시간을 일기에 자동으로 기록하기 위해 건강 데이터를 읽습니다.",
-        "NSHealthUpdateUsageDescription": "건강 데이터를 수정하지 않습니다."
+        "NSHealthUpdateUsageDescription": "건강 데이터를 수정하지 않습니다.",
+        "NSSpeechRecognitionUsageDescription": "말하는 내용을 실시간으로 글로 바꾸기 위해 음성 인식을 사용합니다.",
+        "NSMicrophoneUsageDescription": "음성으로 일기와 기록을 작성하기 위해 마이크를 사용합니다."
       },
       "entitlements": {
+        "com.apple.developer.family-controls": true,
         "com.apple.developer.healthkit": true,
-        "com.apple.security.application-groups": ["group.com.newblueday.mycalendar"]
+        "com.apple.security.application-groups": [
+          "group.com.newblueday.mycalendar",
+          "group.com.newblueday.mycalendar"
+        ]
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#7C6BE8",
+        "backgroundColor": "#ECF2DC",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -83,8 +109,41 @@
       "supabaseUrl": "https://qlurqptsnvxvlbsvpjie.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsdXJxcHRzbnZ4dmxic3ZwamllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODg2NjEsImV4cCI6MjA5OTA2NDY2MX0.rQhKMJAZ10hUClgLbmDR6qejnhPQo8dxCR3Qe8Pur9c",
       "eas": {
-        "projectId": "389de53e-8eb9-49bf-962c-b63d9a09bcdd"
+        "projectId": "389de53e-8eb9-49bf-962c-b63d9a09bcdd",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.newblueday.mycalendar.widget",
+                  "targetName": "widget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.newblueday.mycalendar"
+                    ]
+                  }
+                },
+                {
+                  "bundleIdentifier": "com.newblueday.mycalendar.screentime",
+                  "targetName": "screentime",
+                  "entitlements": {
+                    "com.apple.developer.family-controls": true,
+                    "com.apple.security.application-groups": [
+                      "group.com.newblueday.mycalendar"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/389de53e-8eb9-49bf-962c-b63d9a09bcdd"
     }
   }
 }

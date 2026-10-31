@@ -1,0 +1,16 @@
+import React from 'react';
+import {View} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../../navigation/types';
+import {getDay} from '../../lib/routineModel';
+import {useRoutine} from './RoutineProvider';
+import {Action,CardView,Copy,Icon,u} from './ui';
+export function FreeStudyCard(){
+ const {data,dayKey,ready}=useRoutine(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+ return <CardView><View style={u.row}><Icon name="book-outline"/><Copy size={21} weight="800">더 공부한 만큼, 더 모아요</Copy></View><Copy>노트 사진 속 손글씨 100자마다 +5분</Copy><Copy muted size={13}>기본 목표를 마쳐도, 순서를 놓쳐도 원하는 공부를 계속해요. 시간·하루 보상 상한은 없어요. 단어 보상 한도와 별도예요.</Copy><Action label="손글씨 공부로 시간 모으기" disabled={!ready} onPress={()=>nav.navigate('BookStudy')}/><Copy muted size={12}>오늘 손글씨 공부로 +{getDay(data,dayKey).bonus?.handwriting??0}분</Copy></CardView>;
+}
+export function RewardSourcesCard(){
+ const rows=[['아침 루틴','전체 10분 · 작게 5분'],['단어 학습','기본·추가·짧은 복습 합계 하루 최대60분'],['운동','헬스장30분 · 짧은 집 운동10분'],['손글씨 공부','사진에서 읽힌100자당5분 · 하루 상한 없음'],['하루 순서','지정 순서 실천 완료 · 하루 한 번60분']];
+ return <View style={{gap:16}}><CardView><Copy size={22} weight="800">시간을 모으는 방법</Copy>{rows.map(([name,description])=><View key={name} style={{gap:3,paddingVertical:5}}><Copy weight="700">{name}</Copy><Copy muted size={13}>{description}</Copy></View>)}<Copy muted size={12}>작은 목표 뒤 전체 완료는 차액만 받아요. 저녁 루틴은 실천 기록을 남겨요. 이전 집중·자유 공부에서 받은 보상은 유지하고, 새 타이머·메모에는 별도 보상을 지급하지 않아요.</Copy></CardView><FreeStudyCard/></View>;
+}

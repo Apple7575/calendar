@@ -6,14 +6,20 @@
   "build": {
     "production": {
       "autoIncrement": true,
-      "node": "22.14.0"
+      "node": "22.14.0",
+      "channel": "production"
     },
     "preview": {
       "distribution": "internal",
-      "node": "22.14.0"
+      "node": "22.14.0",
+      "channel": "preview"
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6789025200"
+      }
+    }
   }
 }

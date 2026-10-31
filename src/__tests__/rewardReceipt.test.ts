@@ -1,0 +1,11 @@
+import {addDeck,answerAdditionalWord,answerWord,emptyData,getDay,nextAdditionalWord,planStudy,routineDay,startAdditionalStudy} from '../lib/routineModel';
+import {Rating} from 'ts-fsrs';
+import {extraReceipt,goalReceipt} from '../lib/rewardReceipt';
+import {undoStudyAnswer,validateStudyState} from '../lib/studyHistory';
+const now=new Date(2026,9,31,9),key=routineDay(now);
+function seed(){let d=addDeck(emptyData(),'덱',Array.from({length:121},(_,i)=>({front:'w'+i,back:'뜻'})),'d',now);d.newLimit=1;d=planStudy(d,key);return answerWord(d,key,'d:0',Rating.Easy,now,1);}
+function run(d:ReturnType<typeof seed>,count:number){d=startAdditionalStudy(d,key,'new',count,now);for(let i=0;i<count;i++){const w=nextAdditionalWord(d,key,now)!;d=answerAdditionalWord(d,key,w.id,Rating.Easy,now,1);}return d;}
+test('batch receipt distinguishes 40 granted from 10 withheld and survives reload',()=>{let d=run(seed(),100);expect(extraReceipt(d,key,getDay(d,key).additional)).toMatchObject({granted:40,withheld:10,tracked:true,budget:{earned:60,cap:60}});d=JSON.parse(JSON.stringify(d));expect(extraReceipt(d,key,getDay(d,key).additional).reason).toContain('10분은 적립하지 못');validateStudyState(d);});
+test('new batch at cap reports zero payout instead of implying another five minutes',()=>{let d=run(seed(),100);d=run(d,10);expect(extraReceipt(d,key,getDay(d,key).additional)).toMatchObject({granted:0,withheld:5});expect(getDay(d,key).bonus?.words).toBe(40);});
+test('undo reverses receipt as well as payout and repeat grade restores once',()=>{let d=run(seed(),10);expect(getDay(d,key).additional?.reward).toEqual({granted:5,withheld:0});d=undoStudyAnswer(d,key,now);expect(getDay(d,key).additional?.reward).toEqual({granted:0,withheld:0});const w=nextAdditionalWord(d,key,now)!;d=answerAdditionalWord(d,key,w.id,Rating.Easy,now,1);expect(getDay(d,key).additional?.reward).toEqual({granted:5,withheld:0});});
+test('ordinary goal zero is labelled previously paid, and small-to-full reports only difference',()=>{const d=seed();expect(goalReceipt(d,key,'words','full',0).reason).toContain('이미 받았어요');expect(goalReceipt(d,key,'words','full',15)).toMatchObject({granted:15,goalTotal:20});expect(goalReceipt(d,key,'words','full',15).reason).toContain('차액');});

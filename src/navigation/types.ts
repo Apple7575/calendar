@@ -1,4 +1,6 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { NavigatorScreenParams } from "@react-navigation/native";
+import { Level, Unit } from "../lib/routineModel";
 
 /** 사진 뷰어에 넘기는 사진 한 장 (메타데이터는 있을 때만) */
 export type ViewerPhoto = {
@@ -18,7 +20,31 @@ export type ViewerPhoto = {
 
 export type RootStackParamList = {
   Login: undefined;
-  Main: undefined;
+  SettingsHub:undefined;
+  ExperienceSettings:undefined;
+  TimeWallet:undefined;
+  DiaryDetail:{date:string;saved?:boolean};
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
+  LegacyCalendar: undefined;
+  LegacyToday: undefined;
+  LegacyReport: undefined;
+  LegacyInterests: undefined;
+  RoutineMorning: undefined;
+  RoutineWorkout: undefined;
+  RoutineStudySession: { level: Level; mode?: 'additional';deckId?:string };
+  RoutineReward: { unit: Unit; level: Level; added: number };
+  RoutineHistory: undefined;
+  StudyHistory: {deckId?:string;wordId?:string}|undefined;
+  RoutineScreenTime: undefined;
+  RoutineSetup: {slot?:'morning'|'evening'}|undefined;
+  GuidedRoutine:{slot:'morning'|'evening'};
+  StudySettings: undefined;
+  StudyPreferences:undefined;
+  DeckCards:{deckId:string};
+  SavedStudy: undefined;
+  RoutineBackup: undefined;
+  BookStudy: {subject?:string;rewardMode?:'standard'|'free'}|undefined;
+  HabitOrderSettings: undefined;
   /** date: "YYYY-MM-DD" */
   DayDetail: { date: string };
   /** eventId가 없으면 새 일정 생성. hour는 주간 보기 빈 칸 탭 시 시작 시각 */
@@ -74,7 +100,7 @@ export type RootStackParamList = {
   /** 코디: 옷장(옷·신발·헤어·향수) + OOTD */
   Style: undefined;
   /** 일기 듣기 · 쉐도잉 플레이어 (TTS) */
-  DiaryListen: { text: string };
+  DiaryListen: { text: string;original?:string };
   /** 단어장 (영어·일본어 표현 + 퀴즈) */
   Vocab: undefined;
   /** 루틴 관리 */
@@ -83,6 +109,7 @@ export type RootStackParamList = {
   Gallery: undefined;
   /** 설정 (관심사 탭의 톱니바퀴로 진입) */
   Settings: undefined;
+  ScreenTimeTest: undefined;
   /** 추억 지도 (위치가 있는 사진 모음) */
   MemoryMap: undefined;
 };
@@ -90,10 +117,10 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Calendar: undefined;
   Today: undefined;
-  /** 실제 화면 없음 — 탭 버튼이 루트 스택의 Camera를 연다 */
-  CameraTab: undefined;
-  Report: undefined;
-  Interests: undefined;
+  Study: undefined;
+  More: undefined;
+  Bori:undefined;
+  Records:{section?:'calendar'|'diary'|'stats'}|undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<

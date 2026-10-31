@@ -1,6 +1,6 @@
 // 앱 테마 팔레트. 색은 반드시 useTheme()를 통해 쓰고 하드코딩하지 않는다.
 
-export type ThemeId = "lavender" | "classic" | "peach" | "mint" | "dark";
+export type ThemeId = "routine" | "lavender" | "classic" | "peach" | "mint" | "dark";
 
 export type ThemeColors = {
   background: string;
@@ -146,20 +146,30 @@ const mint: Theme = {
   },
 };
 
+const routine: Theme = {
+  ...mint, id: "routine", name: "보리의 정원", colors: {
+    ...mint.colors, background: "#FFFCF5", surface: "#FFFCF5", card: "#FFFFFF",
+    text: "#283D32", textMuted: "#657366", border: "#E3E7D9",
+    primary: "#347B50", primarySoft: "#E6F1D5", success: "#347B50",
+    successSoft: "#E6F1D5", inputBg: "#F3F3E7", dotEvent: "#B8754B",
+    shadow: "#6A7D56", gradient: ["#F9DCC0", "#ECF3D7"],
+  },
+};
+
 const dark: Theme = {
   id: "dark",
   name: "다크",
   isDark: true,
   statusBar: "light",
   colors: {
-    background: "#13151D",
-    surface: "#1B1E29",
-    card: "#20242F",
-    border: "#2E3345",
-    text: "#EDEFF7",
-    textMuted: "#9298AC",
-    primary: "#7D8FFF",
-    primarySoft: "#2A3150",
+    background: "#101114",
+    surface: "#101114",
+    card: "#1C1E22",
+    border: "#2A2D33",
+    text: "#F2F3F5",
+    textMuted: "#A8AFB8",
+    primary: "#B5D99C",
+    primarySoft: "#2C3D35",
     danger: "#FF6B70",
     success: "#4CC38A",
     successSoft: "#1F3A31",
@@ -169,13 +179,13 @@ const dark: Theme = {
     dotDiary: "#F07BB4",
     inputBg: "#1B1E29",
     white: "#FFFFFF",
-    gradient: ["#5B6CF0", "#8B5CF6"],
+    gradient: ["#4593FC", "#2272EB"],
     shadow: "#000000",
   },
 };
 
-export const THEMES: Theme[] = [lavender, classic, peach, mint, dark];
-export const DEFAULT_THEME_ID: ThemeId = "lavender";
+export const THEMES: Theme[] = [routine, dark, lavender, classic, peach, mint];
+export const DEFAULT_THEME_ID: ThemeId = "routine";
 
 export function getTheme(id: string | null | undefined): Theme {
   return THEMES.find((t) => t.id === id) ?? THEMES[0];

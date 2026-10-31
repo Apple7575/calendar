@@ -1,3 +1,6 @@
+import { AutomaticDayNotes } from "../features/routine/AutomaticDayNotes";
+import {Mascot,Copy,Link} from '../features/routine/ui';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import * as ImagePicker from "expo-image-picker";
 import { ArrowUp } from "phosphor-react-native/src/icons/ArrowUp";
 import { Camera } from "phosphor-react-native/src/icons/Camera";
@@ -61,6 +64,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const { colors: c } = useTheme();
   const styles = useMemo(() => createStyles(c), [c]);
   const { date } = route.params;
+  const [detailsOpen,setDetailsOpen]=useState(false);
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<string | null>(null);
@@ -70,6 +74,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   >([]);
   const [saving, setSaving] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [photosOpen,setPhotosOpen]=useState(false),[conditionOpen,setConditionOpen]=useState(false);
   // 말로 쓰기: 전사 결과 확인 → AI가 기분/에너지/수면/감사/사람/본문으로 분류
   // (TestFlight 빌드에서는 말하는 동안 실시간으로 텍스트가 카드에 흐른다)
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -335,7 +340,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         void linkDiaryToGoals(date, content);
         // 컨페티 한 번 보여주고 닫기
         setCelebrate(true);
-        setTimeout(() => navigation.goBack(), 900);
+        navigation.replace('DiaryDetail',{date,saved:true});
       }
     } catch (e) {
       Alert.alert("오류", e instanceof Error ? e.message : "일기 저장에 실패했어요.");
@@ -352,13 +357,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
     );
   }
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={90}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  const photoSection=<>
         {/* 사진 — 맨 위. 길게 누르면 대표사진(달력 배경)/삭제 메뉴 */}
         <View style={styles.photoGrid}>
           {photos.map((p, i) => (
@@ -391,6 +390,9 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </Text>
         ) : null}
 
+
+  </>;
+  const moodSection=<>
         <View style={styles.moodRow}>
           <Text style={styles.moodLabel}>오늘 기분</Text>
           {MOODS.map((m) => (
@@ -474,6 +476,9 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </View>
         </View>
 
+
+  </>;
+  const writingSection=<>
         {/* 작성 모드 토글 */}
         <View style={styles.modeRow}>
           <TouchableOpacity
@@ -482,7 +487,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           >
             <PencilSimpleLine
               size={13}
-              color={writeMode === "free" ? c.white : c.textMuted}
+              color={writeMode === "free" ? c.primary : c.textMuted}
             />
             <Text style={[styles.modeChipText, writeMode === "free" && styles.modeChipTextActive]}>
               자유 작성
@@ -494,7 +499,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           >
             <ChatsCircle
               size={13}
-              color={writeMode === "qa" ? c.white : c.textMuted}
+              color={writeMode === "qa" ? c.primary : c.textMuted}
             />
             <Text style={[styles.modeChipText, writeMode === "qa" && styles.modeChipTextActive]}>
               질문으로 쓰기
@@ -560,7 +565,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
 
         <View>
           <TextInput
-            style={styles.diaryInput}
+            style={[styles.diaryInput,{backgroundColor:"transparent",borderWidth:0,padding:0,minHeight:190,fontSize:18,lineHeight:29}]}
             placeholder={
               writeMode === "qa"
                 ? "답변을 고르면 여기에 일기가 쌓여요."
@@ -643,6 +648,9 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </View>
         ) : null}
 
+
+  </>;
+  const extraSection=<>
         {/* 오늘의 한 줄 */}
         <Text style={styles.fieldLabel}>
           오늘의 한 줄 <Text style={styles.fieldHint}>(비워두면 저장할 때 AI가 뽑아줘요)</Text>
@@ -717,13 +725,29 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
           </View>
         ) : null}
 
+
+  </>;
+  return (
+    <SafeAreaView style={styles.container} edges={['top','bottom']}><View style={{paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Copy weight="700">{formatKoreanDate(date)}</Copy><Link label="닫기" onPress={()=>navigation.goBack()}/></View><KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={[styles.hero,{flexDirection:'row',alignItems:'center',gap:14}]}><Mascot size={76} mood="cheer"/><View style={{flex:1}}><Text style={[styles.heroTitle,{fontSize:23}]}>오늘, 기억하고 싶은 순간은?</Text><Text style={styles.heroSubtitle}>한 줄, 목소리, 사진. 편한 만큼만 남겨요.</Text></View></View>
+        <View style={styles.surfaceCard}>{writingSection}</View>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="사진 선택 항목" onPress={()=>setPhotosOpen(!photosOpen)} style={styles.surfaceCard}><Text style={styles.sectionTitle}>사진 {photos.length+pending.length?`${photos.length+pending.length}장`:'추가'} {photosOpen?'접기':'+'}</Text><Text style={styles.heroSubtitle}>선택 · 작은 장면을 사진으로 남겨요.</Text></TouchableOpacity>{photosOpen?<View style={styles.surfaceCard}>{photoSection}</View>:null}
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="기분·수면 선택 항목" onPress={()=>setConditionOpen(!conditionOpen)} style={styles.surfaceCard}><Text style={styles.sectionTitle}>기분·수면 {mood??''} {conditionOpen?'접기':'+'}</Text><Text style={styles.heroSubtitle}>선택 · 모두 채우지 않아도 저장할 수 있어요.</Text></TouchableOpacity>{conditionOpen?<View style={styles.surfaceCard}>{moodSection}</View>:null}
+        <AutomaticDayNotes date={date}/>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="선택 기록 펼치기" onPress={()=>setDetailsOpen(!detailsOpen)} style={styles.surfaceCard}><Text style={styles.sectionTitle}>{detailsOpen?'선택 기록 접기':'한 줄 요약·감사·함께한 사람'}</Text><Text style={styles.heroSubtitle}>남기고 싶은 것만 적어보세요.</Text></TouchableOpacity>
+        {detailsOpen?<View style={styles.surfaceCard}>{extraSection}</View>:null}
       </ScrollView>
 
       <View style={styles.footer}>
-        <PrimaryButton title="저장" onPress={handleSave} loading={saving} />
+        <PrimaryButton title="하루 기록 저장" onPress={handleSave} loading={saving} />
       </View>
       <Confetti visible={celebrate} onDone={() => setCelebrate(false)} />
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingView></SafeAreaView>
   );
 }
 
@@ -736,7 +760,12 @@ const createStyles = (c: ThemeColors) =>
       justifyContent: "center",
       backgroundColor: c.background,
     },
-    content: { padding: spacing.md },
+    content: { padding:16,gap:16,paddingBottom:28 },
+    hero:{paddingHorizontal:4,paddingVertical:8},
+    heroTitle:{fontSize:27,lineHeight:36,fontWeight:'800',color:c.text},
+    heroSubtitle:{fontSize:14,lineHeight:22,color:c.textMuted,marginTop:4},
+    surfaceCard:{padding:20,borderRadius:24,backgroundColor:c.card},
+    sectionTitle:{fontSize:18,fontWeight:'700',color:c.text,marginBottom:12},
     moodRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.sm },
     moodLabel: {
       fontSize: fontSizes.small,
@@ -847,9 +876,9 @@ const createStyles = (c: ThemeColors) =>
       paddingVertical: spacing.xs + 2,
       backgroundColor: c.surface,
     },
-    modeChipActive: { backgroundColor: c.primary },
+    modeChipActive: { backgroundColor: c.primarySoft },
     modeChipText: { fontSize: fontSizes.caption, fontWeight: "700", color: c.textMuted },
-    modeChipTextActive: { color: c.white },
+    modeChipTextActive: { color: c.primary },
     qaCard: {
       backgroundColor: c.surface,
       borderRadius: radii.card,

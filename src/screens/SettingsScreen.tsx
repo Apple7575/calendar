@@ -1,4 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/types";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -42,6 +45,7 @@ import { fontSizes, spacing } from "../theme/tokens";
 type GoogleStatus = "checking" | "connected" | "notLinked" | "error";
 
 export function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { theme, setThemeId } = useThemeControls();
   const c = theme.colors;
   const styles = useMemo(() => createStyles(c), [c]);
@@ -169,7 +173,7 @@ export function SettingsScreen() {
   const handleReconnect = async () => {
     setReconnecting(true);
     try {
-      const { canceled } = await signInWithGoogle();
+      const { canceled } = await signInWithGoogle({ selectAccount: true });
       if (!canceled) {
         invalidateGoogleCache();
         await checkGoogle();
@@ -212,6 +216,10 @@ export function SettingsScreen() {
         <Text style={styles.headerTitle}>설정</Text>
       </View>
       <ScrollView style={styles.body}>
+        <Section title="루틴 · 스크린타임">
+          <PrimaryButton title="스크린타임 테스트 열기" variant="secondary"
+            onPress={() => navigation.navigate("ScreenTimeTest")} />
+        </Section>
         <Section title="테마">
           <View style={styles.themeRow}>
             {THEMES.map((t) => {
@@ -254,6 +262,7 @@ export function SettingsScreen() {
 
         <Section title="계정">
           <Text style={styles.rowText}>{email || "이메일 정보 없음"}</Text>
+          <PrimaryButton title="구글 계정 선택 · 변경" variant="secondary" onPress={handleReconnect} loading={reconnecting} />
         </Section>
 
         <Section title="아침 브리핑 알림">

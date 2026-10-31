@@ -1,4 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo,useState } from "react";
+import {useReducedMotion} from '../features/routine/motion';
+import {tapLight} from '../lib/haptics';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 import { ThemeColors } from "../theme/themes";
@@ -13,20 +15,20 @@ type Props = {
 };
 
 export function PrimaryButton({ title, onPress, disabled, loading, variant = "primary" }: Props) {
-  const { colors: c } = useTheme();
+  const { colors: c,isDark } = useTheme(),reduced=useReducedMotion(),[pressed,setPressed]=useState(false);
   const styles = useMemo(() => createStyles(c), [c]);
   const isDisabled = disabled || loading;
   return (
     <TouchableOpacity
-      style={[styles.button, styles[variant], isDisabled && styles.disabled]}
-      onPress={onPress}
+      style={[styles.button, styles[variant],{borderBottomWidth:pressed?1:4,borderColor:c.border,transform:[{translateY:pressed&&!reduced?3:0}]}, isDisabled && styles.disabled]}
+      onPress={()=>{tapLight();onPress()}} onPressIn={()=>setPressed(true)} onPressOut={()=>setPressed(false)}
       disabled={isDisabled}
       activeOpacity={0.8}
     >
       {loading ? (
         <ActivityIndicator color={variant === "secondary" ? c.primary : c.white} />
       ) : (
-        <Text style={[styles.label, variant === "secondary" && styles.labelSecondary]}>
+        <Text style={[styles.label, variant === "secondary" && styles.labelSecondary,isDark&&variant==='primary'?{color:c.background}:null]}>
           {title}
         </Text>
       )}
