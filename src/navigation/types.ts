@@ -21,10 +21,12 @@ export type ViewerPhoto = {
 export type RootStackParamList = {
   Login: undefined;
   SettingsHub:undefined;
+  PriorityPlan:{day?:string}|undefined;
+  PriorityPause:undefined;
   ExperienceSettings:undefined;
   TimeWallet:undefined;
   MoneyWallet:undefined;
-  EarnedReward:{id:string;kind:'plan'|'handwriting';minutes:number;cash:number;cashEnabled:boolean;quantity:number;pending?:boolean;cashBaseline?:number};
+  EarnedReward:{id:string;kind:'plan'|'handwriting';minutes:number;cash:number;cashEnabled:boolean;quantity:number;pending?:boolean;cashBaseline?:number;continueTo?:'FocusTimer'};
   DiaryDetail:{date:string;saved?:boolean};
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   LegacyCalendar: undefined;

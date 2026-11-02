@@ -15,6 +15,8 @@ struct ScreenTimeState: Codable {
   var consumed = 0
   var monitoringBaseConsumed: Int? = nil
   var morningComplete = false
+  var priorityStartDay: String? = nil
+  var priorityComplete: Bool? = nil
   var rewardMode: Bool? = nil
   var usingRewards: Bool? = nil
   var focusUntil: Double? = nil
@@ -65,6 +67,7 @@ enum ScreenTimeStorage {
       state.consumed = 0
       state.monitoringBaseConsumed = 0
       state.morningComplete = false
+      state.priorityComplete = false
       state.paid = [:]
       state.usingRewards = false
       mark(&state, "새벽 4시 초기화 · 아침 루틴 대기")
@@ -128,8 +131,12 @@ enum ScreenTimeStorage {
   }
   static func locked(_ state: ScreenTimeState) -> Bool {
     guard state.enabled else { return false }
-    return !state.morningComplete || state.consumed >= state.granted || sleepLocked(state)
+    return !state.morningComplete || (priorityRequired(state) && state.priorityComplete != true) || state.consumed >= state.granted || sleepLocked(state)
       || (state.rewardMode == true && (state.usingRewards != true || (state.focusUntil ?? 0) > Date().timeIntervalSince1970))
+  }
+  static func priorityRequired(_ state: ScreenTimeState) -> Bool {
+    guard state.rewardMode == true, let start = state.priorityStartDay, !start.isEmpty else { return false }
+    return state.day >= start
   }
   static func apply(_ state: ScreenTimeState) {
     let isLocked = locked(state)
@@ -153,6 +160,9 @@ enum ScreenTimeStorage {
       "grantedMinutes": state.granted,
       "consumedMinutes": state.consumed,
       "morningComplete": state.morningComplete,
+      "supportsPriorityGate": true,
+      "priorityRequired": priorityRequired(state),
+      "priorityComplete": state.priorityComplete == true,
       "rewardMode": state.rewardMode == true,
       "locked": locked(state),
       "policyVersion": 2,

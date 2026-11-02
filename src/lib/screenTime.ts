@@ -2,6 +2,7 @@ import { requireOptionalNativeModule } from "expo";
 import { Platform } from "react-native";
 
 export type ScreenTimeStatus = {
+  supportsPriorityGate?:boolean;priorityRequired?:boolean;priorityComplete?:boolean;
   policyVersion?:number;supportsStudyUndo?:boolean;supportsOrderBonus?:boolean;supportsFreeStudyRewards?:boolean;supportsHandwritingRewards?:boolean;supportsProgressiveWordRewards?:boolean;sleepLocked?:boolean;usingRewards?:boolean;focusUntil?:number;
   supported: boolean;
   authorized: boolean;
@@ -20,6 +21,7 @@ export type ScreenTimeStatus = {
 };
 
 type NativeScreenTime = {
+  setPriorityGate(day:string,from:string,complete:boolean):Promise<void>;
   getStatus(): Promise<ScreenTimeStatus | { supported: false }>;
   requestAuthorization(): Promise<void>;
   selectApps(): Promise<void>;
@@ -36,7 +38,7 @@ type NativeScreenTime = {
 const native = Platform.OS === "ios"
   ? requireOptionalNativeModule<NativeScreenTime>("RoutineScreenTime") : null;
 
-export type ScreenTimeAction = Exclude<keyof NativeScreenTime, "getStatus" | "syncRewards" | "setFocusWindow" | "adjustStudyRewards">;
+export type ScreenTimeAction = Exclude<keyof NativeScreenTime, "getStatus" | "syncRewards" | "setFocusWindow" | "adjustStudyRewards" | "setPriorityGate">;
 
 export function isScreenTimeInstalled(): boolean {
   return native !== null;
@@ -69,4 +71,8 @@ export async function adjustStudyRewards(day:string,from:Record<string,number>,t
 export async function syncFocusWindow(until:number):Promise<void>{
  if(!native?.setFocusWindow)throw new Error('공부 잠금을 지원하는 새 빌드가 필요해요.');
  await native.setFocusWindow(until);
+}
+export async function syncPriorityGate(day:string,from:string,complete:boolean):Promise<void>{
+ if(!native?.setPriorityGate)throw new Error('중요한 공부 먼저 잠금은 새 아이폰 빌드가 필요해요.');
+ await ledgerOperation(()=>native.setPriorityGate(day,from,complete));
 }

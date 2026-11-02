@@ -19,7 +19,7 @@ export function EarnedRewardScreen({route,navigation}:RootScreenProps<'EarnedRew
  const pending=receipt?receipt.rewardStatus==='pending':!!p.pending,minutes=batch?.minutes??p.minutes;
  const cash=p.pending&&!pending?Math.max(0,(data.money?.entries??[]).filter(e=>e.source==='output').reduce((n,e)=>n+e.amount,0)-(p.cashBaseline??0)):p.cash;
  const wallet=timeWallet(getDay(data,dayKey),dayKey,native),small=height<740;
- const close=()=>navigation.canGoBack()?navigation.goBack():navigation.navigate('Main',{screen:'Study'});
+ const close=()=>p.continueTo?navigation.replace(p.continueTo):navigation.canGoBack()?navigation.goBack():navigation.navigate('Main',{screen:'Study'});
  useStudyFeedback(!pending?{kind:'complete',id:p.id}:null);
  return <View testID="earned-reward-page" style={{flex:1,backgroundColor:'#14252E'}}>
   <StatusBar style="light"/><AnimalSharedLayer id="celebration_effects" animated/>

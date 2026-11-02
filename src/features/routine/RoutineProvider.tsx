@@ -1,3 +1,5 @@
+import {priorityGate,reconcilePriorityPlans} from '../../lib/priorityPlan';
+import {syncPriorityGate} from '../../lib/screenTime';
 import {handwritingAccess,settleHandwritingRewards} from '../../lib/handwriting';
 ﻿import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -85,7 +87,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
         throw new Error("새 하루가 시작됐어요. 화면을 확인하고 다시 시도해 주세요.");
       }
       const before=initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(current.current,expectedDay),expectedDay),expectedDay);
-      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(settleHandwritingRewards(fn(before)),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
+      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(reconcilePriorityPlans(settleHandwritingRewards(fn(before)),expectedDay),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
       await AsyncStorage.setItem(key, JSON.stringify(next));
       if (alive.current&&identity.current===userId) { current.current = next; setData(next); setError(null); }
     });
@@ -94,6 +96,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   }, [key, userId, ready, expectedDay]);
   useEffect(()=>{
     if(!ready)return;
+    if(reconcilePriorityPlans(data,expectedDay)!==data){void update(s=>s).catch(()=>{});return;}
     const subjects=[...new Set((data.handwritingReceipts??[]).filter(r=>r.rewardStatus==='pending').map(r=>r.subject))];
     if(subjects.some(subject=>handwritingAccess(data,subject).ready))void update(s=>s).catch(()=>{});
   },[ready,now,data.handwritingReceipts,data.bookTimer,data.bookSessions,update]);
@@ -169,6 +172,8 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
     }).catch(e=>{if(active)setError(e instanceof Error?e.message:'학습 보상을 되돌리지 못했어요. 다시 시도해 주세요.');});
     return()=>{active=false};
   },[ready,adjustment,adjustmentAttempt,dayKey,update,refreshNative]);
+  const priority=priorityGate(data,dayKey,now.getTime());
+  useEffect(()=>{if(ready&&native?.supportsPriorityGate)void syncPriorityGate(dayKey,data.priorityPolicy?.enabled?data.priorityPolicy.from:'',priority.complete).then(refreshNative).catch(e=>setError(e.message));},[ready,native?.supportsPriorityGate,native?.enabled,native?.rewardMode,dayKey,data.priorityPolicy?.enabled,data.priorityPolicy?.from,priority.complete,refreshNative]);
   const t=data.bookTimer;
   const focusUntil=t&&t.phase!=='idle'?(t.running?t.endsAt+(t.phase==='focus'?300000:0):Date.now()+86400000):0;
   useEffect(()=>{

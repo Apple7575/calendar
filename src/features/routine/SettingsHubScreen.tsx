@@ -10,7 +10,7 @@ import {AccountConnection} from './AccountConnection';
 export function SettingsHubScreen({navigation}:RootScreenProps<'SettingsHub'>){
  const go=(screen:keyof import('../../navigation/types').RootStackParamList)=>()=>navigation.navigate(screen as any);
  return <Page title="나의 설정" right={<Link label="닫기" onPress={()=>navigation.goBack()}/>}>
-  <Copy muted>친구들과 함께하는 방식을 정해요.</Copy>
+  <Copy muted>친구들과 함께하는 방식을 정해요.</Copy><MenuRow title="중요한 공부·첫 행동" subtitle="오늘·내일 계획 · 작은 시작 · 시간 사용 조건" icon="flag-outline" onPress={()=>navigation.navigate('PriorityPlan')}/>
   <MenuRow title="돈 보상·지출" subtitle="보상 금액 · 쓸 수 있는 돈 · 사용 내역" icon="wallet-outline" onPress={go('MoneyWallet')}/>
   <CardView><Copy weight="800">매일의 실천</Copy><MenuRow title="아침·저녁 루틴" subtitle="구성 · 작은 목표 · 시간 · 순서" icon="sunny-outline" onPress={()=>navigation.navigate('RoutineSetup')}/><MenuRow title="하루 순서·60분 보너스" subtitle="과목별 집중 공부 · 어려운 것부터" icon="trail-sign-outline" onPress={go('HabitOrderSettings')}/><MenuRow title="제한 앱과 권한" subtitle="선택 앱 · 공용 시간 · 잠금 상태" icon="shield-checkmark-outline" onPress={go('RoutineScreenTime')}/><MenuRow title="보상·학습 규칙" subtitle="기본 보상과 추가 학습 설정" icon="gift-outline" onPress={go('StudyPreferences')}/><MenuRow title="내 단어장" icon="albums-outline" onPress={go('StudySettings')}/></CardView>
   <CardView><Copy weight="800">친구와 화면</Copy><MenuRow title="동물 친구 동작 검수" subtitle="4캐릭터 · 60동작 · 대표 프레임" icon="paw-outline" onPress={go('AnimalPreview')}/><MenuRow title="소리·진동·모션·화면" subtitle="내게 편안한 반응으로" icon="color-palette-outline" onPress={go('ExperienceSettings')}/><MenuRow title="알림·연결 상세 설정" subtitle="기존 알림 · 건강 · 캘린더 설정" icon="notifications-outline" onPress={go('Settings')}/></CardView>

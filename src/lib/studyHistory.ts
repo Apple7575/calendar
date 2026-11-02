@@ -5,6 +5,7 @@ import { getDay,routineDay,withDay } from './routineModel';
 import {advanceHabitOrder,validHabitSequence,HabitOrderProgress} from './habitOrder';
 import {validateHandwritingState} from './handwriting';
 import {validateMoneyState} from './moneyRewards';
+import {validatePriorityPlans} from './priorityPlan';
 export type StudyPhase='new'|'learning'|'review'|'relearning';
 export type ReviewEvent={id:string;wordId:string;deckId:string;day:string;at:string;grade:Grade;seconds:number;phase:StudyPhase;mode:'daily'|'additional';level?:'min'|'full';before:StoredCard;after:StoredCard;completed:boolean;voidedAt?:string};
 type Snapshot=Pick<Day,'plan'|'complete'|'responses'|'studySeconds'|'lastStudyWordId'|'additional'|'additionalByDeck'|'rewardedStudyIds'|'extraPendingIds'|'wordRewards'|'orderProgress'>&{paidWords:number;bonusWords:number;bonusQuick:number;bonusOrder?:number};
@@ -38,6 +39,7 @@ export function reviewEvents(data:RoutineData,filter:{deckId?:string;wordId?:str
  return (data.reviewHistory??[]).filter(e=>(filter.includeVoided||!e.voidedAt)&&(!filter.deckId||e.deckId===filter.deckId)&&(!filter.wordId||e.wordId===filter.wordId)&&(!filter.day||e.day===filter.day));
 }
 export function validateStudyState(data:RoutineData):void{
+   validatePriorityPlans(data);
  validateMoneyState(data);
  const ids=(v:unknown):v is string[]=>Array.isArray(v)&&v.every(s=>typeof s==='string');
  const nonnegative=(v:number)=>Number.isFinite(v)&&v>=0;

@@ -1,3 +1,5 @@
+import {PriorityPauseScreen} from '../features/routine/PriorityPauseScreen';
+import {PriorityPlanScreen} from '../features/routine/PriorityPlanScreen';
 import {EarnedRewardScreen} from '../features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from '../features/routine/AnimalPreviewScreen';
 import {FocusTimerScreen} from '../features/routine/FocusTimerScreen';
@@ -102,6 +104,8 @@ export function RootNavigator() {
       {session ? (
         <>
           <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="PriorityPlan" component={PriorityPlanScreen} options={{headerShown:false}}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen} options={{headerShown:false}}/>
           <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen} options={{headerShown:false}}/>
           <Stack.Screen name="TimeWallet" component={TimeWalletScreen} options={{headerShown:false}}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen} options={{headerShown:false}}/>

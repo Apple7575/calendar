@@ -21,6 +21,19 @@ public class RoutineScreenTimeModule: Module {
       try ScreenTimeService.adjustStudyRewards(day: day, previous: previous, target: target)
     }
 
+    AsyncFunction("setPriorityGate") { (day: String, from: String, complete: Bool) throws -> Void in
+      guard #available(iOS 17.4, *) else { throw self.unsupported() }
+      try ScreenTimeStorage.update { state in
+        guard day == state.day else { return }
+        guard from.isEmpty || from.range(of: "^\\d{4}-\\d{2}-\\d{2}$", options: .regularExpression) != nil else {
+          throw ScreenTimeStorage.failure("첫 공부 시작 날짜를 확인해 주세요.")
+        }
+        state.priorityStartDay = from.isEmpty ? nil : from
+        state.priorityComplete = complete
+        if ScreenTimeStorage.priorityRequired(state) && !complete { state.usingRewards = false }
+        ScreenTimeStorage.apply(state)
+      }
+    }
     AsyncFunction("startRewardUse") { () throws -> Void in
       guard #available(iOS 17.4, *) else { throw self.unsupported() }
       try ScreenTimeService.startRewardUse()
@@ -153,6 +166,7 @@ private enum ScreenTimeService {
         throw ScreenTimeStorage.failure("아침 루틴과 남은 이용 시간을 확인해 주세요.")
       }
       guard !ScreenTimeStorage.sleepLocked(state) else { throw ScreenTimeStorage.failure("21시부터 04시 30분까지는 취침 잠금이에요.") }
+      guard !ScreenTimeStorage.priorityRequired(state) || state.priorityComplete == true else { throw ScreenTimeStorage.failure("오늘 1순위 공부의 작은 시작과 필기 사진을 먼저 확인해 주세요.") }
       guard (state.focusUntil ?? 0) <= Date().timeIntervalSince1970 else { throw ScreenTimeStorage.failure("공부와 휴식이 끝난 뒤 사용할 수 있어요.") }
       state.usingRewards = true
       ScreenTimeStorage.mark(&state, "모은 시간 사용 시작")

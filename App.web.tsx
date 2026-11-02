@@ -1,3 +1,6 @@
+import {priorityDemoData} from './src/features/routine/priorityDemo.web';
+import {PriorityPauseScreen} from './src/features/routine/PriorityPauseScreen';
+import {PriorityPlanScreen} from './src/features/routine/PriorityPlanScreen';
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -46,20 +49,23 @@ function DeviceOnly({ navigation }: { navigation: { goBack: () => void } }) {
 }
 function Preview() {
   const {session}=useSession();
+  const priorityDemo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('priorityDemo')==='1';
   const demo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('studyDemo')==='1';
-  const [demoData]=useState(()=>demo?mergePublishedDeck(emptyData(),{...n3Deck,schema:'routine.japanese-deck.v1'}):undefined);
+  const [demoData]=useState(()=>priorityDemo?priorityDemoData():demo?mergePublishedDeck(emptyData(),{...n3Deck,schema:'routine.japanese-deck.v1'}):undefined);
   const { colors: c } = useTheme();
   const navigation = useNavigationContainerRef<RootStackParamList>();
   const [wide,setWide]=useState(false);
   return <View style={{ flex: 1, backgroundColor: "#E9ECEF", alignItems: "center" }}>
     <View style={{ width: "100%", maxWidth: wide?undefined:460, flex: 1, backgroundColor: c.surface }}>
-      <View style={{ paddingVertical: 9, paddingHorizontal: 16, backgroundColor: c.primarySoft }}><Text style={{ color: c.text, fontSize: 12, textAlign: "center" }}>웹 미리보기 · 이 브라우저에만 기록 저장 · 앱 차단 미지원</Text>
+      <View style={{ paddingVertical: 9, paddingHorizontal: 16, backgroundColor: c.primarySoft }}><Text style={{ color: c.text, fontSize: 12, textAlign: "center" }}>{priorityDemo?'중요한 공부 실험 · 예시 데이터 · 앱 차단 미지원':'웹 미리보기 · 이 브라우저에만 기록 저장 · 앱 차단 미지원'}</Text>{priorityDemo?<Text accessibilityRole="button" onPress={()=>{localStorage.removeItem('routine.v1.web-priority-demo');window.location.reload()}} style={{textAlign:'center',fontSize:12,color:c.primary,paddingTop:5}}>예시 초기화</Text>:null}
       </View>
-      <RoutineProvider key={session?.user.id??'preview'} userId={session?`web-preview:${session.user.id}`:demo?'web-study-demo':'web-preview'} cloudUserId={session?.user.id} initialData={demoData}>
+      <RoutineProvider key={priorityDemo?'priority-demo':session?.user.id??'preview'} userId={priorityDemo?'web-priority-demo':session?`web-preview:${session.user.id}`:demo?'web-study-demo':'web-preview'} cloudUserId={priorityDemo?undefined:session?.user.id} initialData={demoData}>
         <NavigationContainer onStateChange={()=>setWide(navigation.getCurrentRoute()?.name==='FocusTimer')} ref={navigation} onReady={()=>{if(demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
+            <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="PriorityPlan" component={PriorityPlanScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
             <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen}/>
             <Stack.Screen name="TimeWallet" component={TimeWalletScreen}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen}/>
             <Stack.Screen name="DiaryDetail" component={DiaryDetailScreen}/>

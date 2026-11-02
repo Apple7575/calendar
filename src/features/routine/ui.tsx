@@ -27,9 +27,9 @@ export function CardView({ children, style }: { children: ReactNode; style?: obj
   const { colors: c } = useTheme();
   return <View style={[u.card, { backgroundColor: c.card }, style]}>{children}</View>;
 }
-export function Copy({ children, muted = false, size = 15, weight = "500",numberOfLines }: { children: ReactNode; muted?: boolean; size?: number; numberOfLines?:number;weight?: "400" | "500" | "600" | "700" | "800" }) {
+export function Copy({ children, muted = false, size = 15, weight = "500",numberOfLines,style }: { children: ReactNode; muted?: boolean; size?: number; numberOfLines?:number;style?:import('react-native').StyleProp<import('react-native').TextStyle>;weight?: "400" | "500" | "600" | "700" | "800" }) {
   const { colors: c } = useTheme();
-  return <Text numberOfLines={numberOfLines} style={{ color: muted ? c.textMuted : c.text, fontSize: size, fontWeight: weight, lineHeight: size * 1.5, letterSpacing: -0.3 }}>{children}</Text>;
+  return <Text numberOfLines={numberOfLines} style={[{ color: muted ? c.textMuted : c.text, fontSize: size, fontWeight: weight, lineHeight: size * 1.5, letterSpacing: -0.3 },style]}>{children}</Text>;
 }
 export function Action({ label, onPress, secondary = false, disabled = false, compact = false }: {
   label: string; onPress: () => void; secondary?: boolean; disabled?: boolean; compact?: boolean;

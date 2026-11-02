@@ -1,3 +1,5 @@
+import {priorityPlan} from '../../lib/priorityPlan';
+import {PriorityMissionCard} from './PriorityMissionCard';
 import {useAnimalCharacter} from '../../lib/animalPreference';
 ﻿import {HabitOrderCard} from './HabitOrderCard';
 import React from 'react';
@@ -39,9 +41,10 @@ export function DashboardScreen(){
   <Pressable testID="time-wallet-summary" accessibilityRole="button" accessibilityLabel="사용 시간 상세" onPress={()=>nav.navigate('TimeWallet')} style={{padding:15,borderRadius:20,backgroundColor:c.primarySoft,flexDirection:'row',alignItems:'center',gap:12}}>
    <Icon name={wallet.available?'lock-open-outline':'shield-outline'} size={22}/><View style={{flex:1}}><Copy size={12}>{wallet.reason}</Copy><Copy weight="800">{`지금 사용 가능 ${wallet.available}분`}</Copy></View><Icon name="chevron-forward" size={18}/>
   </Pressable>
-  <RewardUseToggle/>
+  <RewardUseToggle compact/>
+  <PriorityMissionCard/>
   <Pressable accessibilityRole="button" accessibilityLabel="돈 보상 지갑" onPress={()=>nav.navigate('MoneyWallet')} style={[u.between,{padding:14,borderRadius:18,backgroundColor:c.card,gap:10}]}><Icon name="wallet-outline" size={22}/><View style={{flex:1}}><Copy weight="700">{data.money?`쓸 수 있는 돈 ${moneySummary(data).available.toLocaleString('ko-KR')}원`:'돈 보상 시작하기'}</Copy><Copy muted size={12}>{data.money?'적립·지출 내역':'나에게 맞는 보상 금액 정하기'}</Copy></View><Icon name="chevron-forward" size={17}/></Pressable>
-  <BoriScene character={companion} action={isReturnDay(data,dayKey)&&!morning?'A10':night?'A05':day.morning.some(Boolean)&&!morning?'A23':'A02'} tone={night?'evening':'morning'} title={title} size={158} mood={night?'sleepy':morning?'proud':'cheer'} description={morning?'경로는 추천 순서예요. 하고 싶은 목표부터 골라도 좋아요.':'작은 목표도 충분해요. 아침을 마치면 모은 시간을 쓸 수 있어요.'}/>
+  {!priorityPlan(data,dayKey)?<BoriScene character={companion} action={isReturnDay(data,dayKey)&&!morning?'A10':night?'A05':day.morning.some(Boolean)&&!morning?'A23':'A02'} tone={night?'evening':'morning'} title={title} size={158} mood={night?'sleepy':morning?'proud':'cheer'} description={morning?'경로는 추천 순서예요. 하고 싶은 목표부터 골라도 좋아요.':'작은 목표도 충분해요. 아침을 마치면 모은 시간을 쓸 수 있어요.'}/>:null}
   <HabitOrderCard/><FreeStudyCard/>{error?<Copy muted>{error}</Copy>:null}
   <View style={u.between}><Copy size={21} weight="800">오늘의 작은 발걸음</Copy><Copy muted size={12}>{activities.filter(isActivityComplete).length}개 실천</Copy></View>
   <View style={{paddingHorizontal:2}}>{nodes.map((node,index)=>{
