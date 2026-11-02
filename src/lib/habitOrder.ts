@@ -19,7 +19,7 @@ export function initializeHabitOrder(data:RoutineData,key:string):RoutineData{
  const day=getDay(data,key);if(day.orderProgress)return data;const policy=habitOrderPolicy(data);
  return withDay(data,key,d=>({...d,orderProgress:{sequence:[...policy.sequence],step:0,started:[],focusBasis:'output',status:!policy.enabled?'off':hasEarlierPractice(data,key,day)?'untracked':'active'}}));
 }
-export function completedHabitGoal(data:RoutineData,key:string,goal:HabitGoal){const d=getDay(data,key);return goal==='morning'?d.paid.morning>0:isFocusGoal(goal)?outputUnitsOnDay(data,key,focusSubject(goal))>=OUTPUT_POLICY.goalUnits||d.orderProgress?.focusBasis!=='output'&&qualifyingBook(data,key).some(s=>goal==='book'||s.subject===focusSubject(goal)):goal==='words'?d.paid.words>=20&&studyProgress(d).full:d.paid.gym>0;}
+export function completedHabitGoal(data:RoutineData,key:string,goal:HabitGoal){const d=getDay(data,key);return goal==='morning'?d.paid.morning>0:isFocusGoal(goal)?outputUnitsOnDay(data,key,focusSubject(goal))>=OUTPUT_POLICY.goalUnits||d.orderProgress?.focusBasis!=='output'&&qualifyingBook(data,key).some(s=>goal==='book'||s.subject===focusSubject(goal)):goal==='words'?studyProgress(d).full:d.paid.gym>0;}
 export function saveHabitOrderPolicy(data:RoutineData,key:string,policy:HabitOrderPolicy):RoutineData{
  if(!validHabitSequence(policy.sequence))throw new Error('중복 없이 2~8개 행동과 집중 공부 과목을 하나 이상 넣어 주세요.');
  let next:RoutineData={...data,habitOrderPolicy:{enabled:!!policy.enabled,sequence:[...policy.sequence]}};

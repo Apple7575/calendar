@@ -45,7 +45,7 @@ function LegacyRoutineMorningScreen({ navigation }: RootScreenProps<"RoutineMorn
     <Progress value={count / required.length} label={`아침 루틴 ${count}/${required.length}`} />
     <MotionSwap transitionKey={`${level}-${current ?? "done"}`}><View style={{ alignItems: "center", paddingVertical: 30, gap: 22 }}>
       <Copy muted>{level === "min" ? "오늘은 작게 시작해요" : "하나씩, 가볍게 시작해요"} · {count}/{required.length}</Copy>
-      <Mascot size={150} mood={current === undefined ? "celebrate" : count === 0 ? "sleepy" : count === 1 ? "cheer" : "proud"} />
+      <Mascot character="C01" size={150} mood={current === undefined ? "celebrate" : count === 0 ? "sleepy" : count === 1 ? "cheer" : "proud"} />
       <Copy size={32} weight="800">{current === undefined ? "아침 준비 끝!" : steps[current].title}</Copy>
       <Copy muted>{current === undefined ? "작은 약속 하나를 지켰어요." : steps[current].detail || "이 행동을 마친 뒤 ‘했어요!’를 눌러 주세요."}</Copy>
     </View></MotionSwap>
@@ -70,7 +70,7 @@ function LegacyRoutineWorkoutScreen({ navigation }: RootScreenProps<"RoutineWork
     finally { setBusy(false); }
   };
   return <Page title="오늘의 운동" right={<Link label="닫기" onPress={() => navigation.goBack()} />}>
-    <View style={{ alignItems: "center", padding: 20 }}><Mascot size={120} mood={current ? "proud" : "cheer"} /><Copy size={25} weight="800">오늘, 몸을 움직였나요?</Copy></View>
+    <View style={{ alignItems: "center", padding: 20 }}><Mascot character="C03" size={120} mood={current ? "proud" : "cheer"} /><Copy size={25} weight="800">오늘, 몸을 움직였나요?</Copy></View>
     {([['full', '헬스장 운동', '계획한 운동을 마쳤어요', 30], ['min', '집에서 작게 운동', '가벼운 스트레칭이나 정한 집 운동', 10]] as const).map(([value, title, detail, minutes]) => <CardView key={value}>
       <View style={u.between}><Icon name="barbell-outline" /><Copy size={21} weight="800">{minutes}분</Copy></View>
       <Copy size={18} weight="700">{title}</Copy><Copy muted>{detail}</Copy>

@@ -1,6 +1,6 @@
 import { Card, createEmptyCard, fsrs, Grade, Rating, State } from "ts-fsrs";
 import { DeckRow, JapaneseNote, parseNoteText, PublishedDeck } from "./japaneseDeck";
-import { applyAdditionalReward } from './studyRewards';
+import { applyAdditionalReward,applyWordReward,initializeWordRewards } from './studyRewards';
 import { recordStudyAnswer } from './studyHistory';
 
 export type Unit = "morning" | "words" | "gym";
@@ -8,7 +8,7 @@ export type Level = "min" | "full";
 export const FULL = { morning: 10, words: 20, gym: 30 };
 export const MIN = { morning: 5, words: 5, gym: 10 };
 export const STEPS = ["이불 개기", "양치", "간단한 청소"];
-export type MorningStep = { id: string; title: string; detail: string; minimum: boolean;minutes?:number };
+export type MorningStep = { id: string; title: string; detail: string; minimum: boolean;minutes?:number;preparation?:string };
 export const DEFAULT_MORNING: MorningStep[] = [
   { id: "bed", title: STEPS[0], detail: "이불을 정리하고 잠자리에서 일어나요.", minimum: true },
   { id: "brush", title: STEPS[1], detail: "상쾌하게 양치하고 하루를 깨워요.", minimum: true },
@@ -57,8 +57,11 @@ export type Day = {
   rewardedStudyIds?:string[];extraPendingIds?:string[];
   excludedStudyIds?:string[];
   wordRewardCap?:number;
+  wordRewards?:import('./studyRewards').WordRewards;
 };
 export type RoutineData = {
+  focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];
+  money?:import('./moneyRewards').MoneyWallet;
   version: 1; decks: Deck[]; words: Word[]; days: Record<string, Day>; newLimit: number; morningSteps?: MorningStep[];
   boriStage?: import("./boriGrowth").BoriGrowthStage;
   eveningSteps?:MorningStep[];bookSessions?:import('./bookStudy').BookSession[];bookTimer?:import('./bookStudy').BookTimer;
@@ -97,7 +100,7 @@ export function morningSteps(data: RoutineData, key: string): MorningStep[] {
   return day.morningPlan ?? (day.morning.some(Boolean) || day.paid.morning > 0 ? DEFAULT_MORNING : data.morningSteps ?? DEFAULT_MORNING);
 }
 export function saveMorningSteps(data: RoutineData, steps: MorningStep[]): RoutineData {
-  if (!steps.length || steps.length > 12 || !steps.some(s => s.minimum) || new Set(steps.map(s => s.id)).size !== steps.length || steps.some(s => !s.title.trim() || s.title.trim().length > 60 || s.detail.length > 160 || (s.minutes!==undefined&&(!Number.isInteger(s.minutes)||s.minutes<1||s.minutes>120)))) throw new Error("행동은 1~12개, 이름은 1~60자, 시간은 1~120분으로 입력하고 최소 목표를 하나 이상 선택해 주세요.");
+  if (!steps.length || steps.length > 12 || !steps.some(s => s.minimum) || new Set(steps.map(s => s.id)).size !== steps.length || steps.some(s => !s.title.trim() || s.title.trim().length > 60 || s.detail.length > 160 || (s.preparation!==undefined&&(typeof s.preparation!=='string'||s.preparation.length>160)) || (s.minutes!==undefined&&(!Number.isInteger(s.minutes)||s.minutes<1||s.minutes>120)))) throw new Error("행동은 1~12개, 이름은 1~60자, 시간은 1~120분으로 입력하고 최소 목표를 하나 이상 선택해 주세요.");
   return { ...data, morningSteps: steps.map(s => ({ ...s, title: s.title.trim(), detail: s.detail.trim() })) };
 }
 export function checkMorning(data: RoutineData, key: string, level: Level, index?: number): RoutineData {
@@ -108,6 +111,7 @@ export function checkMorning(data: RoutineData, key: string, level: Level, index
   return next;
 }
 export function earn(data: RoutineData, key: string, unit: Unit, level: Level): RoutineData {
+  if(unit==='words')return data;
   return withDay(data, key, day => ({ ...day, paid: { ...day.paid, [unit]: Math.max(day.paid[unit], (level === "full" ? FULL : MIN)[unit]) } }));
 }
 export function earned(day: Day): number { return day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
@@ -154,7 +158,7 @@ export function nextStudyWord(data: RoutineData, key: string, level: Level, now:
 export function additionalCandidates(data: RoutineData, key: string, kind: 'new' | 'review' | 'quick',deckId?:string): Word[] {
   const decks = new Set(data.decks.filter(d => d.active).map(d => d.id));
   const daily = new Set(getDay(data, key).plan?.ids ?? []);
-  const day=getDay(data,key),used=new Set([...daily,...(day.rewardedStudyIds??[]),...(day.extraPendingIds??[])]);
+  const day=getDay(data,key),used=new Set([...daily,...(day.rewardedStudyIds??[]),...(day.extraPendingIds??[]),...(day.wordRewards?.countedIds??[])]);
   return data.words.filter(w => decks.has(w.deckId) && canStudyWord(w,key)&&(!deckId||w.deckId===deckId) &&
     (kind === 'new' ? w.card.state === State.New && !daily.has(w.id) : w.card.state !== State.New) &&
     (kind!=='quick'||!used.has(w.id)))
@@ -182,7 +186,7 @@ export function additionalProgress(data:RoutineData,key:string,deckId?:string){
 export function startAdditionalStudy(data: RoutineData, key: string, kind: 'new' | 'review' | 'quick', count = 10, now = new Date(),deckId?:string): RoutineData {
   if(routineDay(now)!==key)throw new Error('새 하루가 시작됐어요. 학습을 다시 열어 주세요.');
   if(!Number.isSafeInteger(count)||count<1)throw new Error('추가 분량은 1장 이상의 정수로 선택해 주세요.');
-  if(kind==='quick'&&(!data.studyRewardPolicy?.quickEnabled||(getDay(data,key).bonus?.quick??0)>=4))throw new Error('짧은 복습 보상 설정과 오늘 남은 횟수를 확인해 주세요.');
+  if(kind==='quick'&&!data.studyRewardPolicy?.quickEnabled)throw new Error('짧은 복습 보상 설정과 오늘 남은 횟수를 확인해 주세요.');
   if(pendingAdditionalWords(data,key,deckId).length){if(kind==='quick'&&additionalPlan(data,key,deckId)?.kind!=='quick')throw new Error('하던 추가 학습을 먼저 마쳐 주세요.');return data;}
   if(kind==='quick')count=3;
   const candidates=additionalCandidates(data,key,kind,deckId).slice(0,count);
@@ -191,12 +195,13 @@ export function startAdditionalStudy(data: RoutineData, key: string, kind: 'new'
   return withDay(data,key,day=>extraDay(day,{kind,ids:candidates.map(w=>w.id),complete:[],reward:{granted:0,withheld:0},
     completedIds:additionalPlan(data,key,deckId)?.completedIds??[],responses:additionalPlan(data,key,deckId)?.responses??0},deckId));
 }
-export function answerAdditionalWord(data: RoutineData,key: string,id: string,grade: Grade,now: Date,seconds: number,deckId?:string): RoutineData {
+export function answerAdditionalWord(data: RoutineData,key: string,id: string,grade: Grade,now: Date,seconds: number,deckId?:string,presentedReps?:number): RoutineData {
   if(data.pendingStudyAdjustment)throw new Error('이전 채점의 보상을 되돌리는 중이에요. 잠시 후 다시 시도해 주세요.');
   if(routineDay(now)!==key)throw new Error('새 하루가 시작됐어요. 학습을 다시 열어 주세요.');
   const day=getDay(data,key),plan=additionalPlan(data,key,deckId),word=data.words.find(w=>w.id===id);
-  if(!plan||!word||!canStudyWord(word,key)||!plan.ids.includes(id)||plan.complete.includes(id))return data;
-  if(nextAdditionalWord(data,key,now,deckId)?.id!==id)return data;
+  if(!plan||!word||!canStudyWord(word,key)||!plan.ids.includes(id)||plan.complete.includes(id)||deckId&&word.deckId!==deckId)return data;
+  if(presentedReps!==undefined?word.card.reps!==presentedReps:nextAdditionalWord(data,key,now,deckId)?.id!==id)return data;
+  data=initializeWordRewards(data,key);
   const result=scheduler.next(decodeCard(word.card),now,grade),done=grade!==Rating.Again&&result.card.due>=dayEnd(key);
   const next={...data,words:data.words.map(w=>w.id===id?{...w,card:encodeCard(result.card)}:w)};
   const saved=withDay(next,key,d=>extraDay({...d,responses:d.responses+1,studySeconds:d.studySeconds+Math.max(0,Math.min(seconds,120))},
@@ -204,26 +209,26 @@ export function answerAdditionalWord(data: RoutineData,key: string,id: string,gr
       completedIds:done?[...new Set([...plan.completedIds,id])]:plan.completedIds},deckId));
   return recordStudyAnswer(data,done?applyAdditionalReward(saved,key,id,additionalPlan(saved,key,deckId)):saved,key,id,grade,now,seconds,'additional');
 }
-export function answerWord(data: RoutineData, key: string, id: string, grade: Grade, now: Date, seconds: number, level: Level = 'full',deckId?:string): RoutineData {
+export function answerWord(data: RoutineData, key: string, id: string, grade: Grade, now: Date, seconds: number, level: Level = 'full',deckId?:string,presentedReps?:number): RoutineData {
   if(data.pendingStudyAdjustment)throw new Error('이전 채점의 보상을 되돌리는 중이에요. 잠시 후 다시 시도해 주세요.');
   if (routineDay(now) !== key) throw new Error("새 하루가 시작됐어요. 오늘 학습을 다시 열어 주세요.");
   const day = getDay(data, key);
   const word = data.words.find(w => w.id === id);
   if (!word || !canStudyWord(word,key) || !day.plan?.ids.includes(id) || day.complete.includes(id)) return data;
+  if(deckId&&word.deckId!==deckId||level==='min'&&!day.plan.reviewIds.includes(id)||presentedReps!==undefined&&word.card.reps!==presentedReps)return data;
   if (word.card.state !== State.New && new Date(word.card.due) > now) {
     const sameDayReview = word.card.state === State.Review && new Date(word.card.due) < dayEnd(key);
-    const learnAhead = (word.card.state === State.Learning || word.card.state === State.Relearning) &&
-      nextStudyWord(data, key, level, now,deckId)?.id === id;
+    const learnAhead = (word.card.state === State.Learning || word.card.state === State.Relearning) && new Date(word.card.due)<dayEnd(key) &&
+      (presentedReps!==undefined||nextStudyWord(data, key, level, now,deckId)?.id === id);
     if (!sameDayReview && !learnAhead) return data;
   }
+  data=initializeWordRewards(data,key);
   const result = scheduler.next(decodeCard(word.card), now, grade);
   const complete = grade !== Rating.Again && result.card.due >= dayEnd(key);
   let next = { ...data, words: data.words.map(w => w.id === id ? { ...w, card: encodeCard(result.card) } : w) };
   next = withDay(next, key, d => ({ ...d, complete: complete ? [...d.complete, id] : d.complete,
     responses: d.responses + 1, studySeconds: d.studySeconds + Math.max(0, Math.min(seconds, 120)), lastStudyWordId: id }));
-  // Only a non-empty, completed frozen plan earns the full learning reward.
-  if (studyProgress(getDay(next, key)).full) next = earn(next, key, "words", "full");
-  else if(level==='min'&&studyProgress(getDay(next,key)).min)next=earn(next,key,'words','min');
+  if(complete)next=applyWordReward(next,key,id);
   return recordStudyAnswer(data,next,key,id,grade,now,seconds,'daily',level);
 }
 export function addDeck(data: RoutineData, name: string, rows: DeckRow[], id: string, now = new Date()): RoutineData {

@@ -113,13 +113,11 @@ private enum ScreenTimeService {
     try requireAuthorization()
     try ScreenTimeStorage.update { state in
       guard day == state.day, state.enabled, state.rewardMode == true else { return }
-      let allowed = ["morning": [0, 5, 10], "words": [0, 5, 20], "gym": [0, 10, 30], "book": [0, 5, 10, 15, 20], "quick": [0, 2, 4], "order": [0, 60]]
+      let allowed = ["morning": [0, 5, 10], "gym": [0, 10, 30], "book": [0, 5, 10, 15, 20], "quick": [0, 2, 4], "order": [0, 60]]
       var ledger = state.paid ?? [:]
-      let wordCap = paid["wordDailyCap"] ?? 60
-      guard wordCap >= 20, wordCap <= 60, wordCap % 5 == 0 else { throw ScreenTimeStorage.failure("단어 보상 한도를 확인해 주세요.") }
-      let previousVocabulary = max(20, ledger["words"] ?? 0) + (ledger["extra"] ?? 0) + (ledger["quick"] ?? 0)
-      let requestedVocabulary = max(20, max(ledger["words"] ?? 0, paid["words"] ?? 0)) + max(ledger["extra"] ?? 0, paid["extra"] ?? 0) + max(ledger["quick"] ?? 0, paid["quick"] ?? 0)
-      guard requestedVocabulary <= max(wordCap, previousVocabulary) else { throw ScreenTimeStorage.failure("오늘 단어 보상 한도에 도달했어요.") }
+      let words = paid["words"] ?? 0
+      guard words >= 0, words % 5 == 0 else { throw ScreenTimeStorage.failure("단어 보상 값을 확인해 주세요.") }
+      ledger["words"] = max(ledger["words"] ?? 0, words)
       for (unit, values) in allowed {
         let value = paid[unit] ?? 0
         guard values.contains(value) else { throw ScreenTimeStorage.failure("보상 값이 올바르지 않아요.") }
@@ -171,7 +169,7 @@ private enum ScreenTimeService {
       var ledger = state.paid ?? [:]
       for key in ["words", "extra", "quick", "order"] {
         let old = previous[key] ?? 0, next = target[key] ?? 0, current = ledger[key] ?? 0
-        let valid = key == "words" ? [0, 5, 20].contains(next) : key == "quick" ? [0, 2, 4].contains(next) : key == "order" ? [0, 60].contains(next) : next >= 0 && next % 5 == 0
+        let valid = key == "quick" ? [0, 2, 4].contains(next) : key == "order" ? [0, 60].contains(next) : next >= 0 && next % 5 == 0
         guard valid, old >= next, current == old || current <= next else {
           throw ScreenTimeStorage.failure("학습 보상이 바뀌었어요. 상태를 새로 확인해 주세요.")
         }

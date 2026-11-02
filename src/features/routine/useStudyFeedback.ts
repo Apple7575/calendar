@@ -5,8 +5,8 @@ import {AppState} from 'react-native';
 import {claimStudyAudio,registerStudyAudio} from '../../lib/studyAudioFocus';
 import {useExperiencePreferences,loadExperiencePreferences,experiencePreferences} from '../../lib/experiencePreferences';
 
-export type StudyFeedback={kind:'milestone'|'complete';id:string};
-const sources={milestone:require('../../../assets/sounds/study/milestone.mp3'),complete:require('../../../assets/sounds/study/complete.mp3')};
+export type StudyFeedback={kind:'milestone'|'complete'|'timer';id:string};
+const sources={milestone:require('../../../assets/sounds/study/milestone.mp3'),complete:require('../../../assets/sounds/study/complete.mp3'),timer:require('../../../assets/sounds/study/milestone.mp3')};
 
 /** One short cue per achievement; rerenders and returning to the screen do not replay it. */
 export function useStudyFeedback(event:StudyFeedback|null){
@@ -22,7 +22,7 @@ export function useStudyFeedback(event:StudyFeedback|null){
     if(!focused||!foreground||!preferences.sound)return;
     let active=true;const players=new Set<Audio.Sound>(),pending=new Map<StudyFeedback['kind'],Promise<Audio.Sound|null>>();
     const mode=Audio.setAudioModeAsync({allowsRecordingIOS:false,playsInSilentModeIOS:true,staysActiveInBackground:false,shouldDuckAndroid:true});
-    for(const kind of ['milestone','complete'] as const){
+    for(const kind of ['milestone','complete','timer'] as const){
       pending.set(kind,mode.then(()=>Audio.Sound.createAsync(sources[kind],{shouldPlay:false,volume:0.65})).then(async({sound})=>{
         if(!active){await sound.unloadAsync();return null;}players.add(sound);return sound;
       }).catch(()=>null));

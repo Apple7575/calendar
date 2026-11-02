@@ -1,9 +1,15 @@
+import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
+import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
+import {FocusDesignGallery} from './src/features/routine/FocusClock';
+import {FocusTimerScreen} from './src/features/routine/FocusTimerScreen';
 ﻿import {HabitOrderSettingsScreen} from './src/features/routine/HabitOrderSettingsScreen';
 import { DayDetailScreen } from "./src/screens/DayDetailScreen";
 import {SettingsHubScreen,ExperienceSettingsScreen} from './src/features/routine/SettingsHubScreen';
 import {TimeWalletScreen} from './src/features/routine/TimeWalletScreen';
 import {DiaryDetailScreen} from './src/features/routine/DiaryDetailScreen';
 import { StudyHistoryScreen } from './src/features/routine/StudyHistoryScreen';
+import {StudyForecastScreen} from './src/features/routine/StudyForecastScreen';
+import {MoneyWalletScreen} from './src/features/routine/MoneyWalletScreen';
 import { PhotoViewerScreen } from "./src/screens/PhotoViewerScreen";
 import { DiaryListenScreen } from "./src/screens/DiaryListenScreen";
 import { DiaryEditScreen } from "./src/screens/DiaryEditScreen";
@@ -44,12 +50,13 @@ function Preview() {
   const [demoData]=useState(()=>demo?mergePublishedDeck(emptyData(),{...n3Deck,schema:'routine.japanese-deck.v1'}):undefined);
   const { colors: c } = useTheme();
   const navigation = useNavigationContainerRef<RootStackParamList>();
+  const [wide,setWide]=useState(false);
   return <View style={{ flex: 1, backgroundColor: "#E9ECEF", alignItems: "center" }}>
-    <View style={{ width: "100%", maxWidth: 460, flex: 1, backgroundColor: c.surface }}>
+    <View style={{ width: "100%", maxWidth: wide?undefined:460, flex: 1, backgroundColor: c.surface }}>
       <View style={{ paddingVertical: 9, paddingHorizontal: 16, backgroundColor: c.primarySoft }}><Text style={{ color: c.text, fontSize: 12, textAlign: "center" }}>웹 미리보기 · 이 브라우저에만 기록 저장 · 앱 차단 미지원</Text>
       </View>
       <RoutineProvider key={session?.user.id??'preview'} userId={session?`web-preview:${session.user.id}`:demo?'web-study-demo':'web-preview'} cloudUserId={session?.user.id} initialData={demoData}>
-        <NavigationContainer ref={navigation} onReady={()=>{if(demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
+        <NavigationContainer onStateChange={()=>setWide(navigation.getCurrentRoute()?.name==='FocusTimer')} ref={navigation} onReady={()=>{if(demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
@@ -59,11 +66,16 @@ function Preview() {
             <Stack.Screen name="RoutineMorning" component={RoutineMorningScreen} />
             <Stack.Screen name="RoutineWorkout" component={RoutineWorkoutScreen} />
             <Stack.Screen name="RoutineReward" component={RoutineRewardScreen} />
+            <Stack.Screen name="EarnedReward" component={EarnedRewardScreen} options={{headerShown:false,animation:"fade"}}/>
             <Stack.Screen name="RoutineStudySession" component={RoutineStudySessionScreen} />
             <Stack.Screen name="RoutineHistory" component={RoutineHistoryScreen} />
             <Stack.Screen name="StudyHistory" component={StudyHistoryScreen} />
+            <Stack.Screen name="StudyForecast" component={StudyForecastScreen} />
+            <Stack.Screen name="MoneyWallet" component={MoneyWalletScreen} />
             <Stack.Screen name="RoutineSetup" component={RoutineSetupScreen} />
             <Stack.Screen name="GuidedRoutine" component={GuidedRoutineScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="AnimalPreview" component={AnimalPreviewScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="FocusTimer" component={FocusTimerScreen} options={{headerShown:false}}/>
             <Stack.Screen name="BookStudy" component={BookStudyScreen} options={{headerShown:false}}/>
             <Stack.Screen name="RoutineBackup" component={BackupScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SavedStudy" component={SavedStudyScreen} />
@@ -83,7 +95,8 @@ function Preview() {
 }
 export default function App() {
   const manager = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("manage") === "1";
-  const bori = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("bori") === "1";
-  return <SafeAreaProvider><ThemeProvider><MotionProvider>{bori ? <NavigationContainer><Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="Main" component={BoriPreviewScreen} /></Stack.Navigator></NavigationContainer> : manager ? <DesktopDeckManager /> : <Preview />}</MotionProvider></ThemeProvider></SafeAreaProvider>;
+  const bori = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("bori") === "1" || typeof window !== "undefined" && new URLSearchParams(window.location.search).get("animals") === "1";
+  const focusDesign=typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('focusDesign')==='1';
+  return <SafeAreaProvider><ThemeProvider><MotionProvider>{focusDesign?<FocusDesignGallery/>:bori ? <NavigationContainer><Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="Main" component={BoriPreviewScreen} /></Stack.Navigator></NavigationContainer> : manager ? <DesktopDeckManager /> : <Preview />}</MotionProvider></ThemeProvider></SafeAreaProvider>;
 }
 

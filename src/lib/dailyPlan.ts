@@ -1,6 +1,8 @@
 import type { RoutineData,MorningStep } from './routineModel';
 import { checkMorning,DEFAULT_MORNING,getDay,morningSteps,saveMorningSteps,withDay } from './routineModel';
-export type GuidedTimer={slot:'morning'|'evening';stepId:string;endsAt:number;remaining:number;running:boolean};
+export type GuidedTimer={slot:'morning'|'evening';stepId:string;endsAt:number;remaining:number;running:boolean;alerted?:boolean};
+export function guidedSeconds(timer:GuidedTimer,now=Date.now()){return timer.running?Math.min(timer.remaining,Math.ceil((timer.endsAt-now)/1000)):timer.remaining;}
+export function formatGuidedTime(seconds:number){const n=Math.abs(seconds);return `${seconds<0?'+':''}${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;}
 export const SUGGESTED_MORNING:MorningStep[]=[
  {id:'bed',title:'이불 정리',detail:'침대에서 일어나 이불을 정리해요.',minimum:true,minutes:2},
  {id:'wash',title:'씻기·양치',detail:'상쾌하게 하루를 준비해요.',minimum:true,minutes:15},
@@ -34,7 +36,7 @@ export function startGuidedStep(data:RoutineData,key:string,slot:'morning'|'even
  return withDay(data,key,d=>({...d,...(slot==='morning'?{morningPlan:steps.map(s=>({...s}))}:{eveningPlan:steps.map(s=>({...s}))}),guidedTimer:{slot,stepId,endsAt:now+remaining*1000,remaining,running:true}}));
 }
 export function pauseGuidedStep(data:RoutineData,key:string,now=Date.now()):RoutineData{
- return withDay(data,key,d=>{const t=d.guidedTimer;return t?{...d,guidedTimer:{...t,running:false,remaining:Math.max(0,Math.ceil((t.endsAt-now)/1000))}}:d;});
+ return withDay(data,key,d=>{const t=d.guidedTimer;return t?{...d,guidedTimer:{...t,running:false,remaining:guidedSeconds(t,now)}}:d;});
 }
 export function resumeGuidedStep(data:RoutineData,key:string,now=Date.now()):RoutineData{
  return withDay(data,key,d=>{const t=d.guidedTimer;return t?{...d,guidedTimer:{...t,running:true,endsAt:now+t.remaining*1000}}:d;});

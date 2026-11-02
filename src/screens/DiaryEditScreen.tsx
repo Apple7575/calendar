@@ -734,7 +734,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       keyboardVerticalOffset={0}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={[styles.hero,{flexDirection:'row',alignItems:'center',gap:14}]}><Mascot size={76} mood="cheer"/><View style={{flex:1}}><Text style={[styles.heroTitle,{fontSize:23}]}>오늘, 기억하고 싶은 순간은?</Text><Text style={styles.heroSubtitle}>한 줄, 목소리, 사진. 편한 만큼만 남겨요.</Text></View></View>
+        <View style={[styles.hero,{flexDirection:'row',alignItems:'center',gap:14}]}><Mascot size={76} action="A51"/><View style={{flex:1}}><Text style={[styles.heroTitle,{fontSize:23}]}>오늘, 기억하고 싶은 순간은?</Text><Text style={styles.heroSubtitle}>한 줄, 목소리, 사진. 편한 만큼만 남겨요.</Text></View></View>
         <View style={styles.surfaceCard}>{writingSection}</View>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="사진 선택 항목" onPress={()=>setPhotosOpen(!photosOpen)} style={styles.surfaceCard}><Text style={styles.sectionTitle}>사진 {photos.length+pending.length?`${photos.length+pending.length}장`:'추가'} {photosOpen?'접기':'+'}</Text><Text style={styles.heroSubtitle}>선택 · 작은 장면을 사진으로 남겨요.</Text></TouchableOpacity>{photosOpen?<View style={styles.surfaceCard}>{photoSection}</View>:null}
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="기분·수면 선택 항목" onPress={()=>setConditionOpen(!conditionOpen)} style={styles.surfaceCard}><Text style={styles.sectionTitle}>기분·수면 {mood??''} {conditionOpen?'접기':'+'}</Text><Text style={styles.heroSubtitle}>선택 · 모두 채우지 않아도 저장할 수 있어요.</Text></TouchableOpacity>{conditionOpen?<View style={styles.surfaceCard}>{moodSection}</View>:null}

@@ -167,7 +167,7 @@ export function DiaryListenScreen({ route,navigation }: RootScreenProps<"DiaryLi
   return (
     <SafeAreaView style={styles.container} edges={['top','bottom']}>
       <View style={{paddingHorizontal:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Copy weight="700">일기 듣기</Copy><Link label="닫기" onPress={()=>navigation.goBack()}/></View>
-      <View style={{padding:18,flexDirection:'row',gap:14,alignItems:'center',backgroundColor:c.primarySoft}}><Mascot size={60} mood="focus"/><View style={{flex:1}}><Text style={{fontSize:20,fontWeight:'800',color:c.text}}>내 하루로 배우는 일본어</Text><Text style={{fontSize:12,color:c.textMuted,lineHeight:18}}>문장을 눌러 듣고, 반복과 따라 말하기를 골라요. 발음 채점 기능은 없어요.</Text></View></View>
+      <View style={{padding:18,flexDirection:'row',gap:14,alignItems:'center',backgroundColor:c.primarySoft}}><Mascot size={60} action="A40"/><View style={{flex:1}}><Text style={{fontSize:20,fontWeight:'800',color:c.text}}>내 하루로 배우는 일본어</Text><Text style={{fontSize:12,color:c.textMuted,lineHeight:18}}>문장을 눌러 듣고, 반복과 따라 말하기를 골라요. 발음 채점 기능은 없어요.</Text></View></View>
       {route.params.original?<View style={{paddingHorizontal:18,paddingVertical:10}}><Text style={{fontSize:11,color:c.textMuted}}>한국어 원문 · 아래는 일본어로 들을 문장이에요.</Text><Text numberOfLines={3} style={{fontSize:13,lineHeight:20,color:c.textMuted}}>{route.params.original}</Text></View>:null}
       <ScrollView
         ref={scrollRef}

@@ -44,7 +44,7 @@ export function LoginScreen() {
           <View style={styles.logoCircle}>
             <Ionicons name="calendar" size={44} color={c.gradient[1]} />
           </View>
-          <Text style={styles.title}>보리와 오늘</Text>
+          <Text style={styles.title}>루틴 친구들</Text>
           <Text style={styles.subtitle}>
             구글 캘린더 일정과 함께{"\n"}매일의 할 일과 일기를 한곳에서
           </Text>

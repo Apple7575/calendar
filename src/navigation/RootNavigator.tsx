@@ -1,9 +1,14 @@
+import {EarnedRewardScreen} from '../features/routine/EarnedRewardScreen';
+import {AnimalPreviewScreen} from '../features/routine/AnimalPreviewScreen';
+import {FocusTimerScreen} from '../features/routine/FocusTimerScreen';
 ﻿import {HabitOrderSettingsScreen} from '../features/routine/HabitOrderSettingsScreen';
 import { DeckCardsScreen } from "../features/routine/DeckCardsScreen";
 import {SettingsHubScreen,ExperienceSettingsScreen} from '../features/routine/SettingsHubScreen';
 import {TimeWalletScreen} from '../features/routine/TimeWalletScreen';
+import {MoneyWalletScreen} from '../features/routine/MoneyWalletScreen';
 import {DiaryDetailScreen} from '../features/routine/DiaryDetailScreen';
 import { StudyHistoryScreen } from '../features/routine/StudyHistoryScreen';
+import {StudyForecastScreen} from '../features/routine/StudyForecastScreen';
 import { StudyPreferencesScreen } from "../features/routine/StudySettingsScreens";
 import { GuidedRoutineScreen } from "../features/routine/GuidedRoutineScreen";
 import { BookStudyScreen } from "../features/routine/BookStudyScreen";
@@ -105,11 +110,16 @@ export function RootNavigator() {
           <Stack.Screen name="RoutineWorkout" component={RoutineWorkoutScreen} options={{ headerShown: false }} />
           <Stack.Screen name="RoutineStudySession" component={RoutineStudySessionScreen} options={{ headerShown: false }} />
           <Stack.Screen name="RoutineReward" component={RoutineRewardScreen} options={{ headerShown: false, animation: "fade", animationDuration: reducedMotion ? 120 : 200 }} />
+            <Stack.Screen name="EarnedReward" component={EarnedRewardScreen} options={{headerShown:false,animation:"fade"}}/>
           <Stack.Screen name="RoutineHistory" component={RoutineHistoryScreen} options={{ title: "학습 · 실천 기록" }} />
           <Stack.Screen name="StudyHistory" component={StudyHistoryScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="StudyForecast" component={StudyForecastScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="MoneyWallet" component={MoneyWalletScreen} options={{headerShown:false}}/>
           <Stack.Screen name="RoutineScreenTime" component={RoutineScreenTimeScreen} options={{ title: "앱 제한 설정" }} />
           <Stack.Screen name="RoutineSetup" component={RoutineSetupScreen} options={{ headerShown: false }} />
           <Stack.Screen name="GuidedRoutine" component={GuidedRoutineScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="AnimalPreview" component={AnimalPreviewScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="FocusTimer" component={FocusTimerScreen} options={{headerShown:false}}/>
             <Stack.Screen name="BookStudy" component={BookStudyScreen} options={{headerShown:false}}/>
             <Stack.Screen name="RoutineBackup" component={BackupScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SavedStudy" component={SavedStudyScreen} options={{ headerShown: false }} />

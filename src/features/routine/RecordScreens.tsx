@@ -123,7 +123,7 @@ export function RoutineMoreScreen() {
     <CardView><View style={u.row}><Mascot size={72} happy /><View style={{ flex: 1 }}><Copy size={23} weight="800">나의 하루를 가꾸는 곳</Copy><Copy muted>실천도, 소중한 기록도 함께.</Copy></View></View></CardView>
     <CardView>{items.map(item => <Pressable accessibilityRole="button" accessibilityLabel={item.title} key={item.title} onPress={item.open} style={[u.between, { minHeight: 53 }]}><View style={u.row}><Icon name={item.icon} size={22} /><Copy weight="600">{item.title}</Copy></View><Icon name="chevron-forward" size={18} /></Pressable>)}</CardView>
     <CardView><Copy size={18} weight="800">나와 정한 보상</Copy>
-      <Copy>아침 루틴 10분 · 작게 5분</Copy><Copy>오늘 단어 학습 20분 · 작게 5분</Copy><Copy>헬스장 운동 30분 · 집 운동 10분</Copy>
+      <Copy>아침 루틴 10분 · 작게 5분</Copy><Copy>단어 완료 10장 → 15장 → 20장마다 5분</Copy><Copy>헬스장 운동 30분 · 집 운동 10분</Copy>
       <Copy muted size={13}>최소 목표 뒤 전체 목표까지 해내면 차액을 더 받아요. 새벽 4시에 잔액만 초기화돼요.</Copy>
     </CardView>
     <Action label={theme.isDark ? "라이트 모드로 보기" : "다크 모드로 보기"} secondary onPress={() => setThemeId(theme.isDark ? "routine" : "dark")} />

@@ -30,6 +30,7 @@ export function migrateN3Deck(data: RoutineData): RoutineData {
   const ids = (items: string[]) => [...new Set(items.map(id => remap.get(id) ?? id))];
   const days = Object.fromEntries(Object.entries(data.days).map(([key, day]) => [key, {
     ...day, complete: ids(day.complete),
+    ...(day.wordRewards?{wordRewards:{...day.wordRewards,countedIds:ids(day.wordRewards.countedIds),pendingIds:ids(day.wordRewards.pendingIds)}}:{}),
     ...(day.rewardedStudyIds?{rewardedStudyIds:ids(day.rewardedStudyIds)}:{}),
     ...(day.extraPendingIds?{extraPendingIds:ids(day.extraPendingIds)}:{}),
     ...(day.lastStudyWordId ? { lastStudyWordId: remap.get(day.lastStudyWordId) ?? day.lastStudyWordId } : {}),

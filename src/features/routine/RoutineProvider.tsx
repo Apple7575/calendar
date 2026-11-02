@@ -1,3 +1,4 @@
+import {handwritingAccess,settleHandwritingRewards} from '../../lib/handwriting';
 ﻿import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
@@ -15,6 +16,7 @@ import { isCloudAccount,latestRoutineBackup,uploadRoutineBackup } from "../../li
 import { migrateN3Deck, mergeStudyDeck } from "../../lib/n3Deck";
 import {advanceHabitOrder,initializeHabitOrder} from '../../lib/habitOrder';
 import {wordDailyCap} from '../../lib/studyRewards';
+import {reconcileMoneyRewards} from '../../lib/moneyRewards';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -83,13 +85,18 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
         throw new Error("새 하루가 시작됐어요. 화면을 확인하고 다시 시도해 주세요.");
       }
       const before=initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(current.current,expectedDay),expectedDay),expectedDay);
-      const next = advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(fn(before),expectedDay),expectedDay),expectedDay), expectedDay);
+      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(settleHandwritingRewards(fn(before)),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
       await AsyncStorage.setItem(key, JSON.stringify(next));
       if (alive.current&&identity.current===userId) { current.current = next; setData(next); setError(null); }
     });
     queue.current = operation;
     return operation;
   }, [key, userId, ready, expectedDay]);
+  useEffect(()=>{
+    if(!ready)return;
+    const subjects=[...new Set((data.handwritingReceipts??[]).filter(r=>r.rewardStatus==='pending').map(r=>r.subject))];
+    if(subjects.some(subject=>handwritingAccess(data,subject).ready))void update(s=>s).catch(()=>{});
+  },[ready,now,data.handwritingReceipts,data.bookTimer,data.bookSessions,update]);
   const undoStudy=useCallback(async()=>{
     await update(s=>{
       const next=undoStudyAnswer(s,expectedDay),from=studyLedger(getDay(s,expectedDay)),to=studyLedger(getDay(next,expectedDay));

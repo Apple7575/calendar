@@ -2,7 +2,7 @@ import { requireOptionalNativeModule } from "expo";
 import { Platform } from "react-native";
 
 export type ScreenTimeStatus = {
-  policyVersion?:number;supportsStudyUndo?:boolean;supportsOrderBonus?:boolean;supportsFreeStudyRewards?:boolean;supportsHandwritingRewards?:boolean;sleepLocked?:boolean;usingRewards?:boolean;focusUntil?:number;
+  policyVersion?:number;supportsStudyUndo?:boolean;supportsOrderBonus?:boolean;supportsFreeStudyRewards?:boolean;supportsHandwritingRewards?:boolean;supportsProgressiveWordRewards?:boolean;sleepLocked?:boolean;usingRewards?:boolean;focusUntil?:number;
   supported: boolean;
   authorized: boolean;
   day: string;
@@ -58,6 +58,7 @@ let ledgerQueue:Promise<void>=Promise.resolve();
 function ledgerOperation(action:()=>Promise<void>):Promise<void>{const next=ledgerQueue.catch(()=>{}).then(action);ledgerQueue=next;return next;}
 export async function syncRoutineRewards(day: string, paid: Record<string, number>): Promise<void> {
   if (!native?.syncRewards) throw new Error("루틴 연결을 지원하는 새 아이폰 빌드가 필요해요.");
+  if(paid.wordDailyCap===0){const status=await native.getStatus();if(!("supportsProgressiveWordRewards" in status)||!status.supportsProgressiveWordRewards)throw new Error("새 단어 보상을 아이폰 사용 시간에 반영하려면 새 빌드를 설치해 주세요. 학습 적립은 저장되어 있어요.");}
   await ledgerOperation(()=>native.syncRewards(day, paid));
 }
 export async function adjustStudyRewards(day:string,from:Record<string,number>,to:Record<string,number>):Promise<void>{

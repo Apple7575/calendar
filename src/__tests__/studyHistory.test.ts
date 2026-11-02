@@ -16,12 +16,12 @@ test('undo reverses the last study reward but preserves gym, morning, book and c
  data.days[key].bonus={...data.days[key].bonus,book:10};data.words[0]={...data.words[0],favorite:true,back:'수정한 뜻'};
  const undone=undoStudyAnswer(data,key,now);expect(getDay(undone,key).paid).toEqual({words:0,gym:30,morning:0});expect(getDay(undone,key).bonus?.book).toBe(10);expect(getDay(undone,key).morning[0]).toBe(true);expect(undone.words[0].favorite).toBe(true);expect(undone.words[0].back).toBe('수정한 뜻');
 });
-test('the tenth additional completion can be undone and regraded without phantom rewards',()=>{
- let data=seed(11);data.newLimit=1;data.days={};data=planStudy(data,key);data=answerWord(data,key,'d:0',Rating.Easy,now,1);data=startAdditionalStudy(data,key,'new',10,now,'d');
- for(let i=0;i<10;i++)data=answerAdditionalWord(data,key,nextAdditionalWord(data,key,now,'d')!.id,Rating.Easy,now,1,'d');
+test('a tier-crossing additional completion can be undone and regraded without phantom rewards',()=>{
+ let data=seed(11);data.newLimit=1;data.days={};data=planStudy(data,key);data=answerWord(data,key,'d:0',Rating.Easy,now,1);data=startAdditionalStudy(data,key,'new',9,now,'d');
+ for(let i=0;i<9;i++)data=answerAdditionalWord(data,key,nextAdditionalWord(data,key,now,'d')!.id,Rating.Easy,now,1,'d');
  expect(getDay(data,key).bonus?.words).toBe(5);const id=data.studyUndo!.wordId;data=reconcileAdditionalRewards(undoStudyAnswer(data,key,now),key);
- expect(getDay(data,key).bonus?.words??0).toBe(0);expect(getDay(data,key).extraPendingIds).toHaveLength(9);expect(getDay(data,key).additionalByDeck?.d.complete).toHaveLength(9);
- data=answerAdditionalWord(data,key,id,Rating.Easy,now,1,'d');expect(getDay(data,key).bonus?.words).toBe(5);expect(getDay(data,key).rewardedStudyIds).toHaveLength(10);expect(reviewEvents(data).filter(e=>e.mode==='additional')).toHaveLength(10);
+ expect(getDay(data,key).bonus?.words??0).toBe(0);expect(getDay(data,key).wordRewards?.pendingIds).toHaveLength(9);expect(getDay(data,key).additionalByDeck?.d.complete).toHaveLength(8);
+ data=answerAdditionalWord(data,key,id,Rating.Easy,now,1,'d');expect(getDay(data,key).bonus?.words).toBe(5);expect(getDay(data,key).wordRewards?.countedIds).toHaveLength(10);expect(reviewEvents(data).filter(e=>e.mode==='additional')).toHaveLength(9);
 });
 test('a new batch or learning-day boundary invalidates the previous undo',()=>{
  let data=seed(12);data.newLimit=1;data.days={};data=planStudy(data,key);data=answerWord(data,key,'d:0',Rating.Easy,now,1);

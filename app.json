@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "보리와 오늘",
+    "name": "루틴 친구들",
     "slug": "calendar-app",
     "owner": "hey9991s-team",
     "version": "1.0.0",
     "scheme": "calendarapp",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -102,7 +102,13 @@
         }
       ],
       "expo-font",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ]
     ],
     "extra": {
       "foodApiKey": "24663cfb05d93c00c886811a36d347e36b4ec905b47ca90972e165c967ed5e41",

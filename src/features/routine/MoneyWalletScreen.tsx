@@ -1,0 +1,27 @@
+import React,{useRef,useState} from 'react';
+import {Pressable,TextInput,View} from 'react-native';
+import * as Crypto from 'expo-crypto';
+import {RootScreenProps} from '../../navigation/types';
+import {MONEY_RATE_LABELS,MoneyRates,PROPOSED_MONEY_RATES,moneySummary,parseWon,recordMoneyExpense,refundMoneyExpense,saveMoneyRates,startMoneyRewards} from '../../lib/moneyRewards';
+import {tapSuccess} from '../../lib/haptics';
+import {useTheme} from '../../theme/ThemeContext';
+import {useRoutine} from './RoutineProvider';
+import {Action,CardView,Copy,Link,Page,u} from './ui';
+const won=(n:number)=>`${n.toLocaleString('ko-KR')}원`;
+export function MoneyWalletScreen({navigation}:RootScreenProps<'MoneyWallet'>){
+ const {data,dayKey,update,ready}=useRoutine(),{colors:c}=useTheme(),wallet=data.money,summary=moneySummary(data);
+ const [settings,setSettings]=useState(!wallet),[rates,setRates]=useState(()=>Object.fromEntries(Object.entries(wallet?.rates??PROPOSED_MONEY_RATES).map(([key,value])=>[key,String(value)])) as Record<keyof MoneyRates,string>);
+ const [amount,setAmount]=useState(''),[note,setNote]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[limit,setLimit]=useState(30),inFlight=useRef(false);
+ const run=async(fn:Parameters<typeof update>[0],success?:()=>void)=>{if(inFlight.current||!ready)return;inFlight.current=true;setBusy(true);setError('');try{await update(fn);success?.();tapSuccess();}catch(e){setError(e instanceof Error?e.message:'저장하지 못했어요.')}finally{inFlight.current=false;setBusy(false)}};
+ const save=()=>{try{const next=Object.fromEntries(Object.entries(rates).map(([key,value])=>[key,parseWon(value)])) as MoneyRates;void run(s=>s.money?saveMoneyRates(s,next):startMoneyRewards(s,dayKey,Crypto.randomUUID(),next),()=>setSettings(false));}catch(e){setError(e instanceof Error?e.message:'금액을 확인해 주세요.')}};
+ return <Page title="돈 보상 지갑" right={<Link label="닫기" onPress={()=>navigation.goBack()}/>}>
+  {wallet?<>
+   <CardView><Copy muted>쓸 수 있는 돈</Copy><Copy size={38} weight="800">{won(summary.available)}</Copy>{summary.overspent>0?<Copy>예산보다 {won(summary.overspent)} 더 사용했어요. 다음 적립으로 채워져요.</Copy>:null}<View style={u.between}><Copy muted size={13}>누적 보상</Copy><Copy>{won(summary.earned)}</Copy></View><View style={u.between}><Copy muted size={13}>사용한 금액</Copy><Copy>{won(summary.spent)}</Copy></View><Copy muted size={12}>날짜가 바뀌어도 남아요. 실제 송금 없이, 내가 쓸 금액을 기록하는 지갑이에요.</Copy></CardView>
+   <CardView><Copy size={19} weight="800">쓴 돈 기록하기</Copy><TextInput accessibilityLabel="지출 금액" value={amount} onChangeText={setAmount} keyboardType="number-pad" placeholder="금액 · 원" placeholderTextColor={c.textMuted} style={{padding:14,borderRadius:14,backgroundColor:c.inputBg,color:c.text,fontSize:19}}/><TextInput accessibilityLabel="지출 메모" value={note} onChangeText={setNote} maxLength={200} placeholder="어디에 썼나요? · 선택" placeholderTextColor={c.textMuted} style={{padding:14,borderRadius:14,backgroundColor:c.inputBg,color:c.text}}/><Action label="지출 기록 · 잔액에서 차감" disabled={busy||!amount.trim()} onPress={()=>{try{const value=parseWon(amount),id=Crypto.randomUUID();void run(s=>recordMoneyExpense(s,id,value,note),()=>{setAmount('');setNote('')});}catch(e){setError(e instanceof Error?e.message:'금액을 확인해 주세요.')}}}/></CardView>
+  </>:<CardView><Copy size={23} weight="800">실천해서 모으는 나의 사용 예산</Copy><Copy>금액을 정하고 시작하면, 이후 루틴과 공부에 맞춰 적립해요.</Copy><Copy muted size={13}>아래는 제안 금액이에요. 원하는 금액으로 바꿔 시작하세요. 이전 실천에는 소급 지급하지 않아요.</Copy></CardView>}
+  {wallet?<Link label={settings?'금액 설정 접기':'보상 금액 설정'} onPress={()=>setSettings(value=>!value)}/>:null}
+  {settings?<CardView><Copy size={20} weight="800">{wallet?'다음 학습일부터 적용할 금액':'보상 금액 정하기'}</Copy>{(Object.keys(MONEY_RATE_LABELS) as (keyof MoneyRates)[]).map(key=><View key={key} style={[u.between,{gap:12}]}><View style={{flex:1}}><Copy size={14}>{MONEY_RATE_LABELS[key]}</Copy></View><TextInput accessibilityLabel={`${MONEY_RATE_LABELS[key]} 금액`} value={rates[key]} onChangeText={value=>setRates(old=>({...old,[key]:value}))} keyboardType="number-pad" maxLength={14} style={{width:115,padding:12,borderRadius:12,backgroundColor:c.inputBg,color:c.text,textAlign:'right',fontSize:17}}/><Copy size={13}>원</Copy></View>)}<Copy muted size={12}>단어는 10장 → 15장 → 20장처럼 늘어나는 보상 구간마다 적립해요. 손글씨는 실제 인정 글자 100자당 기본 500원을 적립해요. 100자 미만은 이어 모아요. 작은 목표 뒤 전체 목표는 차액만 받아요. 순서 보너스는 별도 돈 보상이 없어요.</Copy>{wallet?<Copy muted size={12}>이미 시작한 오늘의 금액은 유지하고 변경은 다음 학습일(새벽 4시)부터 적용해요.</Copy>:null}<Action label={wallet?'보상 금액 저장':'이 금액으로 돈 보상 시작'} disabled={!ready||busy} onPress={save}/></CardView>:null}
+  {error?<Copy>{error}</Copy>:null}
+  {wallet?<><Copy size={20} weight="800">적립·지출 내역</Copy>{!wallet.entries.length?<Copy muted>돈 보상을 시작했어요. 다음 실천부터 여기에 쌓여요.</Copy>:null}{wallet.entries.slice().reverse().slice(0,limit).map(entry=>{const refunded=entry.kind==='expense'&&wallet.entries.some(e=>e.reverses===entry.id);return <View key={entry.id} style={{paddingVertical:14,gap:6,borderBottomWidth:1,borderBottomColor:c.border}}><View style={[u.between,{gap:12}]}><View style={{flex:1}}><Copy weight="700">{entry.note}</Copy><Copy muted size={11}>{new Date(entry.at).toLocaleString('ko-KR')}{refunded?' · 취소됨':''}</Copy></View><Copy weight="800">{entry.amount>0?'+':''}{won(entry.amount)}</Copy></View>{entry.kind==='expense'&&!refunded?<Link label="이 지출 취소" onPress={()=>void run(s=>refundMoneyExpense(s,entry.id))}/>:null}</View>})}{wallet.entries.length>limit?<Link label="30건 더 보기" onPress={()=>setLimit(n=>n+30)}/>:null}</>:null}
+ </Page>;
+}

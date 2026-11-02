@@ -160,6 +160,7 @@ enum ScreenTimeStorage {
       "supportsOrderBonus": true,
       "supportsFreeStudyRewards": true,
       "supportsHandwritingRewards": true,
+      "supportsProgressiveWordRewards": true,
       "sleepLocked": sleepLocked(state),
       "usingRewards": state.usingRewards == true,
       "focusUntil": (state.focusUntil ?? 0) * 1000,

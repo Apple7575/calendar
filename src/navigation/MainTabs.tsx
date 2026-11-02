@@ -18,7 +18,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const items: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; active: keyof typeof Ionicons.glyphMap }> = {
   Today: { label: "오늘", icon: "sunny-outline", active: "sunny" },
   Study: { label: "학습", icon: "layers-outline", active: "layers" },
-  Bori: { label: "보리", icon: "leaf-outline", active: "leaf" },
+  Bori: { label: "친구들", icon: "paw-outline", active: "paw" },
   Records: { label: "기록", icon: "journal-outline", active: "journal" },
 };
 

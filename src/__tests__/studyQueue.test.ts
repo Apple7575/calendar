@@ -10,7 +10,7 @@ test('a future learning card waits behind ready/new cards, not behind a timer sc
   data=answerWord(data,key,'deck:1',Rating.Easy,now,4);
   expect(nextStudyWord(data,key,'full',now)?.id).toBe('deck:0');
   data=answerWord(data,key,'deck:0',Rating.Easy,now,4);
-  expect(getDay(data,key).responses).toBe(3);expect(getDay(data,key).paid.words).toBe(20);
+  expect(getDay(data,key).responses).toBe(3);expect(getDay(data,key).paid.words).toBe(0);
   expect(data.words[0].card.last_review).toBe(now.toISOString());
 });
 test('chooses the earliest remaining learning card and preserves its scheduled due time until answered',()=>{

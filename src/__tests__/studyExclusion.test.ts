@@ -24,7 +24,7 @@ test('reporting in an additional batch advances the queue but never counts as a 
  let data=seed(13);data.newLimit=1;data.days[key].plan={ids:['deck:0'],reviewIds:[],newLimit:1};data=startAdditionalStudy(data,key,'new',10,now);
  const id=nextAdditionalWord(data,key,now)!.id;data=flagWord(data,id,['example'],'',now);expect(nextAdditionalWord(data,key,now)?.id).not.toBe(id);expect(additionalProgress(data,key)).toMatchObject({total:9,done:0,excluded:1});
  for(let i=0;i<9;i++)data=answerAdditionalWord(data,key,nextAdditionalWord(data,key,now)!.id,Rating.Easy,now,1);
- expect(additionalProgress(data,key)).toMatchObject({done:9,full:true});expect(getDay(data,key).bonus?.words??0).toBe(0);expect(getDay(data,key).extraPendingIds).toHaveLength(9);
+ expect(additionalProgress(data,key)).toMatchObject({done:9,full:true});expect(getDay(data,key).bonus?.words??0).toBe(0);expect(getDay(data,key).wordRewards?.pendingIds).toHaveLength(9);
 });
 test('previously saved reports are excluded on hydration, including current relearning queues',()=>{
  let data=seed(1);data.words[0]={...data.words[0],card:{...data.words[0].card,state:State.Relearning},issue:{categories:['audio'],note:'기존 신고',updatedAt:now.toISOString()}};

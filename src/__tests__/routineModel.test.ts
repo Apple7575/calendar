@@ -6,11 +6,11 @@ const key = routineDay(now);
 const words = (count = 3) => addDeck(emptyData(), "나의 덱", Array.from({ length: count }, (_, i) => ({ front: `word${i}`, back: `뜻${i}` })), "deck1", now);
 
 describe("routine rewards and day boundary", () => {
-  it("tops up minimum rewards once without duplicate payment", () => {
+  it("fixed goal completion no longer pays vocabulary rewards", () => {
     let data = earn(emptyData(), key, "words", "min");
     data = earn(data, key, "words", "full");
     data = earn(data, key, "words", "full");
-    expect(getDay(data, key).paid.words).toBe(20);
+    expect(getDay(data, key).paid.words).toBe(0);
     expect(getDay(data, key).paid.morning).toBe(0);
   });
   it("counts a gym-only day as an achievement", () => {
@@ -32,7 +32,7 @@ describe("routine rewards and day boundary", () => {
     expect(getDay(restored, tomorrow).morning).toEqual([false, false, false]);
     expect(getDay(restored, key).responses).toBe(1);
     expect(restored.words[0].card.reps).toBe(1);
-    expect(getDay(restored, key).paid.words).toBe(20);
+    expect(getDay(restored, key).paid.words).toBe(0);
   });
 });
 
@@ -60,14 +60,14 @@ describe("persistent FSRS study plan", () => {
     data = answerWord(data, key, "deck1:0", Rating.Again, now, 5);
     data = answerWord(data, key, "deck1:0", Rating.Easy, now, 5);
     expect(getDay(data, key).responses).toBe(2);
-    expect(getDay(data, key).paid.words).toBe(20);
+    expect(getDay(data, key).paid.words).toBe(0);
   });
   it("awards only after the non-empty plan is completed", () => {
     let data = planStudy(words(2), key);
     data = answerWord(data, key, "deck1:0", Rating.Easy, now, 5);
     expect(getDay(data, key).paid.words).toBe(0);
     data = answerWord(data, key, "deck1:1", Rating.Easy, now, 5);
-    expect(getDay(data, key).paid.words).toBe(20);
+    expect(getDay(data, key).paid.words).toBe(0);
     expect(studyProgress(getDay(data, key)).full).toBe(true);
     expect(getDay(data, key).responses).toBe(2);
   });
@@ -124,7 +124,7 @@ describe("custom study continuation",()=>{
   expect(new Date(word.card.due).getTime()).toBeGreaterThan(now.getTime());
   data=answerAdditionalWord(data,key,word.id,Rating.Good,now,10);
   expect(data.words[0].card.last_review).toBe(now.toISOString());
-  expect(getDay(data,key).paid.words).toBe(20);
+  expect(getDay(data,key).paid.words).toBe(0);
   expect(()=>startAdditionalStudy(data,key,'review',10,new Date(2026,9,30,9))).toThrow('새 하루');
  });
 });

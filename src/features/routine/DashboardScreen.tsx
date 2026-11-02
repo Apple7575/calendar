@@ -1,3 +1,4 @@
+import {useAnimalCharacter} from '../../lib/animalPreference';
 ﻿import {HabitOrderCard} from './HabitOrderCard';
 import React from 'react';
 import {FreeStudyCard} from './RewardSourcesCard';
@@ -19,9 +20,11 @@ import {Action,Copy,Icon,Link,Page,u} from './ui';
 import {BoriScene,SettingsButton} from './experience';
 import {MotionEnter} from './motion';
 import {RewardUseToggle} from './RewardUseToggle';
+import {moneySummary} from '../../lib/moneyRewards';
 
 export function DashboardScreen(){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{colors:c}=useTheme();
+ const companion=useAnimalCharacter();
  const {data,ready,dayKey,native,now,error}=useRoutine(),day=getDay(data,dayKey),wallet=timeWallet(day,dayKey,native),streak=routineStreak(data,dayKey);
  const civil=todayKey(),schedule=useDayData(civil),google=useGoogleEvents(civil.slice(0,7));
  const events=eventsOnDate(mergeEvents(schedule.localEvents,google.events),civil),hour=now.getHours(),night=hour>=18||hour<4;
@@ -31,13 +34,14 @@ export function DashboardScreen(){
  const suggested=night&&!isActivityComplete(evening)?'evening':!morning?'morning':!study.full&&study.total>0?'words':'evening';
  const open=(id:string)=>id==='morning'||id==='evening'?nav.navigate('GuidedRoutine',{slot:id}):id==='words'?nav.navigate('Main',{screen:'Study'}):nav.navigate('RoutineWorkout');
  const title=isReturnDay(data,dayKey)&&!morning?'다시 만나서 반가워요.\n하나부터 시작해 볼까요?':night?isActivityComplete(evening)?'오늘도 함께해서 좋았어요.\n편안한 밤을 보내요.':`오늘의 나를 토닥여요.\n${nextEvening?.title??'저녁 루틴'}, 같이 할까요?`:!morning?day.morning.some(Boolean)?`여기까지 잘했어요!\n다음은 ${nextMorning?.title??'아침 준비'}예요.`:`좋은 아침이에요!\n${nextMorning?.title??'이불 정리'}부터 같이 해요.`:study.full?'오늘 약속을 하나씩\n해내고 있네요!':'하루를 시작했네요!\n오늘 공부도 준비됐어요.';
- const nodes=[{id:'morning',title:'아침 루틴',icon:'sunny-outline' as const,detail:'04:30 시작 · 07:00까지',reward:'전체 +10분 · 작게 +5분',progress:`${day.morning.filter(Boolean).length}/${morningSteps(data,dayKey).length}개`},{id:'words',title:'단어 학습',icon:'layers-outline' as const,detail:'내 기억에 맞춘 복습',reward:'전체 +20분 · 작게 +5분',progress:`${study.done}/${study.total}장`},{id:'gym',title:'운동',icon:'barbell-outline' as const,detail:'일정에 맞춰 독립적으로',reward:'헬스장 +30분 · 집 +10분',progress:'운동한 날 직접 체크'},{id:'evening',title:'저녁 루틴',icon:'moon-outline' as const,detail:'21:00부터 취침 준비',reward:'하루 정리 · 별도 시간 보상 없음',progress:`${day.evening?.filter(Boolean).length??0}/${eveningSteps(data,dayKey).length}개`}];
- return <Page title={night?'보리와 마무리':'보리와 오늘'} right={<SettingsButton/>}>
+ const nodes=[{id:'morning',title:'아침 루틴',icon:'sunny-outline' as const,detail:'04:30 시작 · 07:00까지',reward:'전체 +10분 · 작게 +5분',progress:`${day.morning.filter(Boolean).length}/${morningSteps(data,dayKey).length}개`},{id:'words',title:'단어 학습',icon:'layers-outline' as const,detail:'내 기억에 맞춘 복습',reward:'10장 → 15장 → 20장마다 +5분',progress:`${study.done}/${study.total}장`},{id:'gym',title:'운동',icon:'barbell-outline' as const,detail:'일정에 맞춰 독립적으로',reward:'헬스장 +30분 · 집 +10분',progress:'운동한 날 직접 체크'},{id:'evening',title:'저녁 루틴',icon:'moon-outline' as const,detail:'21:00부터 취침 준비',reward:'하루 정리 · 별도 시간 보상 없음',progress:`${day.evening?.filter(Boolean).length??0}/${eveningSteps(data,dayKey).length}개`}];
+ return <Page title={night?'오늘의 마무리':'오늘'} right={<SettingsButton/>}>
   <Pressable testID="time-wallet-summary" accessibilityRole="button" accessibilityLabel="사용 시간 상세" onPress={()=>nav.navigate('TimeWallet')} style={{padding:15,borderRadius:20,backgroundColor:c.primarySoft,flexDirection:'row',alignItems:'center',gap:12}}>
-   <Icon name={wallet.available?'lock-open-outline':'shield-outline'} size={22}/><View style={{flex:1}}><Copy size={12}>{wallet.reason}</Copy><Copy weight="800">{wallet.available?`사용 가능 ${wallet.available}분`:`오늘 모은 시간 ${wallet.localEarned}분`}</Copy></View><Icon name="chevron-forward" size={18}/>
+   <Icon name={wallet.available?'lock-open-outline':'shield-outline'} size={22}/><View style={{flex:1}}><Copy size={12}>{wallet.reason}</Copy><Copy weight="800">{`지금 사용 가능 ${wallet.available}분`}</Copy></View><Icon name="chevron-forward" size={18}/>
   </Pressable>
   <RewardUseToggle/>
-  <BoriScene tone={night?'evening':'morning'} title={title} size={158} mood={night?'sleepy':morning?'proud':'cheer'} description={morning?'경로는 추천 순서예요. 하고 싶은 목표부터 골라도 좋아요.':'작은 목표도 충분해요. 아침을 마치면 모은 시간을 쓸 수 있어요.'}/>
+  <Pressable accessibilityRole="button" accessibilityLabel="돈 보상 지갑" onPress={()=>nav.navigate('MoneyWallet')} style={[u.between,{padding:14,borderRadius:18,backgroundColor:c.card,gap:10}]}><Icon name="wallet-outline" size={22}/><View style={{flex:1}}><Copy weight="700">{data.money?`쓸 수 있는 돈 ${moneySummary(data).available.toLocaleString('ko-KR')}원`:'돈 보상 시작하기'}</Copy><Copy muted size={12}>{data.money?'적립·지출 내역':'나에게 맞는 보상 금액 정하기'}</Copy></View><Icon name="chevron-forward" size={17}/></Pressable>
+  <BoriScene character={companion} action={isReturnDay(data,dayKey)&&!morning?'A10':night?'A05':day.morning.some(Boolean)&&!morning?'A23':'A02'} tone={night?'evening':'morning'} title={title} size={158} mood={night?'sleepy':morning?'proud':'cheer'} description={morning?'경로는 추천 순서예요. 하고 싶은 목표부터 골라도 좋아요.':'작은 목표도 충분해요. 아침을 마치면 모은 시간을 쓸 수 있어요.'}/>
   <HabitOrderCard/><FreeStudyCard/>{error?<Copy muted>{error}</Copy>:null}
   <View style={u.between}><Copy size={21} weight="800">오늘의 작은 발걸음</Copy><Copy muted size={12}>{activities.filter(isActivityComplete).length}개 실천</Copy></View>
   <View style={{paddingHorizontal:2}}>{nodes.map((node,index)=>{

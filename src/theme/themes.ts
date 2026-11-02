@@ -147,7 +147,7 @@ const mint: Theme = {
 };
 
 const routine: Theme = {
-  ...mint, id: "routine", name: "보리의 정원", colors: {
+  ...mint, id: "routine", name: "친구들의 정원", colors: {
     ...mint.colors, background: "#FFFCF5", surface: "#FFFCF5", card: "#FFFFFF",
     text: "#283D32", textMuted: "#657366", border: "#E3E7D9",
     primary: "#347B50", primarySoft: "#E6F1D5", success: "#347B50",

@@ -23,6 +23,8 @@ export type RootStackParamList = {
   SettingsHub:undefined;
   ExperienceSettings:undefined;
   TimeWallet:undefined;
+  MoneyWallet:undefined;
+  EarnedReward:{id:string;kind:'plan'|'handwriting';minutes:number;cash:number;cashEnabled:boolean;quantity:number;pending?:boolean;cashBaseline?:number};
   DiaryDetail:{date:string;saved?:boolean};
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   LegacyCalendar: undefined;
@@ -35,6 +37,7 @@ export type RootStackParamList = {
   RoutineReward: { unit: Unit; level: Level; added: number };
   RoutineHistory: undefined;
   StudyHistory: {deckId?:string;wordId?:string}|undefined;
+  StudyForecast:{deckId?:string}|undefined;
   RoutineScreenTime: undefined;
   RoutineSetup: {slot?:'morning'|'evening'}|undefined;
   GuidedRoutine:{slot:'morning'|'evening'};
@@ -43,6 +46,8 @@ export type RootStackParamList = {
   DeckCards:{deckId:string};
   SavedStudy: undefined;
   RoutineBackup: undefined;
+  AnimalPreview: undefined;
+  FocusTimer: undefined;
   BookStudy: {subject?:string;rewardMode?:'standard'|'free'}|undefined;
   HabitOrderSettings: undefined;
   /** date: "YYYY-MM-DD" */

@@ -1,4 +1,4 @@
-import {getDay,routineDay,RoutineData} from './routineModel';
+import {getDay,routineDay,RoutineData,studyProgress} from './routineModel';
 import {eveningSteps} from './dailyPlan';
 import {computeStreak} from './streaks';
 import {outputUnitsOnDay,OUTPUT_POLICY} from './handwriting';
@@ -14,7 +14,7 @@ export function routineActivities(data:RoutineData,key:string):RoutineActivity[]
  const sessions=(data.bookSessions??[]).filter(s=>routineDay(new Date(s.completedAt))===key);
  return [
   {id:'morning',title:'아침 루틴',status:paidStatus(day.paid.morning,10,day.morning.some(Boolean))},
-  {id:'words',title:'단어 학습',status:paidStatus(day.paid.words,20,day.responses>0)},
+  {id:'words',title:'단어 학습',status:day.wordRewards?(studyProgress(day).full?'full':studyProgress(day).min?'min':day.responses>0?'progress':'none'):paidStatus(day.paid.words,20,day.responses>0)},
   {id:'gym',title:'운동',status:paidStatus(day.paid.gym,30)},
   {id:'evening',title:'저녁 루틴',status:eveningStatus},
   {id:'book',title:'집중 공부',status:outputUnitsOnDay(data,key)>=OUTPUT_POLICY.goalUnits||sessions.some(s=>s.rewardMode!=='output'&&!!s.note.trim())?'full':sessions.length||outputUnitsOnDay(data,key)>0?'progress':'none'},
