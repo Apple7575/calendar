@@ -1,5 +1,5 @@
 import React,{useRef,useState} from 'react';
-import {Alert,Switch,View} from 'react-native';
+import {Alert,Pressable,Switch,View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
@@ -11,7 +11,7 @@ import {wordDailyCap} from '../../lib/studyRewards';
 import {priorityGate} from '../../lib/priorityPlan';
 import {useRoutine} from './RoutineProvider';
 import {Copy,Link,u} from './ui';
-export function RewardUseToggle({onConnect,compact=false}:{onConnect?:()=>void;compact?:boolean}){
+export function RewardUseToggle({onConnect,compact=false,inline=false}:{onConnect?:()=>void;compact?:boolean;inline?:boolean}){
  const {data,dayKey,native,refreshNative,ready}=useRoutine(),{colors:c}=useTheme(),navigation=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),inFlight=useRef(false);
  const gate=priorityGate(data,dayKey),day=getDay(data,dayKey),wallet=timeWallet(day,dayKey,native),on=wallet.connected&&!!native?.usingRewards&&!gate.blocked;
@@ -47,5 +47,6 @@ export function RewardUseToggle({onConnect,compact=false}:{onConnect?:()=>void;c
   }catch(e){explain('시간 사용을 변경하지 못했어요',e instanceof Error?e.message:'기기 상태를 확인하고 다시 시도해 주세요.','상태 다시 확인',()=>void refreshNative());}
   finally{await refreshNative();inFlight.current=false;setBusy(false);}
  };
+ if(inline)return <View style={{backgroundColor:c.card,borderRadius:20,padding:16,gap:7,borderWidth:1,borderColor:c.border}}><View style={{flexDirection:'row',alignItems:'center',gap:14}}><Pressable testID="time-wallet-summary" accessibilityRole="button" accessibilityLabel="사용 시간 상세" onPress={()=>navigation.navigate('TimeWallet')} style={{flex:1,gap:3}}><Copy size={11} muted>{!wallet.connected?'스크린타임 연결 전':gate.blocked?'첫 공부 시작 전':'지금 사용할 수 있는 시간'}</Copy><View style={{flexDirection:'row',alignItems:'center',gap:8}}><Copy size={24} weight="800">{wallet.available}분</Copy>{wallet.held>0?<Copy size={11} muted>{wallet.held}분 보관 중</Copy>:null}</View></Pressable><View style={{alignItems:'center',gap:3}}><Copy size={10} muted>시간 사용 {on?'켜짐':'꺼짐'}</Copy><Switch accessibilityLabel="시간 사용" accessibilityState={{disabled:busy}} disabled={busy} value={on} trackColor={{true:c.primary,false:c.border}} thumbColor={c.white} ios_backgroundColor={c.border} onValueChange={value=>void change(value)}/></View></View>{error?<Copy size={12}>{error}</Copy>:null}</View>;
  return <View style={{gap:3,paddingHorizontal:4}}><View style={[u.between,{gap:14}]}><View style={{flex:1}}><Copy weight="800">남은 시간 {wallet.balance}분 · 시간 사용 {on?'켜짐':'꺼짐'}</Copy><Copy muted size={12}>{busy?'기기에 반영하고 있어요…':!wallet.connected?'아이폰 스크린타임 연결 후 사용할 수 있어요.':gate.required&&!native?.supportsPriorityGate?'첫 공부 잠금은 새 아이폰 빌드에서 적용돼요.':gate.blocked?gate.reason:focus?'집중·휴식 타이머 종료 후 사용할 수 있어요.':wallet.reason}</Copy></View><Switch accessibilityLabel="시간 사용" accessibilityHint={!on&&!canStart?'누르면 켤 수 없는 이유와 해결 방법을 안내해요.':undefined} accessibilityState={{disabled:busy}} disabled={busy} value={on} trackColor={{true:c.primary,false:c.border}} thumbColor={c.white} ios_backgroundColor={c.border} onValueChange={value=>void change(value)}/></View>{!compact&&!wallet.connected?<Link label="제한 앱 연결 설정" onPress={connect}/>:null}{!compact&&!on&&!canStart&&!busy?<Link label="왜 켤 수 없나요?" onPress={()=>void change(true)}/>:null}{error?<Copy size={12}>{error}</Copy>:null}</View>;
 }

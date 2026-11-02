@@ -148,13 +148,20 @@ const mint: Theme = {
 
 const routine: Theme = {
   ...mint, id: "routine", name: "친구들의 정원", colors: {
-    ...mint.colors, background: "#FFFCF5", surface: "#FFFCF5", card: "#FFFFFF",
-    text: "#283D32", textMuted: "#657366", border: "#E3E7D9",
-    primary: "#347B50", primarySoft: "#E6F1D5", success: "#347B50",
-    successSoft: "#E6F1D5", inputBg: "#F3F3E7", dotEvent: "#B8754B",
-    shadow: "#6A7D56", gradient: ["#F9DCC0", "#ECF3D7"],
+    ...mint.colors, background: "#F6F8FC", surface: "#F6F8FC", card: "#FFFFFF",
+    text: "#202C46", textMuted: "#64738B", border: "#E3E8F2",
+    primary: "#4364EF", primarySoft: "#EDF1FF", success: "#2F8969",
+    successSoft: "#E7F5ED", inputBg: "#F1F4F9", dotEvent: "#BA7B50",
+    shadow: "#293F78", gradient: ["#E8EEFF", "#FFF0DF"],
   },
 };
+
+/** Surfaces for the priority experiment, including its warm character stage. */
+export function priorityVisuals(theme:Theme){return theme.isDark?{
+ stage:'#302B35',stageLine:'#685366',stageDot:'#504052',stageInk:'#E8C9B6',brand:'#A8BDFF',brandDeep:'#6D86D1',onBrand:'#172344',brandSoft:'#263555',brandInk:'#B9CAFF',paper:'#1B2230',mutedSurface:'#232C3C',success:'#8DD9BA',successSoft:'#203C36',line:'#334055',ink:'#ECF1FC',muted:'#A8B3CA',
+}:{
+ stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#91694C',brand:'#4364EF',brandDeep:'#304BB8',onBrand:'#FFFFFF',brandSoft:'#EDF1FF',brandInk:'#3D59BB',paper:'#FFFFFF',mutedSurface:'#F1F4FA',success:'#2D8569',successSoft:'#E8F6EF',line:'#E3E8F2',ink:'#202C46',muted:'#5F6F88',
+};}
 
 const dark: Theme = {
   id: "dark",
@@ -168,8 +175,8 @@ const dark: Theme = {
     border: "#2A2D33",
     text: "#F2F3F5",
     textMuted: "#A8AFB8",
-    primary: "#B5D99C",
-    primarySoft: "#2C3D35",
+    primary: "#A8BDFF",
+    primarySoft: "#263555",
     danger: "#FF6B70",
     success: "#4CC38A",
     successSoft: "#1F3A31",

@@ -10,14 +10,14 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
 import {tapLight} from '../../lib/haptics';
 
-export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true }: { title: string; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean }) {
+export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef }: { title: string; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
   const { colors: c } = useTheme();
   const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),route=useRoute();
   const back=nav.canGoBack()&&!['Today','Study','Bori','Records','Calendar','More'].includes(route.name);
   if(embedded)return <View style={{gap:18}}>{children}</View>;
   const content = <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.surface }}>
     <View style={[u.header,{gap:10}]}>{back?<Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={()=>nav.goBack()} style={{minWidth:44,minHeight:44,justifyContent:'center'}}><Icon name="arrow-back" size={23}/></Pressable>:null}<Text accessibilityRole="header" style={[u.title, { color: c.text,flex:1,fontSize:25 }]}>{title}</Text>{right??<Pressable accessibilityRole="button" accessibilityLabel="프로필·설정" onPress={()=>nav.navigate('SettingsHub')} style={{width:44,height:44,borderRadius:22,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'}}><Icon name="person-outline" size={21}/></Pressable>}</View>
-    {scrollable ? <ScrollView scrollEnabled={scrollEnabled} keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : 24 } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
+    {scrollable ? <ScrollView ref={scrollRef} scrollEnabled={scrollEnabled} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : 24 } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
       : <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 16, paddingBottom: 12 }}>{children}</View>}
     {footer ? floatingFooter ? <View style={{position:'absolute',left:12,right:12,bottom:0}}>{footer}</View> : <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.surface, borderTopWidth: 1, borderColor: c.border, padding: 16 }}>{footer}</SafeAreaView> : null}
   </SafeAreaView>;
@@ -39,7 +39,7 @@ export function Action({ label, onPress, secondary = false, disabled = false, co
   const reduced = useReducedMotion();
   return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={()=>{tapLight();onPress();}}
     onPressIn={press.pressIn} onPressOut={press.pressOut}
-    style={({ pressed }) => [u.action, { minHeight: compact ? 48 : 58, backgroundColor: secondary ? c.inputBg : c.primary,borderRadius:20,borderWidth:1,borderBottomWidth:pressed?1:4,borderColor:secondary?c.border:isDark?'#64845A':'#245936',transform:[{translateY:pressed&&!reduced?3:0}],
+    style={({ pressed }) => [u.action, { minHeight: compact ? 48 : 58, backgroundColor: secondary ? c.inputBg : c.primary,borderRadius:20,borderWidth:1,borderBottomWidth:pressed?1:4,borderColor:secondary?c.border:c.primary,transform:[{translateY:pressed&&!reduced?3:0}],
       opacity: disabled ? 0.45 : 1 }]}>
     <Text style={{ color: secondary ? c.text : isDark ? c.background : c.white, fontWeight: "700", fontSize: compact ? 15 : 17, textAlign: "center" }}>{label}</Text>
   </Pressable></Animated.View>;
@@ -118,7 +118,7 @@ export function Icon({ name, size = 24, color }: { name: keyof typeof Ionicons.g
 export const u = StyleSheet.create({
   header: { paddingHorizontal: 22, paddingTop: 14, paddingBottom: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   title: { fontSize: 27, fontWeight: "800", letterSpacing: -0.9 },
-  page: { paddingHorizontal: 16, gap: 16, paddingBottom: 130 },
+  page: { paddingHorizontal: 16, gap: 16, paddingBottom: 32 },
   card: { padding: 22, borderRadius: 26, gap: 16 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   between: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
