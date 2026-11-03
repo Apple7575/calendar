@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 // Isolated browser fixture only. Never calls paid OCR or uses the user's browser storage.
 const fs = require('fs');
 const assert = require('assert/strict');
@@ -20,7 +21,7 @@ fs.mkdirSync(out, {recursive:true});
   measurements.push({name,viewport:`${v.width}x${v.height}`,y:Math.round(b.y),height:Math.round(b.height)});
  };
  try {
-  await page.goto('http://localhost:8082/?priorityDemo=1',{waitUntil:'networkidle'});
+  await page.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle'});
   await button('2분, 이 행동부터 시작').waitFor();
   for (const [width,height] of [[390,844],[360,740]]) {
    await page.setViewportSize({width,height});

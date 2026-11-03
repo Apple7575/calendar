@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 const fs=require('fs'),assert=require('assert/strict'),ts=require('typescript');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
 const model=require('../src/lib/conceptLab.ts'),{sampleBook}=require('../src/lib/conceptLabContent.ts'),{expansionCards}=require('../src/lib/conceptLabExpansion.ts'),{Rating}=require('ts-fsrs');
@@ -8,7 +9,7 @@ for(const c of expansionCards)delete seed.cards[c.id];for(const id of Object.key
 (async()=>{const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage({viewport:{width:390,height:900},reducedMotion:'reduce'}),errors=[],paid=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('api.openai.com'))paid.push(r.url());});const button=name=>page.getByRole('button',{name,exact:true}),state=()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
 try{
  await page.addInitScript(({key,seed})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(seed));window.__plays=0;const original=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(...args){return original.apply(this,args).then(()=>{if(!this.paused)window.__plays++;});};},{key,seed});
- await page.goto('http://localhost:8082/?conceptDemo=1',{waitUntil:'networkidle',timeout:300000});await button('오늘 학습 시작').waitFor();const routine=await page.evaluate(()=>localStorage.getItem('routine.v1.web-concept-demo'));
+ await page.goto(previewUrl('/?conceptDemo=1'),{waitUntil:'networkidle',timeout:300000});await button('오늘 학습 시작').waitFor();const routine=await page.evaluate(()=>localStorage.getItem('routine.v1.web-concept-demo'));
  await button('오늘 학습 시작').click();await page.getByText('직접 수정한 문법 질문',{exact:true}).waitFor();assert.equal(await page.getByRole('textbox').count(),0);let saved=await state();assert.equal(saved.studyVocabulary,false);assert.equal(Object.keys(saved.cards).length,sampleBook.cards.length);assert.deepEqual(saved.attempts,JSON.parse(JSON.stringify(seed.attempts)));assert.deepEqual(saved.schedules,seed.schedules);
  await button('중단').click();await page.getByRole('button',{name:/^청해 연습/}).click();await page.getByText('AI 합성 음성 · 저장된 파일 재사용',{exact:true}).waitFor();assert.equal(await page.getByText(/来週の大阪旅行/).count(),0);assert.equal(await page.getByText('갑자기 출장이 생겨서',{exact:true}).count(),0);
  await button('문제 음성 듣기').click();await page.waitForFunction(()=>window.__plays>=1,{},{timeout:15000});await page.screenshot({path:out+'/synthetic-listening-front-390.png'});
