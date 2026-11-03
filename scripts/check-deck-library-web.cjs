@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 const fs=require('fs'),ts=require('typescript'),assert=require('assert/strict');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
 const model=require('../src/lib/routineModel.ts'),{validatePublishedDeck}=require('../src/lib/japaneseDeck.ts');
@@ -14,7 +15,7 @@ page.on('pageerror',e=>errors.push(e.message));
 await page.addInitScript(({seed,storage})=>{if(!localStorage.getItem(storage))localStorage.setItem(storage,JSON.stringify(seed));localStorage.setItem('routine.studyAudio.auto.v1','false')},{seed,storage});
 const button=name=>page.getByRole('button',{name,exact:true}),read=()=>page.evaluate(storage=>JSON.parse(localStorage.getItem(storage)),storage);
 try{
- await page.goto('http://localhost:8082/?n2Demo=1',{waitUntil:'networkidle',timeout:300000});await button('닫기').click();await page.getByRole('tab',{name:'학습',exact:true}).click();
+ await page.goto(previewUrl('/?n2Demo=1'),{waitUntil:'networkidle',timeout:300000});await button('닫기').click();await page.getByRole('tab',{name:'학습',exact:true}).click();
  await button('모아둔 단어').click();
  const before=await read();
  await page.getByTestId('saved-study-row').filter({hasText:marked.front}).getByRole('button',{name:'즐겨찾기 해제',exact:true}).click({timeout:6000});

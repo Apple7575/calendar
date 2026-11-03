@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 const fs=require('fs'),assert=require('assert/strict');
 const {chromium}=require('C:/Users/SSAFY/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const n2=require('../assets/decks/n2-vocabulary.json'),n3=require('../assets/decks/n3-vocabulary.json');
@@ -23,7 +24,7 @@ const out='.expo/n2-20261102';fs.mkdirSync(out,{recursive:true});
  page.on('response',response=>{if(decodeURIComponent(response.url()).includes('n2-cedar'))audio.push({url:response.url(),status:response.status()})});
  const button=name=>page.getByRole('button',{name,exact:true});
  try{
-  await page.goto('http://localhost:8082/?manage=1',{waitUntil:'networkidle',timeout:300000});
+  await page.goto(previewUrl('/?manage=1'),{waitUntil:'networkidle',timeout:300000});
   await button(`JLPT N2 · ${n2.notes.length}개`).click();
   await page.getByText(n2.name,{exact:true}).waitFor();
   await page.getByText(`${n2.notes[0].Word} · ${n2.notes[0].Word_Reading}`,{exact:true}).waitFor();
@@ -37,7 +38,7 @@ const out='.expo/n2-20261102';fs.mkdirSync(out,{recursive:true});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await page.screenshot({path:`${out}/manager-n2-${width}.png`});
   }
-  await page.goto('http://localhost:8082/?n2Demo=1',{waitUntil:'networkidle',timeout:300000});
+  await page.goto(previewUrl('/?n2Demo=1'),{waitUntil:'networkidle',timeout:300000});
   await button('정답 보기').waitFor({timeout:30000});
   const initial=JSON.parse(await page.evaluate(()=>localStorage.getItem('routine.v1.web-n2-demo')));
   assert.equal(initial.decks.length,1);assert.equal(initial.decks[0].id,'pc:'+n2.id);

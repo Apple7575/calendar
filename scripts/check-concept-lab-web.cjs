@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const ts=require('typescript');require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
 const legacySeed={...require('../src/lib/conceptLab.ts').createLab(),studyVocabulary:true};
@@ -14,7 +15,7 @@ const out='.expo/concept-lab-20261102',key='routine.concept-lab.v1.web-concept-d
    window.__conceptAudioPlays=0;const original=HTMLMediaElement.prototype.play;
    HTMLMediaElement.prototype.play=function(...args){const media=this;return original.apply(media,args).then(()=>{if(!media.paused)window.__conceptAudioPlays++;});};
   },{key,legacySeed});
-  await page.goto('http://localhost:8082/?conceptDemo=1',{waitUntil:'networkidle',timeout:300000});
+  await page.goto(previewUrl('/?conceptDemo=1'),{waitUntil:'networkidle',timeout:300000});
   await button('오늘 학습 시작').waitFor({timeout:30000});
   const routineBefore=await page.evaluate(()=>localStorage.getItem('routine.v1.web-concept-demo'));
   await button('오늘 학습 시작').click();
