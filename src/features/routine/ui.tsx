@@ -22,7 +22,7 @@ export function ProfileButton(){
 export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef,showHeader=true }: { title: string; showHeader?:boolean; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
   const { colors: c } = useTheme();
   const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),route=useRoute();
-  const pushed=nav.canGoBack()&&!['Today','Study','Bori','Records','Calendar','More'].includes(route.name);
+  const pushed=nav.canGoBack()&&!['Today','Study','GoalTab','Records','Calendar','More'].includes(route.name);
   const back=pushed&&!isExitAction(right);
   if(embedded)return <View style={{gap:space.md}}>{children}</View>;
   const content = <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.surface }}>

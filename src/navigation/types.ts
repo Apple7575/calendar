@@ -128,7 +128,7 @@ export type MainTabParamList = {
   Today: undefined;
   Study: undefined;
   More: undefined;
-  Bori:undefined;
+  GoalTab:undefined;
   Records:{section?:'calendar'|'diary'|'stats'}|undefined;
 };
 

@@ -60,6 +60,7 @@ export type Day = {
   wordRewards?:import('./studyRewards').WordRewards;
 };
 export type RoutineData = {
+  primaryGoal?:import('./primaryGoal').PrimaryGoal;
   priorityPolicy?:import('./priorityPlan').PriorityPolicy;priorityDays?:Record<string,import('./priorityPlan').PriorityDay>;
   focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];
   money?:import('./moneyRewards').MoneyWallet;
