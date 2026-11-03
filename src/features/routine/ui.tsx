@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { ReactNode, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from "react-native";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Keyboard, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, useWindowDimensions, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeContext";
@@ -10,30 +10,37 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
 import {tapLight} from '../../lib/haptics';
 import {colorRoles} from '../../theme/roles';
+import {keyboardScrollDelta} from '../../lib/keyboardScroll';
 import {BoriMascot as Mascot} from './BoriMascot';
 import type {AnimalActionId,AnimalCharacterId} from './animalAssets';
-import {control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
+import type {MascotMood} from './boriAssets';
+import {character as characterSize,control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
 
 /** 오른쪽 링크로 지금 나갈 수 있으면 뒤로 화살표를 겹쳐 두지 않는다. 비활성이면 나가는 길이 없어지므로 화살표를 남긴다. */
 const EXIT_LABELS=['닫기','나가기','중단'];
 function isExitAction(right:ReactNode){return React.isValidElement(right)&&right.type===Link&&EXIT_LABELS.includes((right.props as {label?:string}).label??'')&&!(right.props as {disabled?:boolean}).disabled}
+/** Field가 키보드에 가릴 때 자기가 속한 Page를 올리는 통로. */
+const PageScroll=createContext<{scrollBy:(dy:number)=>void}|null>(null);
 export function ProfileButton(){
  const {colors:c}=useTheme(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  return <Pressable accessibilityRole="button" accessibilityLabel="프로필·설정" onPress={()=>nav.navigate('SettingsHub')} style={{width:control.touch,height:control.touch,borderRadius:control.touch/2,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'}}><Icon name="person-outline" size={21} color={c.primary}/></Pressable>;
 }
-export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef,showHeader=true }: { title: string; showHeader?:boolean; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
+export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef,showHeader=true,keyboardInsets=true }: { title: string; keyboardInsets?:boolean; showHeader?:boolean; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
   const { colors: c } = useTheme();
   const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),route=useRoute();
   const pushed=nav.canGoBack()&&!['Today','Study','GoalTab','Records','Calendar','More'].includes(route.name);
   const back=pushed&&!isExitAction(right);
+  const ownScroll=useRef<ScrollView>(null),scroller=scrollRef??ownScroll,offset=useRef(0);
+  const pageScroll=useMemo(()=>({scrollBy:(dy:number)=>scroller.current?.scrollTo({y:offset.current+dy,animated:true})}),[scroller]);
   if(embedded)return <View style={{gap:space.md}}>{children}</View>;
   const content = <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.surface }}>
     {showHeader?<View style={u.header}>{back?<Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={()=>nav.goBack()} style={{minWidth:control.touch,minHeight:control.touch,justifyContent:'center'}}><Icon name="arrow-back" size={23} color={c.text}/></Pressable>:null}<Text accessibilityRole="header" style={[type.title, { color: c.text,flex:1 }]}>{title}</Text>{right??(pushed?null:<ProfileButton/>)}</View>:null}
-    {scrollable ? <ScrollView ref={scrollRef} scrollEnabled={scrollEnabled} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : space.xl } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
+    {scrollable ? <ScrollView ref={scroller} scrollEnabled={scrollEnabled} automaticallyAdjustKeyboardInsets={keyboardInsets} onScroll={event=>{offset.current=event.nativeEvent.contentOffset.y}} scrollEventThrottle={16} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : space.xl } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
       : <View style={{ flex: 1, minHeight: 0, paddingHorizontal: gutter, paddingBottom: space.sm }}>{children}</View>}
     {footer ? floatingFooter ? <View style={{position:'absolute',left:gutter,right:gutter,bottom:0}}>{footer}</View> : <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.surface, borderTopWidth: 1, borderColor: c.border, padding: gutter }}>{footer}</SafeAreaView> : null}
   </SafeAreaView>;
-  return Platform.OS === "web" ? <MotionEnter style={{ flex: 1, backgroundColor: c.surface }}>{content}</MotionEnter> : content;
+  const screen=<PageScroll.Provider value={pageScroll}>{content}</PageScroll.Provider>;
+  return Platform.OS === "web" ? <MotionEnter style={{ flex: 1, backgroundColor: c.surface }}>{screen}</MotionEnter> : screen;
 }
 /** 정보 카드. 누를 수 없는 묶음에만 쓴다. 눌러서 이동하면 NavCard, 고르는 항목이면 Choice. */
 export function CardView({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -92,10 +99,16 @@ export function Choice({label,description,selected,onPress,disabled=false,fill=f
 }
 /** 입력창. 이름표는 위에, 설명과 오류는 아래에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. */
 export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength,minHeight}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number;minHeight?:number}){
-  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),[focused,setFocused]=useState(false);
-  return <View style={{gap:space.xs}}>
+  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),[focused,setFocused]=useState(false),box=useRef<View>(null),page=useContext(PageScroll);
+  const reveal=useCallback((keyboardTop?:number)=>{
+    if(Platform.OS!=='ios')return;
+    const top=keyboardTop??Keyboard.metrics()?.screenY;
+    if(top!==undefined)box.current?.measureInWindow((_x,y,_width,height)=>{const delta=keyboardScrollDelta(y+height,top);if(delta>0)page?.scrollBy(delta)});
+  },[page]);
+  useEffect(()=>{if(!focused)return;reveal();const shown=Keyboard.addListener('keyboardDidShow',event=>reveal(event.endCoordinates.screenY));return()=>shown.remove()},[focused,reveal]);
+  return <View ref={box} style={{gap:space.xs}}>
     {label?<Copy variant="caption" weight="700" muted>{label}</Copy>:null}
-    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
+    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} onContentSizeChange={()=>{if(focused)reveal()}} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
     {error?<Copy variant="caption" style={{color:role.danger.ink}}>{error}</Copy>:helper?<Copy variant="caption" muted>{helper}</Copy>:null}
   </View>;
 }
@@ -110,16 +123,14 @@ export function Notice({tone="info",children,actionLabel,onAction}:{tone?:Notice
   </View>;
 }
 /** 빈 상태. 왜 비어 있는지와 첫 행동을 내용이 나타날 자리에 둔다. */
-export function EmptyState({title,description,actionLabel,onAction,character}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;character?:AnimalCharacterId}){
-  return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact label={actionLabel} onPress={onAction}/></View>:null}</View>;
+export function EmptyState({title,description,actionLabel,onAction,peek=false,character,mood='cheer'}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;peek?:boolean;character?:AnimalCharacterId;mood?:MascotMood}){
+  const content=<><Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action label={actionLabel} onPress={onAction}/></View>:null}</>;
+  return peek||character?<View><CharacterPeek character={character} mood={mood}/><CardView>{content}</CardView></View>:<View style={{gap:space.xs,paddingVertical:space.lg}}>{content}</View>;
 }
-/** 캐릭터가 버튼 뒤에서 내다보는 다음 행동. 왼쪽에 지금 상태를 적고, 그래픽은 화면의 주인공 하나에만 쓴다. */
-export function CharacterAction({children,action,character='C03',pose='A31',small=false}:{children:ReactNode;action:ReactNode;character?:AnimalCharacterId;pose?:AnimalActionId;small?:boolean}){
-  const size=small?150:180,height=small?100:124;
-  return <View>
-    <View style={{height,justifyContent:'center',paddingRight:size*.62}}>{children}<View pointerEvents="box-none" style={{position:'absolute',right:-space.xs,bottom:-size*.2}}><Mascot character={character} action={pose} size={size}/></View></View>
-    <View style={{zIndex:1}}>{action}</View>
-  </View>;
+/** 화면의 주인공 친구. 누르면 반응한다. 배경 없이 크게 그리고 몸 아래쪽이 잘리므로, 같은 View 안에서 바로 다음에 카드를 놓아 카드 뒤에서 내다보게 한다. */
+export function CharacterPeek({character,action,mood,maxSize=characterSize.peekMax,interactive=true}:{character?:AnimalCharacterId;action?:AnimalActionId;mood?:MascotMood;maxSize?:number;interactive?:boolean}){
+  const {width}=useWindowDimensions(),size=Math.min(maxSize,width*characterSize.peekWidthRatio);
+  return <View pointerEvents={interactive?'box-none':'none'} style={{alignItems:'center',height:size*characterSize.peekVisible,overflow:'hidden'}}><View style={{marginTop:-size*characterSize.peekTopCrop}}><Mascot size={size} character={character} action={action} mood={mood}/></View></View>;
 }
 /** 불러오는 중. 무엇을 기다리는지 함께 적는다. */
 export function LoadingState({label}:{label:string}){

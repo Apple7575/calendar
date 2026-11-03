@@ -13,8 +13,9 @@
 ### 캐릭터
 
 - 화면의 주인공 하나에만 쓴다. 상자에 가두지 않고 다음 행동 가까이에 둔다.
-- `CharacterAction`: 왼쪽에 지금 상태, 오른쪽에 버튼 뒤에서 내다보는 친구. 친구가 핵심 정보를 가리지 않게 한다.
-- `EmptyState character="C03"`: 빈 상태에서 첫 행동을 안내한다.
+- `CharacterPeek`: 화면의 주인공 친구는 이것 하나로 그린다. 크기 기준은 `tokens.ts`의 `character`(폭의 1.3배, 최대 380)이고, 배경 없이 몸 아래쪽이 다음 카드 뒤로 들어간다. 오늘·학습·목표 탭이 같이 쓴다. 사용자 지시로 방 배경을 넣지 않는다.
+- `EmptyState peek`: 빈 상태도 같은 크기의 친구와 카드로 그린다.
+- 완료 표시: 오늘 탭의 루틴·학습은 완료하면 칸이 연한 주요 색으로 바뀌고 체크가 나오며, 위쪽 막대와 숫자가 함께 찬다. 완료 판단은 기존 기록을 읽기만 하고 보상을 새로 만들지 않는다.
 - 동물 4종과 실제 Lottie를 유지하고, 새 친밀도나 보상을 만들지 않는다. 다크에서는 밝은 방 배경을 그리지 않는다.
 
 ### 토스에서 참고한 것
@@ -92,6 +93,10 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 `PriorityButton`, `PriorityField`, `PrimaryButton`은 예전 이름으로 남겨 두었고 내부는 `Action`·`Field`다. 새 코드는 바로 `Action`·`Field`를 쓴다.
 
+## 키보드
+
+`Page`의 스크롤 영역은 iOS에서 키보드만큼 여백을 자동으로 받는다. `Field`는 포커스와 줄 추가 때 칸 전체가 키보드 위에 보이도록 화면을 올린다. 그래서 새 입력창은 직접 만든 `TextInput` 대신 `Field`를 쓴다. `KeyboardAvoidingView`로 감싼 화면은 `Page keyboardInsets={false}`로 여백이 겹치지 않게 한다.
+
 ## 상태 표시
 
 - 비활성: 불투명도 0.5. 왜 안 되는지 옆이나 아래에 문장으로 적는다.
@@ -143,7 +148,7 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 ### 목표 탭 (feature/goal-tab, 8093)
 
 - 친구들 탭은 목표 탭으로 대체됐다. `BoriHomeScreen`은 삭제됐고 검수 대상이 아니다.
-- 병합 후 캐릭터는 `CharacterAction`이나 `EmptyState character`, 꼭 읽을 문장은 `Copy variant="lead"`를 검토한다.
+- 병합 후 캐릭터는 `CharacterPeek`이나 `EmptyState peek`, 꼭 읽을 문장은 `Copy variant="lead"`를 검토한다.
 - `AnimalCharacterPicker` 역할 라벨: PM 보류 해제에 따라 13/20으로 올리고 타일 좌우 여백을 2로 줄였다. 문구는 그대로이고 360·375·390px에서 한 줄, 잘림 없음, 타일 높이 116px이다. 320px에서 타일이 3+1로 나뉘는 것은 기존 동작이다.
 
 ### PM·통합
