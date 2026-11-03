@@ -93,14 +93,11 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 ### 집중 학습 (feature/focus-ux, 8123)
 
-기준 커밋 `f67ed45`. 타이머 세로 상단 깨짐과 `EarnedRewardScreen` 타일 색은 이 커밋에서 해결됐다.
+기준 커밋 `4b8bc14`. 타이머 세로 상단 깨짐, 가로 간격, 주제 칩 높이, `EarnedRewardScreen` 타일 색, 검사 스크립트 충돌과 실패는 해결됐다. 이 브랜치와 임시 병합해 검사 3종이 통과했다.
 
 - `StudyHomeScreen`: 집중 쪽은 채워진 버튼이 하나로 정리됐다. 단어 쪽은 `오늘의 일본어 시작`과 `오늘 학습 시작`이 아직 함께 채워져 있다. 덱 칩은 `Choice`로 바꾼다.
-- `FocusRampStart`: 공부 주제 칩(높이 40px)은 `Choice`, 입력창 2개는 `Field`로 바꾼다.
+- `FocusRampStart`: 공부 주제 칩은 `Choice`, 입력창 2개는 `Field`로 바꾼다.
 - `HandwritingStudy`: 오류는 `Notice tone="error"`로 바꾼다.
-- 타이머 가로 화면: 상단 버튼과 `일시정지` 버튼 사이에 간격이 없다.
-- `scripts/check-action-flow-ui.cjs`: develop과 충돌한다. 이 브랜치와 무관하며 develop과 `f67ed45`만 합쳐도 난다. 자체 포트 변수 대신 develop의 `previewUrl`을 쓰는 쪽으로 정리한다.
-- `scripts/check-priority-first-web.cjs`: focus-ux에서 `다음 시작 위치 남기기`를 찾지 못해 시간 초과된다. 단독 상태에서도 같다. 이 스크립트와 `check-priority-ui-layout.cjs`는 `PREVIEW_PORT`를 읽는다.
 
 ### 단어장·일본어 학습 (feature/vocabulary, 8092)
 
@@ -128,5 +125,7 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 $env:PREVIEW_PORT = '8094'
 node scripts/check-design-system-web.cjs after
 ```
+
+`PREVIEW_PORT`를 지정하지 않으면 검사 스크립트는 PM 서버(8082)로 간다. 실행 전에 자기 포트를 지정한다.
 
 20개 화면을 360·390px로 찍어 `.expo/design-system/<이름>`에 저장하고 터치 영역·가로 넘침을 측정한다. 웹 미리보기 검사이며 실제 iPhone의 키보드·안전 영역·햅틱·BlurView 동작을 확인하지 않는다. `CI=1`로 서버를 띄우면 Metro가 파일 변경을 감시하지 않아 이전 코드를 측정하게 되므로 쓰지 않는다.
