@@ -1,22 +1,24 @@
 import React,{useEffect,useState} from 'react';
 import {AppState,Pressable,Text,View} from 'react-native';
 import Svg,{Circle} from 'react-native-svg';
+import {focusTheme} from '../../theme/themes';
 export type ClockDesign='A'|'B'|'C';
-const palettes={A:{bg:'#111820',text:'#F7F6EB',muted:'#A2B2BF',accent:'#C4EA89'},B:{bg:'#FFF6E6',text:'#303E32',muted:'#687B68',accent:'#65914C'},C:{bg:'#192754',text:'#F7F9FF',muted:'#B9C8E6',accent:'#A8C4FF'}};
-type Props={design:ClockDesign;left:number;total?:number;running:boolean;phase:string;subject:string;onPause:()=>void;onClose:()=>void;onPhoto?:()=>void;onBreak?:()=>void;onSkipBreak?:()=>void;onAdjust?:(seconds:number)=>void;ready?:boolean;requiredMinutes?:number;needsPlan?:boolean};
-export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phase,subject,onPause,onClose,onPhoto,onBreak,onSkipBreak,onAdjust,ready=false,requiredMinutes=25,needsPlan=false}:Props){
+const palettes={A:{bg:focusTheme.colors.background,text:focusTheme.colors.text,muted:focusTheme.colors.textMuted,accent:focusTheme.colors.primary},B:{bg:'#FFF6E6',text:'#303E32',muted:'#687B68',accent:'#65914C'},C:{bg:'#192754',text:'#F7F9FF',muted:'#B9C8E6',accent:'#A8C4FF'}};
+type Props={design:ClockDesign;left:number;total?:number;running:boolean;phase:string;subject:string;onPause:()=>void;onClose:()=>void;onPhoto?:()=>void;onBreak?:()=>void;onSkipBreak?:()=>void;onLeaveNote?:()=>void;onAdjust?:(seconds:number)=>void;ready?:boolean;requiredMinutes?:number;needsPlan?:boolean};
+export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phase,subject,onPause,onClose,onPhoto,onBreak,onSkipBreak,onLeaveNote,onAdjust,ready=false,requiredMinutes=25,needsPlan=false}:Props){
  const idle=phase==='idle',resting=phase==='break',left=idle?requiredMinutes*60:rawLeft,total=idle?requiredMinutes*60:rawTotal;
  const pauseLabel=idle?(needsPlan?'계획부터 시작':requiredMinutes+'분 집중 시작'):resting?(running?'휴식 일시정지':'휴식 이어가기'):running?'일시정지':needsPlan?'계획부터 시작':'이어서 공부';
- const [area,setArea]=useState({width:844,height:390}),[revealed,setRevealed]=useState(false),[adjusting,setAdjusting]=useState(false),p=phase==='break'?{bg:'#FFF6E6',text:'#283C35',muted:'#546C61',accent:'#24765A'}:palettes[design],landscape=area.width>area.height;
+ const [area,setArea]=useState({width:844,height:390}),[revealed,setRevealed]=useState(false),[adjusting,setAdjusting]=useState(false),p=palettes[design],landscape=area.width>area.height;
  useEffect(()=>{if(!revealed)return;const id=setTimeout(()=>setRevealed(false),5000);return()=>clearTimeout(id)},[revealed]);
  useEffect(()=>{const subscription=AppState.addEventListener('change',()=>setRevealed(false));return()=>subscription.remove()},[]);
  const size=Math.max(132,Math.min(landscape?area.height-100:area.width-48,landscape?area.width*.52:320,320)),radius=size/2-7,circumference=2*Math.PI*radius,progress=Math.max(0,Math.min(1,left/Math.max(total,1)));
  const seconds=Math.abs(left),overtime=phase==='focus'&&left<=0,time=(left<0?'+':'')+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
- const button=(label:string,fn:()=>void,primary=false,compact=false)=><Pressable accessibilityRole="button" onPress={fn} style={({pressed})=>({minHeight:44,justifyContent:'center',paddingVertical:compact?10:13,paddingHorizontal:compact?13:20,borderRadius:12,backgroundColor:primary?p.accent:'#ffffff0D',borderWidth:1,borderColor:primary?p.accent:'#81909B66',transform:[{scale:pressed?.97:1}]})}><Text style={{color:primary?(design==='B'||phase==='break'?'#FFFFFF':'#17251C'):p.text,fontSize:compact?14:17,fontWeight:'700',textAlign:'center'}}>{label}</Text></Pressable>;
+ const button=(label:string,fn:()=>void,primary=false,compact=false)=><Pressable accessibilityRole="button" onPress={fn} style={({pressed})=>({minHeight:44,justifyContent:'center',paddingVertical:compact?10:13,paddingHorizontal:compact?13:20,borderRadius:12,backgroundColor:primary?p.accent:'#ffffff0D',borderWidth:1,borderColor:primary?p.accent:'#81909B66',transform:[{scale:pressed?.97:1}]})}><Text style={{color:primary?(design==='B'?'#FFFFFF':'#17251C'):p.text,fontSize:compact?14:17,fontWeight:'700',textAlign:'center'}}>{label}</Text></Pressable>;
  return <View testID="focus-clock" onLayout={e=>setArea(e.nativeEvent.layout)} style={{flex:1,backgroundColor:p.bg,padding:landscape?16:24,gap:10}}>
   <View style={{flexDirection:'row',alignItems:'center',gap:12,justifyContent:'space-between'}}>
    <Text style={{color:p.accent,fontSize:18,fontWeight:'800'}}>{resting?'휴식 중':idle?'다음 공부 준비':overtime?'추가 공부 중':'집중 시간'}</Text>
    <View style={{flex:1,alignItems:'center'}}>{button(revealed?subject:'과목 보기',()=>setRevealed(v=>!v),false,true)}</View>
+   {phase==='focus'&&onLeaveNote?button('다음 시작 위치 남기기',onLeaveNote,false,true):null}
    {button('돌아가기',onClose,false,true)}
   </View>
   <View style={{flex:1,flexDirection:landscape?'row':'column',gap:landscape?28:18,alignItems:'center',justifyContent:'center'}}>

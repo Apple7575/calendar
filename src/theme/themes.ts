@@ -191,6 +191,35 @@ const dark: Theme = {
   },
 };
 
+/** 집중 공부 흐름 전용 팔레트(큰 타이머 기준). 설정의 테마 목록에는 넣지 않는다. */
+export const focusTheme: Theme = {
+  id: "dark",
+  name: "집중",
+  isDark: true,
+  statusBar: "light",
+  colors: {
+    background: "#111820",
+    surface: "#111820",
+    card: "#1A2430",
+    border: "#2C3946",
+    text: "#F7F6EB",
+    textMuted: "#A2B2BF",
+    primary: "#C4EA89",
+    primarySoft: "#2E3F2A",
+    danger: "#FF8A80",
+    success: "#C4EA89",
+    successSoft: "#2E3F2A",
+    dotEvent: "#C4EA89",
+    dotGoogle: "#7FD1AE",
+    dotTask: "#F5B04B",
+    dotDiary: "#F07BB4",
+    inputBg: "#223040",
+    white: "#FFFFFF",
+    gradient: ["#C4EA89", "#9BC265"],
+    shadow: "#000000",
+  },
+};
+
 export const THEMES: Theme[] = [routine, dark, lavender, classic, peach, mint];
 export const DEFAULT_THEME_ID: ThemeId = "routine";
 

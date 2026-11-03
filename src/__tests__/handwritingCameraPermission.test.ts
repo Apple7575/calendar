@@ -5,6 +5,8 @@ import {emptyData} from '../lib/routineModel';
 import {HandwritingStudy} from '../features/routine/HandwritingStudy';
 // jest-expo brings react-test-renderer without type declarations.
 const {act,create}=require('react-test-renderer');
+jest.mock('@react-native-async-storage/async-storage',()=>({getItem:jest.fn(async()=>null),setItem:jest.fn(async()=>undefined)}));
+jest.mock('@expo/vector-icons',()=>({Ionicons:()=>null}));
 jest.mock('expo-image-picker',()=>({requestCameraPermissionsAsync:jest.fn(),launchCameraAsync:jest.fn(),launchImageLibraryAsync:jest.fn()}));
 jest.mock('expo-image-manipulator',()=>({manipulateAsync:jest.fn(),SaveFormat:{JPEG:'jpeg'}}));
 jest.mock('expo-crypto',()=>({digestStringAsync:jest.fn(),randomUUID:()=>'id',CryptoDigestAlgorithm:{SHA256:'SHA-256'}}));
