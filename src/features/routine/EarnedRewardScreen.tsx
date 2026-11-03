@@ -27,7 +27,7 @@ export function EarnedRewardScreen({route,navigation}:RootScreenProps<'EarnedRew
  return <View testID="earned-reward-page" style={{flex:1,backgroundColor:focusTheme.colors.background}}>
   <StatusBar style="light"/><AnimalSharedLayer id="celebration_effects" animated/>
   <SafeAreaView style={{flex:1}} edges={['top','bottom']}>
-   <Pressable accessibilityRole="button" accessibilityLabel="축하 화면 닫기" onPress={close} hitSlop={8} style={{margin:12,width:44,height:44,alignItems:'center',justifyContent:'center'}}><Icon name="close" color="#CEE1E8" size={27}/></Pressable>
+   <Pressable accessibilityRole="button" accessibilityLabel="축하 화면 닫기" onPress={continueStudy} hitSlop={8} style={{margin:12,width:44,height:44,alignItems:'center',justifyContent:'center'}}><Icon name="close" color="#CEE1E8" size={27}/></Pressable>
    <ScrollView contentContainerStyle={{flexGrow:1,alignItems:'center',justifyContent:'center',paddingHorizontal:22,paddingBottom:20,gap:small?12:20}}>
     <Mascot character="C03" action={pending?'A21':p.kind==='plan'?'A24':'A26'} size={Math.min(width-44,small?160:220)}/>
     <Text accessibilityRole="header" style={{fontSize:small?27:32,fontWeight:'900',color:focusTheme.colors.primary,textAlign:'center'}}>{pending?'필기를 저장했어요!':p.kind==='plan'?'시작할 준비 완료!':'한 단계 해냈어요!'}</Text>

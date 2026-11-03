@@ -36,7 +36,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
     {design==='C'?<Text style={{color:p.accent,fontSize:16,fontWeight:'800'}}>{revealed?subject:'지금 할 행동에 집중해요'}</Text>:null}
     {resting&&onSkipBreak?button(needsPlan?'계획 쓰고 다시 공부하기':'쉬는 시간 건너뛰고 공부하기',onSkipBreak,true,true):null}
     {ready&&!resting&&onPhoto?button('필기 사진 제출',onPhoto,true):null}
-    {resting&&needsPlan&&onSkipBreak?null:button(pauseLabel,onPause,!resting&&!ready&&(idle||!running),resting)}
+    {resting&&needsPlan&&onSkipBreak?null:button(pauseLabel,onPause,!resting&&!ready&&(idle||!running),resting||landscape)}
     {phase==='focus'&&onBreak?button('휴식 시작 · 5분',onBreak,false,true):null}
     {onPhoto&&(!ready||resting)?button('필기 사진 제출',onPhoto,false,true):null}
     {!landscape&&phase==='focus'&&onLeaveNote?button('다음 시작 위치 남기기',onLeaveNote,false,true):null}

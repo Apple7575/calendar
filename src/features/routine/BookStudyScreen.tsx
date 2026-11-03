@@ -38,7 +38,7 @@ function BookStudyPage({navigation,route}:RootScreenProps<'BookStudy'>){
  const run=(fn:Parameters<typeof update>[0])=>{void update(fn).catch(e=>setError(e.message))};
  const canFinish=!!draft&&!data.handwritingPending&&!working;
  const rows=<>
-  <FocusListRow label="타이머 공부 메모·이전 기록" open={notes} last={!canFinish} onPress={()=>setNotes(!notes)}/>
+  {timer&&timer.phase!=='idle'?<FocusListRow label="큰 타이머로 돌아가기" onPress={()=>navigation.popTo('FocusTimer')}/>:null}<FocusListRow label="타이머 공부 메모·이전 기록" open={notes} last={!canFinish} onPress={()=>setNotes(!notes)}/>
   {canFinish?<FocusListRow label="이 과목 공부 마치기 · 기록은 유지" last onPress={()=>run(s=>({...stopBookTimer(s),outputDraft:undefined}))}/>:null}
  </>;
  return <Page title={FOCUS_FLOW_TITLES[stage]} right={<View/>}>
