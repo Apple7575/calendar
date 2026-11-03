@@ -31,7 +31,7 @@ function GoalForm({goal,today,onDone,canCancel}:{goal?:PrimaryGoal;today:string;
   <GoalDateInput value={dueDate} today={today} onChange={setDueDate}/>
   <View style={{gap:space.xs}}>
    <Copy variant="caption" weight="700" muted>일주일에 며칠 공부할까요?</Copy>
-   <View style={{flexDirection:'row',flexWrap:'wrap',gap:space.xs}}>{[1,2,3,4,5,6,7].map(n=><View key={n} style={{flexBasis:'22%',flexGrow:1}}><Choice label={`${n}일`} accessibilityLabel={`일주일에 ${n}일`} selected={days===n} onPress={()=>setDays(n)}/></View>)}</View>
+   <View style={{flexDirection:'row',flexWrap:'wrap',gap:space.xs}}>{[1,2,3,4,5,6,7].map(n=><View key={n} style={{flexBasis:'22%',flexGrow:1}}><Choice fill label={`${n}일`} accessibilityLabel={`일주일에 ${n}일`} selected={days===n} onPress={()=>setDays(n)}/></View>)}</View>
   </View>
   {error?<Notice tone="error">{error}</Notice>:null}
   <Action label="목표 저장" loading={busy} onPress={()=>void save()}/>
