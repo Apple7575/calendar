@@ -105,7 +105,7 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 ### 단어장·일본어 학습 (feature/vocabulary, 8092)
 
 - `StudyCard` 터치 영역 44px: feature/vocabulary `a0ac614`에 반영됐다(미병합). 임시 병합에서 플래시카드 앞·뒷면의 44px 미만 항목 0건을 확인했다.
-- `JapaneseSampleScreen`의 막힌 이유 3칸은 사용자 요청으로 만든 구성이다. `Choice`로 옮길 때 가로 3칸을 유지한다(`<View style={{flex:1}}><Choice fill …/></View>`, `PriorityPlanEditor` 참고).
+- `JapaneseSampleScreen`의 막힌 이유 3칸은 사용자 결정에 따라 누르면 바로 저장하고 다음 문제로 넘어가는 실행 버튼이다. 선택 상태가 없으므로 `Choice`로 옮기지 않는다. 일반 버튼 컴포넌트로 바꾸더라도 가로 3칸은 유지한다. 새 상황의 표현 5개는 선택 항목이므로 `Choice` 대상이다.
 - 덱 목록의 눌리는 카드를 `NavCard`로 바꾼다. 지금도 모양은 비슷하지만 별도 구현이다.
 - `DeckCardsScreen`의 입력창 4개는 `Field`로 바꾼다.
 - `JapaneseSampleScreen`: 선택지와 입력은 `Choice`·`Field`, 문제·상황·해설 문장은 `Copy variant="body"`로 둔다. 문장을 줄이지 않는다. 일본어 문장에 `koreanTitle`을 쓰지 않는다.
