@@ -72,6 +72,14 @@ export function Action({ label, onPress, variant, secondary = false, disabled = 
     {icon&&!loading?<Ionicons name={icon} size={18} color={kind.on}/>:null}
   </Pressable></Animated.View>;
 }
+/** 아이콘 버튼. 재생·멈춤처럼 아이콘이 더 빠른 조작에 쓴다. 글자가 필요하면 caption을 함께 준다. 라벨은 스크린리더가 읽는다. */
+export function IconAction({icon,label,onPress,caption,large=false,disabled=false}:{icon:React.ComponentProps<typeof Ionicons>["name"];label:string;onPress:()=>void;caption?:string;large?:boolean;disabled?:boolean}){
+  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),box=large?control.large+space.md:control.touch;
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={({pressed})=>({alignItems:'center',gap:space.xxs,minWidth:control.touch,opacity:disabled?0.35:pressed?0.7:1})}>
+    <View style={{width:box,height:box,borderRadius:box/2,alignItems:'center',justifyContent:'center',backgroundColor:large?c.primarySoft:c.inputBg}}><Ionicons name={icon} size={large?30:20} color={large?role.primary.ink:c.text}/></View>
+    {caption?<Copy variant="caption" muted>{caption}</Copy>:null}
+  </Pressable>;
+}
 /** 글자 버튼. 이동·열기는 기본 색, 닫기·건너뛰기처럼 물러나는 행동은 muted. */
 export function Link({ label, onPress,disabled=false,muted }: { label: string; onPress: () => void;disabled?:boolean;muted?:boolean }) {
   const theme=useTheme(),{colors:c}=theme;

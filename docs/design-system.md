@@ -70,6 +70,7 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 <Action secondary compact label="큰 타이머로 돌아가기" onPress={back}/>   // 보조
 <Action variant="danger" label="단어장 삭제" onPress={confirmDelete}/>   // 위험. 결과를 문장으로 함께 쓴다
 <Action loading={busy} label="저장" onPress={save}/>                    // 진행 중에는 눌리지 않는다
+<IconAction large icon="pause" label="타이머 멈추기" onPress={pause}/>   // 재생·멈춤은 아이콘으로. 글자는 스크린리더용
 <Link label="이전 기록 보기" onPress={open}/>                           // 글자 버튼: 이동·열기
 <Link muted label="나중에 할게요" onPress={skip}/>                       // 글자 버튼: 물러나기
 

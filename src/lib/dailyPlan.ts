@@ -47,6 +47,21 @@ export function completeGuidedStep(data:RoutineData,key:string,slot:'morning'|'e
  return withDay(data,key,d=>({...d,eveningPlan:steps.map(s=>({...s})),evening:steps.map((_,i)=>!!d.evening?.[i]||i===index),guidedTimer:undefined}));
 }
 
+/** 실수로 마친 행동을 되돌린다. 이미 받은 보상은 그대로 두며, 다시 마쳐도 중복 지급되지 않는다. */
+export function undoGuidedStep(data:RoutineData,key:string,slot:'morning'|'evening',index:number):RoutineData{
+ return withDay(data,key,d=>{const flags=slot==='morning'?d.morning:d.evening??[];return {...d,...(slot==='morning'?{morning:flags.map((v,i)=>i===index?false:v)}:{evening:flags.map((v,i)=>i===index?false:!!v)}),guidedTimer:undefined};});
+}
+/** 지금 할 행동. 건너뛴 행동은 뒤로 미루고, 남은 것이 그것뿐이면 다시 돌아온다. 건너뛰어도 완료로 치지 않는다. */
+export function currentGuidedIndex(required:number[],done:boolean[],skipped:string[],ids:string[]=[]):number|undefined{
+ const open=required.filter(i=>!done[i]);
+ return open.find(i=>!skipped.includes(ids[i]))??open[0];
+}
+/** 이전으로 돌아갈 행동: 현재보다 앞에서 마친 가장 가까운 행동, 없으면 뒤쪽에서 마친 행동. */
+export function previousGuidedIndex(required:number[],done:boolean[],current:number):number|undefined{
+ const finished=required.filter(i=>done[i]);
+ return [...finished].reverse().find(i=>i<current)??finished[finished.length-1];
+}
+
 export function migrateDailyPlan(data:RoutineData):RoutineData{
  if(data.morningSteps)return data;
  const days=Object.fromEntries(Object.entries(data.days).map(([key,day])=>[key,(!day.morningPlan&&(day.morning.some(Boolean)||day.paid.morning>0))?{...day,morningPlan:DEFAULT_MORNING.map(s=>({...s}))}:day]));
