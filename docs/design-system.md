@@ -109,8 +109,10 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 ### 친구들 (feature/friends-ux, 8093)
 
-- `BoriHomeScreen`의 제목은 `Copy variant="section"`, 설명은 `caption`으로 맞춘다. 임의 `fontSize`를 줄인다.
-- `AnimalCharacterPicker`의 설명 글자가 작으면 `caption`(13)까지 올린다. 동물 카드 구성과 Lottie는 그대로 둔다.
+- 담당자 회신(2026-11-03): 적용은 이 브랜치가 develop에 병합된 뒤로 미룬다. 사용자가 친구들 탭을 목표 탭으로 바꾸는 안을 검토 중이므로, `BoriHomeScreen` 작업은 탭 유지가 결정된 경우에만 한다. 기준 화면은 develop이 아니라 feature/friends-ux의 구성이다.
+- `AnimalCharacterPicker`는 설정에서도 쓰므로 탭 결정과 무관하게 남는다. 역할 라벨은 `Copy`가 아닌 직접 지정한 10px라 글자 단계가 자동 적용되지 않는다.
+- 라벨 크기는 PM 조율 대상이다. 웹에서 값만 바꿔 잰 결과, 12px은 360·390px에서 모두 한 줄이고 네 칸 타일 높이가 112px이다. 13px은 360px에서 `집중 · 운동`, `저녁 · 일기`가 두 줄이 되어 타일이 110px에서 128px로 커진다. 13px 기준을 지키려면 타일 안쪽 여백이나 문구도 함께 조정해야 하며, 이 조합은 아직 측정하지 않았다.
+- 320px에서 타일이 3+1로 나뉘는 것은 기존 동작이다. 라벨 크기와 무관하게 난다.
 
 ### PM·통합
 
