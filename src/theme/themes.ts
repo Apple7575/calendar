@@ -149,11 +149,11 @@ const mint: Theme = {
 
 const routine: Theme = {
   ...mint, id: "routine", name: "친구들의 정원", colors: {
-    ...mint.colors, background: "#F6F8FC", surface: "#F6F8FC", card: "#FFFFFF",
-    text: "#202C46", textMuted: "#64738B", border: "#E3E8F2",
-    primary: "#4364EF", primarySoft: "#EDF1FF", success: "#2F8969",
-    successSoft: "#E7F5ED", inputBg: "#F1F4F9", dotEvent: "#BA7B50",
-    shadow: "#293F78", gradient: ["#E8EEFF", "#FFF0DF"],
+    ...mint.colors, background: "#F8F5EE", surface: "#F8F5EE", card: "#FFFDF9",
+    text: "#29261D", textMuted: "#6A6658", border: "#E9E4D8",
+    primary: "#3E6A2A", primarySoft: "#E9F0D9", success: "#3E6A2A",
+    successSoft: "#E9F0D9", inputBg: "#F2EEE4", dotEvent: "#BA7B50",
+    shadow: "#29261D", gradient: ["#E9F0D9", "#FFF0DF"],
   },
 };
 
