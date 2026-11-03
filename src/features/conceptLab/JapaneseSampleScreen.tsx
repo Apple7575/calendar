@@ -71,7 +71,7 @@ export function JapaneseSampleScreen({navigation}:RootScreenProps<'JapaneseSampl
     <Action secondary label="다시 연습" disabled={busy} onPress={()=>{if(retryItem)record(false);else setAsking(true);}}/></>}
    </>:<Action label="정답 보기" disabled={busy||(kind==='novel'&&!selection)} onPress={reveal}/>}
    <Link label={details?'설명 접기':revealed?'개념 설명 보기':'다섯 표현 뜻 보기'} onPress={()=>setDetails(!details)}/>
-   {details?revealed?<CardView><Copy weight="700">{concept.title}</Copy><Copy>{concept.meaning}</Copy>{stage===2?<><Copy muted size={13} weight="700">기본 예문 해설</Copy><Copy size={18}>{concept.example}</Copy><Copy>{concept.explanation}</Copy></>:null}<Copy muted size={12}>개념 연결: 교재 PDF {concept.page}쪽 · 예문과 문제는 이 샘플용으로 새로 작성했습니다.</Copy></CardView>:<CardView>{concepts.map(item=><View key={item.id} style={{gap:2}}><Copy weight="700">{item.title}</Copy><Copy size={14}>{item.meaning}</Copy></View>)}</CardView>:null}
+   {details?revealed?<CardView><Copy weight="700">{concept.title}</Copy><Copy>{concept.meaning}</Copy>{stage===2?<><Copy muted size={13} weight="700">기본 예문 해설</Copy><Copy size={18}>{concept.example}</Copy><Copy>{concept.explanation}</Copy></>:null}<Copy muted size={12}>{concept.sourceNeedsReview?'교재 근거 확인 필요 · 샘플 예문은 별도 작성':`개념 연결: 교재 PDF ${concept.page}쪽 · 예문과 문제는 이 샘플용으로 새로 작성했습니다.`}</Copy></CardView>:<CardView>{concepts.map(item=><View key={item.id} style={{gap:2}}><Copy weight="700">{item.title}</Copy><Copy size={14}>{item.meaning}</Copy></View>)}</CardView>:null}
   </>:null}
   {(stage===0||stage===2)&&stageComplete?<><Copy size={20}>다섯 표현을 모두 확인했어요.</Copy><Action label={stage===0?'독해로 이동':'말하기로 이동'} disabled={busy} onPress={nextStage}/></>:null}
   {stage===1?<>

@@ -54,6 +54,16 @@ describe('Japanese guided sample',()=>{
    expect(ids(old)).toEqual(['familiar-a','novel-c']);
   });
  });
+ it('marks a concept as unconfirmed exactly when its textbook evidence is needs_review',()=>{
+  const corpus=require('../../assets/concept-lab/sourceCorpus.json') as {concepts:{id:string;evidenceIds:string[]}[];extractions:{id:string;source:{status:string}}[]};
+  const flags=(japaneseSampleConcepts as {id:string;sourceId:string;sourceNeedsReview?:boolean}[]).map(item=>{
+   const concept=corpus.concepts.find(row=>row.id===item.sourceId)!;
+   const needsReview=concept.evidenceIds.some(id=>corpus.extractions.find(row=>row.id===id)?.source.status==='needs_review');
+   return [item.id,!!item.sourceNeedsReview,needsReview];
+  });
+  flags.forEach(([,shown,actual])=>expect(shown).toBe(actual));
+  expect(flags.filter(row=>row[2]).map(row=>row[0])).toEqual(['intention']);
+ });
  it('asks every new situation once without matching the fixed option order',()=>{
   const options=japaneseSampleConcepts.map(c=>c.id),order=japaneseSampleNovelConcepts.map(c=>c.id);
   expect([...order].sort()).toEqual([...options].sort());
