@@ -13,7 +13,8 @@ import {colorRoles} from '../../theme/roles';
 import {keyboardScrollDelta} from '../../lib/keyboardScroll';
 import {BoriMascot as Mascot} from './BoriMascot';
 import type {AnimalActionId,AnimalCharacterId} from './animalAssets';
-import {control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
+import type {MascotMood} from './boriAssets';
+import {character as characterSize,control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
 
 /** 오른쪽 링크로 지금 나갈 수 있으면 뒤로 화살표를 겹쳐 두지 않는다. 비활성이면 나가는 길이 없어지므로 화살표를 남긴다. */
 const EXIT_LABELS=['닫기','나가기','중단'];
@@ -122,21 +123,14 @@ export function Notice({tone="info",children,actionLabel,onAction}:{tone?:Notice
   </View>;
 }
 /** 빈 상태. 왜 비어 있는지와 첫 행동을 내용이 나타날 자리에 둔다. */
-export function EmptyState({title,description,actionLabel,onAction,character}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;character?:AnimalCharacterId}){
-  return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact label={actionLabel} onPress={onAction}/></View>:null}</View>;
+export function EmptyState({title,description,actionLabel,onAction,peek=false,character,mood='cheer'}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;peek?:boolean;character?:AnimalCharacterId;mood?:MascotMood}){
+  const content=<><Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action label={actionLabel} onPress={onAction}/></View>:null}</>;
+  return peek||character?<View><CharacterPeek character={character} mood={mood}/><CardView>{content}</CardView></View>:<View style={{gap:space.xs,paddingVertical:space.lg}}>{content}</View>;
 }
-/** 배경 없이 크게 그린 친구. 몸 아래쪽이 잘리므로 바로 다음에 카드를 놓아 카드 뒤에서 내다보게 한다. */
-export function CharacterPeek({character,action,maxSize=380}:{character?:AnimalCharacterId;action:AnimalActionId;maxSize?:number}){
-  const {width}=useWindowDimensions(),size=Math.min(maxSize,width*1.3);
-  return <View pointerEvents="none" style={{alignItems:'center',height:size*.44,overflow:'hidden'}}><View style={{marginTop:-size*.3}}><Mascot size={size} character={character} action={action}/></View></View>;
-}
-/** 캐릭터가 버튼 뒤에서 내다보는 다음 행동. 왼쪽에 지금 상태를 적고, 그래픽은 화면의 주인공 하나에만 쓴다. */
-export function CharacterAction({children,action,character='C03',pose='A31',small=false}:{children:ReactNode;action:ReactNode;character?:AnimalCharacterId;pose?:AnimalActionId;small?:boolean}){
-  const size=small?150:180,height=small?100:124;
-  return <View>
-    <View style={{height,justifyContent:'center',paddingRight:size*.62}}>{children}<View pointerEvents="box-none" style={{position:'absolute',right:-space.xs,bottom:-size*.2}}><Mascot character={character} action={pose} size={size}/></View></View>
-    <View style={{zIndex:1}}>{action}</View>
-  </View>;
+/** 화면의 주인공 친구. 누르면 반응한다. 배경 없이 크게 그리고 몸 아래쪽이 잘리므로, 같은 View 안에서 바로 다음에 카드를 놓아 카드 뒤에서 내다보게 한다. */
+export function CharacterPeek({character,action,mood,maxSize=characterSize.peekMax,interactive=true}:{character?:AnimalCharacterId;action?:AnimalActionId;mood?:MascotMood;maxSize?:number;interactive?:boolean}){
+  const {width}=useWindowDimensions(),size=Math.min(maxSize,width*characterSize.peekWidthRatio);
+  return <View pointerEvents={interactive?'box-none':'none'} style={{alignItems:'center',height:size*characterSize.peekVisible,overflow:'hidden'}}><View style={{marginTop:-size*characterSize.peekTopCrop}}><Mascot size={size} character={character} action={action} mood={mood}/></View></View>;
 }
 /** 불러오는 중. 무엇을 기다리는지 함께 적는다. */
 export function LoadingState({label}:{label:string}){

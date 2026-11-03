@@ -42,6 +42,9 @@ export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, xxl: 32 } 
 /** 버튼 높이. 한 줄에 놓인 버튼은 같은 높이를 쓴다. */
 export const control = { large: 56, compact: 48, touch: minTouch } as const;
 
+/** 화면의 주인공으로 나오는 친구의 크기 기준. 화면 폭의 1.3배까지 키우고 위아래를 잘라 몸 일부만 보인다. */
+export const character = { peekMax: 380, peekWidthRatio: 1.3, peekTopCrop: 0.3, peekVisible: 0.44 } as const;
+
 /** 글자 역할. 숫자 대신 역할을 고른다. 13은 건너뛰어도 되는 보조 정보에만 쓴다. */
 export const type = {
   title: { fontSize: 24, lineHeight: 33, fontWeight: "800", letterSpacing: -0.6 },

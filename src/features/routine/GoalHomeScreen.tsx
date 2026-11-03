@@ -10,7 +10,7 @@ import {colorRoles} from '../../theme/roles';
 import {koreanTitle,space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
 import {GoalDateInput} from './GoalDateInput';
-import {Action,CardView,Choice,Copy,EmptyState,Field,Icon,Link,LoadingState,Mascot,Notice,Page,Progress,u} from './ui';
+import {Action,CardView,CharacterPeek,Choice,Copy,EmptyState,Field,Icon,Link,LoadingState,Notice,Page,Progress,u} from './ui';
 
 type Nav=NativeStackNavigationProp<RootStackParamList>;
 const readableDate=(key:string)=>{const date=parseDateKey(key);return `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일`};
@@ -41,18 +41,17 @@ function GoalForm({goal,today,onDone,canCancel}:{goal?:PrimaryGoal;today:string;
 
 function GoalCard({goal,today,onEdit}:{goal:PrimaryGoal;today:string;onEdit:()=>void}){
  const theme=useTheme(),due=goalDueInfo(goal,today);
- return <CardView>
-  <View testID="goal-summary" style={[u.between,{gap:space.sm}]}>
+ return <View testID="goal-summary"><CharacterPeek mood="cheer"/><CardView>
+  <View style={[u.between,{gap:space.sm}]}>
    <View style={{flex:1,gap:space.xxs}}>
     {due?<Copy variant="label" style={{color:colorRoles(theme).primary.ink}}>{`${due.label} · ${readableDate(goal.dueDate!)}`}</Copy>:null}
     <Text {...koreanTitle.props} accessibilityRole="header" style={[koreanTitle.style,{color:theme.colors.text,fontSize:24,lineHeight:32,fontWeight:'800'}]}>{goal.title}</Text>
     {goal.why?<Copy muted>{goal.why}</Copy>:null}
    </View>
-   <Mascot size={84} mood="cheer"/>
   </View>
   {due?.passed?<Notice tone="warning" actionLabel="날짜 고치기" onAction={onEdit}>정한 날짜가 지났어요. 날짜를 고치거나 새 목표를 정해 보세요.</Notice>:null}
   <Link muted label="목표 고치기" onPress={onEdit}/>
- </CardView>;
+ </CardView></View>;
 }
 
 function WeekCard({goal,today}:{goal:PrimaryGoal;today:string}){
@@ -91,8 +90,7 @@ export function GoalHomeScreen(){
    </>
   :stored.status==='invalid'?<Notice tone="warning" actionLabel="목표 다시 정하기" onAction={()=>setEditing(true)}>저장된 목표를 읽지 못했어요. 다른 기록은 그대로예요. 목표를 다시 정해 주세요.</Notice>
   :<View testID="goal-empty" style={{gap:space.xs}}>
-    <View style={{alignItems:'center'}}><Mascot size={140} mood="cheer"/></View>
-    <EmptyState title="아직 목표가 없어요" description="목표를 하나 정하면 이번 주에 얼마나 다가갔는지와 다음에 할 일을 여기서 볼 수 있어요." actionLabel="목표 정하기" onAction={()=>setEditing(true)}/>
+    <EmptyState peek title="아직 목표가 없어요" description="목표를 하나 정하면 이번 주에 얼마나 다가갔는지와 다음에 할 일을 여기서 볼 수 있어요." actionLabel="목표 정하기" onAction={()=>setEditing(true)}/>
    </View>}
  </Page>;
 }
