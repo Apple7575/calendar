@@ -1,11 +1,22 @@
 export type JapaneseAnswer={id:string;conceptId:string;kind:'familiar'|'novel'|'reading'|'speaking';correct:boolean;reason?:string;selected?:string;at?:string};
-export type JapaneseSample={id:string;stage:number;answers:JapaneseAnswer[];startedAt:string;completedAt?:string};
+export type JapaneseRetry={id:string;correct:boolean;selected?:string;at:string};
+export type JapaneseSample={id:string;stage:number;answers:JapaneseAnswer[];startedAt:string;completedAt?:string;retries?:JapaneseRetry[]};
 export const newJapaneseSample=(id:string):JapaneseSample=>({id,stage:0,answers:[],startedAt:new Date().toISOString()});
 export const recordJapaneseAnswer=(s:JapaneseSample,a:JapaneseAnswer):JapaneseSample=>({...s,answers:[...s.answers.filter(old=>old.id!==a.id),{...a,at:new Date().toISOString()}]});
 export const moveJapaneseSample=(s:JapaneseSample,stage:number):JapaneseSample=>({...s,stage,completedAt:stage===4?s.completedAt??new Date().toISOString():s.completedAt});
+/** 처음 응답은 그대로 두고 다시 풀기만 따로 남긴다. 덜 다시 푼 문제가 앞에 오므로 또 틀린 문제는 뒤로 밀린다. */
+export function japaneseRetryQueue(s:JapaneseSample){
+ const retries=s.retries??[];
+ return s.answers
+  .filter(a=>(a.kind==='familiar'||a.kind==='novel')&&!a.correct&&!retries.some(r=>r.id===a.id&&r.correct))
+  .map(answer=>({answer,attempts:retries.filter(r=>r.id===answer.id).length}))
+  .sort((x,y)=>x.attempts-y.attempts)
+  .map(row=>row.answer);
+}
+export const recordJapaneseRetry=(s:JapaneseSample,r:Omit<JapaneseRetry,'at'>):JapaneseSample=>({...s,retries:[...(s.retries??[]),{...r,at:new Date().toISOString()}]});
 export function japaneseSampleSummary(s:JapaneseSample){
  const count=(kind:JapaneseAnswer['kind'])=>{const rows=s.answers.filter(a=>a.kind===kind);return {correct:rows.filter(a=>a.correct).length,total:rows.length};};
- return {familiar:count('familiar'),novel:count('novel'),reading:count('reading'),speaking:count('speaking')};
+ return {familiar:count('familiar'),novel:count('novel'),reading:count('reading'),speaking:count('speaking'),retried:new Set((s.retries??[]).filter(r=>r.correct).map(r=>r.id)).size};
 }
 export const japaneseSampleConcepts=[
  {id:'decision',sourceId:'concept-pdf-b5dd18f7d498',page:199,title:'〜ことにする',meaning:'스스로 생각하고 결정한 일을 말합니다.',example:'自分で考えて、毎朝走ることにした。',question:'화자는 자신의 결정을 말하고 있나요, 외부에서 정해진 일을 전달하고 있나요?',answer:'자신이 결정한 일을 말합니다.',explanation:'自分で考えて가 결정의 주체를 알려 줍니다. 동사 사전형·ない형 뒤에 ことにする를 붙입니다.',situation:'일본어 듣기 실력을 키우고 싶어서 직접 결정했습니다. 이번 주부터 매일 일본어 뉴스를 듣기로 했다고 말해 보세요.',application:'今週から毎日、日本語のニュースを聞くことにした。',criterion:'스스로 정한 계획이라는 뜻을 ことにした로 표현했다면 인정합니다. 어순이나 다른 자연스러운 부사 표현은 달라도 됩니다.'},
