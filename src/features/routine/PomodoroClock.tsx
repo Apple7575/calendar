@@ -14,7 +14,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
  const size=Math.max(132,Math.min(landscape?area.height-100:area.width-48,landscape?area.width*.52:320,320)),radius=size/2-7,circumference=2*Math.PI*radius,progress=Math.max(0,Math.min(1,left/Math.max(total,1)));
  const seconds=Math.abs(left),overtime=phase==='focus'&&left<=0,time=(left<0?'+':'')+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
  const button=(label:string,fn:()=>void,primary=false,compact=false)=><Pressable accessibilityRole="button" onPress={fn} style={({pressed})=>({minHeight:44,justifyContent:'center',paddingVertical:compact?10:13,paddingHorizontal:compact?13:20,borderRadius:12,backgroundColor:primary?p.accent:'#ffffff0D',borderWidth:1,borderColor:primary?p.accent:'#81909B66',transform:[{scale:pressed?.97:1}]})}><Text style={{color:primary?(design==='B'?'#FFFFFF':'#17251C'):p.text,fontSize:compact?14:17,fontWeight:'700',textAlign:'center'}}>{label}</Text></Pressable>;
- return <View testID="focus-clock" onLayout={e=>setArea(e.nativeEvent.layout)} style={{flex:1,backgroundColor:p.bg,padding:landscape?16:24,gap:10}}>
+ return <View testID="focus-clock" onLayout={e=>setArea(e.nativeEvent.layout)} style={{flex:1,backgroundColor:p.bg,padding:landscape?12:24,gap:landscape?8:10}}>
   <View style={{flexDirection:'row',alignItems:'center',gap:12,justifyContent:'space-between'}}>
    <Text numberOfLines={1} style={{color:p.accent,fontSize:18,fontWeight:'800',flexShrink:0}}>{resting?'휴식 중':idle?'다음 공부 준비':overtime?'추가 공부 중':'집중 시간'}</Text>
    <View style={{flex:1,alignItems:'center'}}>{button(revealed?subject:'과목 보기',()=>setRevealed(v=>!v),false,true)}</View>
@@ -32,7 +32,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
      <Text style={{color:p.muted,fontSize:13}}>{idle?'시작하면 공부 시간이 쌓여요':!running?(resting?'휴식 일시정지':'일시정지 중'):resting?'편하게 쉬어도 좋아요':overtime?'목표 달성 · 공부 시간은 계속 쌓여요':'지금은 이 순간에 집중'}</Text>
     </View>
    </View>
-   <View style={{width:landscape?238:'100%',maxWidth:360,gap:12}}>
+   <View style={{width:landscape?238:'100%',maxWidth:360,gap:landscape?8:12}}>
     {design==='C'?<Text style={{color:p.accent,fontSize:16,fontWeight:'800'}}>{revealed?subject:'지금 할 행동에 집중해요'}</Text>:null}
     {resting&&onSkipBreak?button(needsPlan?'계획 쓰고 다시 공부하기':'쉬는 시간 건너뛰고 공부하기',onSkipBreak,true,true):null}
     {ready&&!resting&&onPhoto?button('필기 사진 제출',onPhoto,true):null}
