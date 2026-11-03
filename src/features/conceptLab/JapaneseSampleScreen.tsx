@@ -49,7 +49,7 @@ export function JapaneseSampleScreen({navigation}:RootScreenProps<'JapaneseSampl
  const stageComplete=stage===0?answered('familiar'):stage===2?answered('novel'):false;
  const pickedWrong=kind==='novel'&&selection!==concept.id;
  const firstResult=(id:string,ok:string)=>session.answers.find(a=>a.id===id)?.correct?ok:session.retries?.some(r=>r.id===id&&r.correct)?'다시 풀어 맞힘':'다시 연습';
- return <Page key={`${session.id}-${stage}-${index}-${revealed}-${readingFeedback}-${retrying}-${session.retries?.length??0}`} title="오늘의 일본어" right={<></>}>
+ return <Page key={`${session.id}-${stage}-${index}-${readingFeedback}-${retrying}-${session.retries?.length??0}`} title="오늘의 일본어" right={<></>}>
   {error?<Copy>{error}</Copy>:null}
   {stage<4?<><Copy size={22} weight="800">{stage+1}. {phases[stage]}</Copy></>:null}
   {stage===4&&queue.length>0&&!retrying?<>
