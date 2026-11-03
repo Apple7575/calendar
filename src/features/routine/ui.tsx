@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Keyboard, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from "react-native";
+import { ActivityIndicator, Animated, Keyboard, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, useWindowDimensions, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeContext";
@@ -124,6 +124,11 @@ export function Notice({tone="info",children,actionLabel,onAction}:{tone?:Notice
 /** 빈 상태. 왜 비어 있는지와 첫 행동을 내용이 나타날 자리에 둔다. */
 export function EmptyState({title,description,actionLabel,onAction,character}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;character?:AnimalCharacterId}){
   return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact label={actionLabel} onPress={onAction}/></View>:null}</View>;
+}
+/** 배경 없이 크게 그린 친구. 몸 아래쪽이 잘리므로 바로 다음에 카드를 놓아 카드 뒤에서 내다보게 한다. */
+export function CharacterPeek({character,action,maxSize=380}:{character?:AnimalCharacterId;action:AnimalActionId;maxSize?:number}){
+  const {width}=useWindowDimensions(),size=Math.min(maxSize,width*1.3);
+  return <View pointerEvents="none" style={{alignItems:'center',height:size*.44,overflow:'hidden'}}><View style={{marginTop:-size*.3}}><Mascot size={size} character={character} action={action}/></View></View>;
 }
 /** 캐릭터가 버튼 뒤에서 내다보는 다음 행동. 왼쪽에 지금 상태를 적고, 그래픽은 화면의 주인공 하나에만 쓴다. */
 export function CharacterAction({children,action,character='C03',pose='A31',small=false}:{children:ReactNode;action:ReactNode;character?:AnimalCharacterId;pose?:AnimalActionId;small?:boolean}){
