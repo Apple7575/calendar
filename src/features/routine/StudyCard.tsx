@@ -1,10 +1,9 @@
-import React, { useEffect,useRef,useState } from 'react';
-import { Animated,Pressable, Text, useWindowDimensions, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { Word } from '../../lib/routineModel';
 import { useTheme } from '../../theme/ThemeContext';
 import { Copy, Icon } from './ui';
 import { useStudyAudio } from './StudyAudio';
-import { useReducedMotion } from './motion';
 import { StudyCardMenu } from './StudyCardMenu';
 import {StudyCardSurface} from './StudyCardSurface';
 
@@ -12,9 +11,6 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
   const {colors:c}=useTheme(),{height}=useWindowDimensions();const compact=height<760;
   const [extra,setExtra]=useState(false);
   const [details,setDetails]=useState(false),[hint,setHint]=useState(false);
-  const reduced=useReducedMotion();
-  const reveal=useRef(new Animated.Value(revealed?1:0)).current;
-  useEffect(()=>{if(!revealed||reduced){reveal.setValue(revealed?1:0);return;}const a=Animated.timing(reveal,{toValue:1,duration:140,useNativeDriver:true});a.start();return()=>a.stop();},[revealed,reveal,reduced]);
   const audio=useStudyAudio(word.fields,word.kind==='sentence'?'sentence':'word',revealed&&!paused);
   const audioButton=(kind:'word'|'sentence')=>{
     const source=kind==='word'?audio.wordSource:audio.sentenceSource;
@@ -36,7 +32,7 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
       <View style={{height:24,justifyContent:'center'}}>{revealed&&word.kind!=='sentence'&&word.fields?.Word_Reading?<Text style={{color:c.textMuted,fontSize:16,lineHeight:24}}>{word.fields.Word_Reading}</Text>:null}</View>
       {word.kind!=='sentence'?<View style={{position:'absolute',right:0,top:compact?8:11}}>{audioButton('word')}</View>:null}
     </Pressable>
-    {revealed?<Animated.View style={{opacity:reveal,borderTopWidth:1,borderColor:c.border,paddingTop:12,gap:12}}>
+    {revealed?<View style={{borderTopWidth:1,borderColor:c.border,paddingTop:12,gap:12}}>
       <Text style={{color:c.text,fontSize:22,lineHeight:30,fontWeight:'700',textAlign:'center'}}>{word.back}</Text>
       {word.fields?.Sentence&&word.kind!=='sentence'?<Pressable testID="study-example-surface" accessibilityRole="button" accessibilityLabel="예문 영역 듣기" onPress={e=>{e.stopPropagation();void audio.play('sentence')}} style={{backgroundColor:c.inputBg,borderRadius:16,padding:14,gap:5}}>
         <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',height:30}}><Copy muted size={11}>예문</Copy>{audioButton('sentence')}</View>
@@ -47,7 +43,7 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
       {extra?<View style={{gap:6}}>{word.fields?.Sentence_Reading?<Copy muted size={13}>{word.fields.Sentence_Reading}</Copy>:null}{word.fields?.Grammar_Note?<Copy muted size={13}>{word.fields.Grammar_Note}</Copy>:null}{word.fields?.Hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:null}</View>:null}
       {audio.sourceLoading?<Copy muted size={12}>음성을 준비하고 있어요…</Copy>:null}
       {audio.error?<View><Copy muted size={12}>{audio.error}</Copy><Pressable accessibilityRole="button" accessibilityLabel="음성 다시 준비" onPress={e=>{e.stopPropagation();audio.retrySources()}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={12}>다시 받기</Copy></Pressable></View>:null}
-    </Animated.View>:<View style={{alignItems:'center',gap:8,paddingTop:12}}>
+    </View>:<View style={{alignItems:'center',gap:8,paddingTop:12}}>
       {word.fields?.Hint?hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:<Pressable accessibilityRole="button" accessibilityLabel="힌트 보기" onPress={e=>{e.stopPropagation();setHint(true)}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={13}>힌트 보기</Copy></Pressable>:null}
     </View>}
   </StudyCardSurface>;
