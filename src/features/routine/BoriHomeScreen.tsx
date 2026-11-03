@@ -2,7 +2,7 @@ import {useAnimalCharacter} from '../../lib/animalPreference';
 import {AnimalCharacterPicker} from './AnimalCharacterPicker';
 import {AnimalSharedScene} from './AnimalSharedScene';
 import React from 'react';
-import {Pressable,Text,View} from 'react-native';
+import {Pressable,Text,View,useWindowDimensions} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
@@ -17,6 +17,7 @@ import {SettingsButton,useScene} from './experience';
 import {boriStageLabels} from './boriAssets';
 export function BoriHomeScreen(){
  const companion=useAnimalCharacter();
+ const {width}=useWindowDimensions(),characterSize=Math.min(390,width-40);
  const {data,dayKey,now}=useRoutine(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{colors:c}=useTheme();
  const night=now.getHours()>=18||now.getHours()<4,p=useScene(night?'evening':'morning'),stage=data.boriStage??'sprout',week=boriWeek(data,dayKey),streak=routineStreak(data,dayKey),diary=useDayData(todayKey());
  const books=(data.bookSessions?.filter(s=>s.note.trim()).length??0)+(data.handwritingReceipts?.length??0);
@@ -26,7 +27,7 @@ export function BoriHomeScreen(){
    <AnimalSharedScene tone="garden"/>
    <View style={u.between}><Text style={{color:p.ink,fontSize:18,fontWeight:'800'}}>{night?'별빛 아래, 잠깐 쉬어요':'오늘도 내 자리에서 기다렸어요'}</Text><Icon name={night?'moon-outline':'sunny-outline'} color={p.ink}/></View>
    <View pointerEvents="none" style={{position:'absolute',width:440,height:180,borderRadius:220,left:-30,bottom:-80,backgroundColor:p.ground}}/>
-   <View style={{alignItems:'center',paddingVertical:8}}><Mascot character={companion} size={205} mood={night?'sleepy':data.bookTimer?.phase==='focus'?'focus':'cheer'}/></View>
+   <View testID="friend-garden-stage" style={{alignItems:'center',justifyContent:'center',height:characterSize*.74,overflow:'hidden'}}><Mascot character={companion} size={characterSize} mood={night?'sleepy':data.bookTimer?.phase==='focus'?'focus':'cheer'}/></View>
    <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}><Text style={{color:p.ink,fontWeight:'700'}}>친구를 톡, 눌러보세요</Text><View style={{flexDirection:'row',gap:12}}>{books>0?<Icon name="book-outline" color={p.ink} size={26}/>:null}{diary.diary.diary?<Icon name="journal-outline" color={p.ink} size={26}/>:null}<Icon name="leaf-outline" color={p.ink} size={27}/></View></View>
   </View>
   <View style={u.between}><Copy size={22} weight="800">{boriStageLabels[stage]}</Copy><Copy muted size={12}>쉬어도 성장은 남아요</Copy></View>

@@ -2,19 +2,18 @@ import React, { useEffect,useRef,useState } from 'react';
 import { Animated,Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { Word } from '../../lib/routineModel';
 import { useTheme } from '../../theme/ThemeContext';
-import { CardView, Copy, Icon } from './ui';
+import { Copy, Icon } from './ui';
 import { useStudyAudio } from './StudyAudio';
 import { useReducedMotion } from './motion';
 import { StudyCardMenu } from './StudyCardMenu';
+import {StudyCardSurface} from './StudyCardSurface';
 
 export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word:Word;revealed:boolean;onReveal:()=>void;fill?:boolean;paused?:boolean}) {
   const {colors:c}=useTheme(),{height}=useWindowDimensions();const compact=height<760;
   const [extra,setExtra]=useState(false);
   const [details,setDetails]=useState(false),[hint,setHint]=useState(false);
   const reduced=useReducedMotion();
-  const entrance=useRef(new Animated.Value(reduced?1:0)).current;
   const reveal=useRef(new Animated.Value(revealed?1:0)).current;
-  useEffect(()=>{if(reduced){entrance.setValue(1);return;}const a=Animated.timing(entrance,{toValue:1,duration:160,useNativeDriver:true});a.start();return()=>a.stop();},[entrance,reduced]);
   useEffect(()=>{if(!revealed||reduced){reveal.setValue(revealed?1:0);return;}const a=Animated.timing(reveal,{toValue:1,duration:140,useNativeDriver:true});a.start();return()=>a.stop();},[revealed,reveal,reduced]);
   const audio=useStudyAudio(word.fields,word.kind==='sentence'?'sentence':'word',revealed&&!paused);
   const audioButton=(kind:'word'|'sentence')=>{
@@ -27,9 +26,7 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
       <Icon name={active?'pause-outline':'volume-medium-outline'} color={c.primary} size={22}/>
     </Pressable>;
   };
-  return <Animated.View style={{flexGrow:fill?1:0,opacity:entrance,transform:[{translateY:entrance.interpolate({inputRange:[0,1],outputRange:[4,0]})}]}}>
-    <Pressable testID="study-card-surface" style={{flexGrow:fill?1:0}} onPress={()=>{if(!revealed&&!details)onReveal();}} accessible={false}>
-    <CardView style={{flexGrow:fill?1:0,padding:compact?16:20,gap:10,paddingBottom:fill?110:compact?16:20,minHeight:revealed?0:compact?270:310,borderWidth:1,borderColor:c.border,borderRadius:28}}>
+  return <StudyCardSurface fill={fill} revealed={revealed} onReveal={onReveal} canReveal={!details} overlay={<StudyCardMenu word={word} visible={details} onClose={()=>setDetails(false)} auto={audio.auto} sentenceAuto={audio.sentenceAuto} toggleAuto={audio.toggleAuto} toggleSentenceAuto={audio.toggleSentenceAuto} rates={audio.rates} setRate={audio.setRate}/>}>
     <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',height:24}}>
       <Copy muted size={12}>{word.kind==='sentence'?'문장':'단어'} · {word.card.reps===0?'새 카드':'복습 카드'}{word.favorite?' · ★':''}{word.issue?' · 확인 필요':''}</Copy>
       <Pressable accessibilityRole="button" accessibilityLabel="학습 카드 옵션" hitSlop={8} onPress={e=>{e.stopPropagation();setDetails(true)}} style={{width:32,height:32,justifyContent:'center',alignItems:'center'}}><Icon name="ellipsis-horizontal" size={20}/></Pressable>
@@ -53,8 +50,5 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
     </Animated.View>:<View style={{alignItems:'center',gap:8,paddingTop:12}}>
       {word.fields?.Hint?hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:<Pressable accessibilityRole="button" accessibilityLabel="힌트 보기" hitSlop={6} onPress={e=>{e.stopPropagation();setHint(true)}} style={{minHeight:32,justifyContent:'center'}}><Copy muted size={13}>힌트 보기</Copy></Pressable>:null}
     </View>}
-    </CardView>
-    </Pressable>
-    <StudyCardMenu word={word} visible={details} onClose={()=>setDetails(false)} auto={audio.auto} sentenceAuto={audio.sentenceAuto} toggleAuto={audio.toggleAuto} toggleSentenceAuto={audio.toggleSentenceAuto} rates={audio.rates} setRate={audio.setRate}/>
-  </Animated.View>;
+  </StudyCardSurface>;
 }

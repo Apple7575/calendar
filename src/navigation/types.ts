@@ -44,6 +44,8 @@ export type RootStackParamList = {
   RoutineSetup: {slot?:'morning'|'evening'}|undefined;
   GuidedRoutine:{slot:'morning'|'evening'};
   StudySettings: undefined;
+  ConceptLab: undefined;
+  JapaneseSample: undefined;
   StudyPreferences:undefined;
   DeckCards:{deckId:string};
   SavedStudy: undefined;

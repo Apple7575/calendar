@@ -160,7 +160,7 @@ const routine: Theme = {
 export function priorityVisuals(theme:Theme){return theme.isDark?{
  stage:'#302B35',stageLine:'#685366',stageDot:'#504052',stageInk:'#E8C9B6',brand:'#A8BDFF',brandDeep:'#6D86D1',onBrand:'#172344',brandSoft:'#263555',brandInk:'#B9CAFF',paper:'#1B2230',mutedSurface:'#232C3C',success:'#8DD9BA',successSoft:'#203C36',line:'#334055',ink:'#ECF1FC',muted:'#A8B3CA',
 }:{
- stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#91694C',brand:'#4364EF',brandDeep:'#304BB8',onBrand:'#FFFFFF',brandSoft:'#EDF1FF',brandInk:'#3D59BB',paper:'#FFFFFF',mutedSurface:'#F1F4FA',success:'#2D8569',successSoft:'#E8F6EF',line:'#E3E8F2',ink:'#202C46',muted:'#5F6F88',
+ stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#855D41',brand:'#4364EF',brandDeep:'#304BB8',onBrand:'#FFFFFF',brandSoft:'#EDF1FF',brandInk:'#3D59BB',paper:'#FFFFFF',mutedSurface:'#F1F4FA',success:'#2D8569',successSoft:'#E8F6EF',line:'#E3E8F2',ink:'#202C46',muted:'#5F6F88',
 };}
 
 const dark: Theme = {

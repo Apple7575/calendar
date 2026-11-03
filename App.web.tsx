@@ -18,12 +18,15 @@ import { DiaryListenScreen } from "./src/screens/DiaryListenScreen";
 import { DiaryEditScreen } from "./src/screens/DiaryEditScreen";
 import { DeckCardsScreen } from "./src/features/routine/DeckCardsScreen";
 import { StudyPreferencesScreen } from "./src/features/routine/StudySettingsScreens";
+import {JapaneseSampleScreen} from './src/features/conceptLab/JapaneseSampleScreen';
+import {ConceptLabScreen} from './src/features/conceptLab/ConceptLabScreen';
 import { useSession } from "./src/hooks/useSession";
 import { GuidedRoutineScreen } from "./src/features/routine/GuidedRoutineScreen";
 import { BookStudyScreen } from "./src/features/routine/BookStudyScreen";
 import { BackupScreen } from "./src/features/routine/BackupScreen";
 import { SavedStudyScreen } from "./src/features/routine/SavedStudyScreen";
 import n3Deck from './assets/decks/n3-vocabulary.json';
+import n2Deck from './assets/decks/n2-vocabulary.json';
 import { emptyData,mergePublishedDeck } from './src/lib/routineModel';
 import React, { useState } from "react";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
@@ -51,7 +54,10 @@ function Preview() {
   const {session}=useSession();
   const priorityDemo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('priorityDemo')==='1';
   const demo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('studyDemo')==='1';
-  const [demoData]=useState(()=>priorityDemo?priorityDemoData():demo?mergePublishedDeck(emptyData(),{...n3Deck,schema:'routine.japanese-deck.v1'}):undefined);
+  const n2Demo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('n2Demo')==='1';
+  const conceptDemo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('conceptDemo')==='1';
+  const japaneseDemo=typeof window!=="undefined"&&new URLSearchParams(window.location.search).get('japaneseDemo')==='1';
+  const [demoData]=useState(()=>priorityDemo?priorityDemoData():n2Demo?mergePublishedDeck(emptyData(),{...n2Deck,schema:'routine.japanese-deck.v1'}):demo?mergePublishedDeck(emptyData(),{...n3Deck,schema:'routine.japanese-deck.v1'}):undefined);
   const { colors: c } = useTheme();
   const navigation = useNavigationContainerRef<RootStackParamList>();
   const [wide,setWide]=useState(false);
@@ -59,8 +65,8 @@ function Preview() {
     <View style={{ width: "100%", maxWidth: wide?undefined:460, flex: 1, backgroundColor: c.surface }}>
       <View style={{ paddingVertical: 9, paddingHorizontal: 16, backgroundColor: c.primarySoft }}><Text style={{ color: c.text, fontSize: 12, textAlign: "center" }}>{priorityDemo?'중요한 공부 실험 · 예시 데이터 · 앱 차단 미지원':'웹 미리보기 · 이 브라우저에만 기록 저장 · 앱 차단 미지원'}</Text>{priorityDemo?<Text accessibilityRole="button" onPress={()=>{localStorage.removeItem('routine.v1.web-priority-demo');window.location.reload()}} style={{textAlign:'center',fontSize:12,color:c.primary,paddingTop:5}}>예시 초기화</Text>:null}
       </View>
-      <RoutineProvider key={priorityDemo?'priority-demo':session?.user.id??'preview'} userId={priorityDemo?'web-priority-demo':session?`web-preview:${session.user.id}`:demo?'web-study-demo':'web-preview'} cloudUserId={priorityDemo?undefined:session?.user.id} initialData={demoData}>
-        <NavigationContainer onStateChange={()=>setWide(navigation.getCurrentRoute()?.name==='FocusTimer')} ref={navigation} onReady={()=>{if(demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
+      <RoutineProvider key={japaneseDemo?'japanese-demo':conceptDemo?'concept-demo':priorityDemo?'priority-demo':n2Demo?'n2-demo':session?.user.id??'preview'} userId={japaneseDemo?'web-japanese-demo':conceptDemo?'web-concept-demo':priorityDemo?'web-priority-demo':n2Demo?'web-n2-demo':session?`web-preview:${session.user.id}`:demo?'web-study-demo':'web-preview'} cloudUserId={priorityDemo||n2Demo||conceptDemo||japaneseDemo?undefined:session?.user.id} initialData={demoData}>
+        <NavigationContainer onStateChange={()=>setWide(navigation.getCurrentRoute()?.name==='FocusTimer')} ref={navigation} onReady={()=>{if(japaneseDemo)navigation.navigate('JapaneseSample');else if(conceptDemo)navigation.navigate('ConceptLab');else if(demo||n2Demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
@@ -86,12 +92,14 @@ function Preview() {
             <Stack.Screen name="RoutineBackup" component={BackupScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SavedStudy" component={SavedStudyScreen} />
             <Stack.Screen name="DeckCards" component={DeckCardsScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="JapaneseSample" component={JapaneseSampleScreen} options={{headerShown:false}}/>
             <Stack.Screen name="StudyPreferences" component={StudyPreferencesScreen} options={{headerShown:false}}/>
             <Stack.Screen name="DayDetail" component={DayDetailScreen} options={{headerShown:false}}/>
             <Stack.Screen name="PhotoViewer" component={PhotoViewerScreen} options={{headerShown:false}}/>
             <Stack.Screen name="DiaryListen" component={DiaryListenScreen} options={{headerShown:false}}/>
             <Stack.Screen name="DiaryEdit" component={DiaryEditScreen} options={{headerShown:false}}/>
             <Stack.Screen name="StudySettings" component={StudySettingsScreen} />
+            <Stack.Screen name="ConceptLab" component={ConceptLabScreen}/>
             {(["RoutineScreenTime", "LegacyCalendar", "LegacyToday", "LegacyReport", "LegacyInterests", "Gallery", "Camera", "Routines", "Settings", "Workout", "EventEdit"] as const).map(name => <Stack.Screen key={name} name={name} component={DeviceOnly} />)}
           </Stack.Navigator>
         </NavigationContainer>

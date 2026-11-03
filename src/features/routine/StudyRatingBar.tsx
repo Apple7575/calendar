@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Grade,Rating } from 'ts-fsrs';
 import { useTheme } from '../../theme/ThemeContext';
 
-export function StudyRatingBar({revealed,busy,onReveal,onAnswer,interval}:{revealed:boolean;busy:boolean;onReveal:()=>void;onAnswer:(grade:Grade)=>void;interval:(grade:Grade)=>string}) {
+export function StudyRatingBar({revealed,busy,onReveal,onAnswer,interval,revealLabel='정답 보기'}:{revealed:boolean;busy:boolean;onReveal:()=>void;onAnswer:(grade:Grade)=>void;interval:(grade:Grade)=>string;revealLabel?:string}) {
   const {colors:c,isDark}=useTheme(),insets=useSafeAreaInsets();const [opaque,setOpaque]=useState(false);
   useEffect(()=>{let live=true;if(Platform.OS==='ios')void AccessibilityInfo.isReduceTransparencyEnabled().then(value=>{if(live)setOpaque(value)}).catch(()=>{});
     const listener=AccessibilityInfo.addEventListener('reduceTransparencyChanged',setOpaque);return()=>{live=false;listener.remove()};},[]);
@@ -14,7 +14,7 @@ export function StudyRatingBar({revealed,busy,onReveal,onAnswer,interval}:{revea
       {revealed?<View style={{flexDirection:'row',gap:4}}>{([[Rating.Again,'다시'],[Rating.Hard,'어려움'],[Rating.Good,'좋음'],[Rating.Easy,'쉬움']]as const).map(([grade,label])=><Pressable key={grade} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled:busy}} disabled={busy} onPress={()=>onAnswer(grade)}
         style={({pressed})=>({flex:1,minHeight:66,borderRadius:20,alignItems:'center',justifyContent:'center',gap:5,opacity:busy?0.45:1,backgroundColor:pressed?c.primarySoft:isDark?'rgba(255,255,255,0.045)':'rgba(255,255,255,0.2)'})}>
         <Text style={{color:c.text,fontSize:15,fontWeight:'700'}}>{label}</Text><Text style={{color:c.textMuted,fontSize:11}}>{interval(grade)}</Text>
-      </Pressable>)}</View>:<Pressable accessibilityRole="button" accessibilityLabel="정답 보기" accessibilityState={{disabled:busy}} disabled={busy} onPress={onReveal} style={({pressed})=>({minHeight:62,borderRadius:21,alignItems:'center',justifyContent:'center',backgroundColor:pressed?c.primarySoft:'transparent',opacity:busy?0.5:1})}><Text style={{color:c.text,fontSize:17,fontWeight:'700'}}>정답 보기</Text></Pressable>}
+      </Pressable>)}</View>:<Pressable accessibilityRole="button" accessibilityLabel={revealLabel} accessibilityState={{disabled:busy}} disabled={busy} onPress={onReveal} style={({pressed})=>({minHeight:62,borderRadius:21,alignItems:'center',justifyContent:'center',backgroundColor:pressed?c.primarySoft:'transparent',opacity:busy?0.5:1})}><Text style={{color:c.text,fontSize:17,fontWeight:'700'}}>{revealLabel}</Text></Pressable>}
     </BlurView>
   </View>;
 }

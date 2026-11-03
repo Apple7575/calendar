@@ -17,7 +17,7 @@ import {rewardChange} from '../../lib/rewardChange';
 export function HandwritingStudy(){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  const {data,dayKey,update,accountId,native}=useRoutine(),draft=data.outputDraft,pending=data.handwritingPending;
- const [photo,setPhoto]=useState<{uri:string;base64:string;hash:string}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[permission,setPermission]=useState(false);
+ const [photo,setPhoto]=useState<{uri:string;base64:string;hash:string}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[permission,setPermission]=useState(false),[details,setDetails]=useState(false),[history,setHistory]=useState(false);
  const [clock,setClock]=useState(Date.now());
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(id)},[]);
  const access=handwritingAccess(data,draft?.subject??'',clock),ramp=focusRampStatus(data,clock),requiredMinutes=ramp.required/60;
@@ -54,18 +54,20 @@ export function HandwritingStudy(){
   catch(e){if(live.current)setError(e instanceof Error?e.message:'기록을 저장하지 못했어요.');}finally{if(live.current)setBusy(false);}
  };
  return <View style={{gap:16}}>
-  <CardView><Copy weight="800" size={21}>{subject} · 손으로 남긴 공부</Copy><Copy>오늘 인정 필기 {today}자</Copy><Copy muted size={13}>사진은 언제든 저장해요. 이번 단계의 실제 공부 시간을 채우면 사진을 확인하고 사용 시간 5분을 받아요.</Copy></CardView>
-  <CardView><Copy weight="800">{ramp.needsPlan?'계획 한 줄부터 시작해 주세요':access.ready?'사진 보상 가능 · 이번 단계 +5분':'보상까지 집중 '+Math.floor(access.remaining/60)+'분 '+access.remaining%60+'초'}</Copy><Copy muted size={13}>{ramp.needsPlan?'계획 저장은 공부 시간 없이 +5분이에요.':requiredMinutes+'분을 채우면 대기 중인 사진을 함께 정산해요. 정지·휴식 시간은 제외해요.'}</Copy></CardView>
+  <View style={{gap:6}}><Copy weight="800" size={21}>{pending?'읽은 내용을 확인해 주세요':photo?'이 사진을 제출할까요?':'공부한 노트 한 쪽을 남겨요'}</Copy><Copy muted size={13}>{subject} · 오늘 인정 필기 {today}자</Copy><Copy muted size={13}>{ramp.needsPlan?'사진은 저장할 수 있어요. 시간 보상은 계획부터 시작해 주세요.':access.ready?'실제 공부 시간 충족 · 새 필기를 확인하면 +5분':'사진은 먼저 저장해도 돼요 · 시간 보상까지 '+Math.floor(access.remaining/60)+'분 '+access.remaining%60+'초'}</Copy></View>
 
+  {error?<CardView><Copy>{error}</Copy>{permission&&Platform.OS!=='web'?<Link label="카메라 권한 설정 열기" onPress={()=>void Linking.openSettings()}/>:null}</CardView>:null}
   {pending&&preview?<CardView><Copy size={21} weight="800">이렇게 읽었어요</Copy><Copy muted size={13}>{pending.analysis.languages.map(l=>({ko:'한글',en:'영어',ja:'일본어',math:'수식'}[l])).join(' · ')} · 새 분량 {preview.units}자{preview.duplicateUnits?` · 중복 제외 ${preview.duplicateUnits}자`:''}</Copy><ScrollView style={{maxHeight:240}} nestedScrollEnabled><Copy>{pending.analysis.lines.join('\n')}</Copy></ScrollView><Copy muted size={12}>틀리게 읽은 부분이 많으면 다시 찍어 주세요. 돈 보상의 글자 수는 공백·문장부호를 뺀 문자와 숫자 기준이에요.</Copy><Action label={!preview.units?'이미 기록한 내용이에요':ramp.needsPlan?'사진 저장 · 계획부터 시작':access.ready?'이번 단계 완료 · +5분 받기':'사진 저장 · '+requiredMinutes+'분 공부 후 +5분'} disabled={busy||!preview.units} onPress={()=>void save()}/><Link label="이 결과 버리고 다시 찍기" disabled={busy} onPress={()=>{void update(s=>({...s,handwritingPending:undefined})).then(()=>setPhoto(null)).catch(e=>setError(e.message))}}/></CardView>:<CardView>
    {photo?<><Image source={{uri:photo.uri}} accessibilityLabel="선택한 공부 노트" style={{width:'100%',height:260,borderRadius:18}} resizeMode="contain"/><Action label={busy?'손글씨를 읽고 있어요…':'AI로 읽기'} disabled={busy} onPress={()=>void analyze()}/></>:null}
-   <Action label={photo?'다른 노트 찍기':'노트 사진 찍기'} disabled={busy} onPress={()=>void pick(true)}/><Link label="앨범에서 노트 선택" disabled={busy} onPress={()=>void pick(false)}/>
+   {photo?<Link label="다른 노트 찍기" disabled={busy} onPress={()=>void pick(true)}/>:<Action label="노트 사진 찍기" disabled={busy} onPress={()=>void pick(true)}/>}<Link label="앨범에서 노트 선택" disabled={busy} onPress={()=>void pick(false)}/>
    <Copy muted size={12}>선택한 사진을 AI 인식을 위해 OpenAI로 전송해요. 앱에는 인식된 글과 적립 내역만 저장해요. 한 쪽씩, 그림자 없이 선명하게 찍어 주세요.</Copy>
   </CardView>}
-  {error?<CardView><Copy>{error}</Copy>{permission&&Platform.OS!=='web'?<Link label="카메라 권한 설정 열기" onPress={()=>void Linking.openSettings()}/>:null}</CardView>:null}
-  <CardView><Copy weight="800">단계 완료마다 +5분 · 필기 100자당 500원</Copy><Copy muted size={13}>한글·영어·일본어를 섞어 써도 돼요. 숫자 풀이도 세고, 인쇄된 문제·낙서·공백은 세지 않아요. 정답 여부로 보상을 깎지 않아요.</Copy><Copy muted size={13}>남은 {outputCarry(data)}자는 다음 사진과 다음 날에도 이어져요. 이미 올린 사진과 겹치는 문장은 제외해요. 같은 내용을 새 종이에 다시 쓰면 중복으로 판단될 수 있어요.</Copy>{native?.supported&&!native.supportsHandwritingRewards?<Copy muted size={12}>이 버전은 손글씨 적립을 기기 제한 시간에 반영할 수 없어요. 새 아이폰 빌드가 필요해요.</Copy>:null}</CardView>
+  <Link label={details?'보상 기준 접기':'보상 기준·사진 안내'} onPress={()=>setDetails(v=>!v)}/>
+  {details?<><CardView><Copy weight="800">단계 완료마다 +5분 · 필기 100자당 500원</Copy><Copy muted size={13}>한글·영어·일본어를 섞어 써도 돼요. 숫자 풀이도 세고, 인쇄된 문제·낙서·공백은 세지 않아요. 정답 여부로 보상을 깎지 않아요.</Copy><Copy muted size={13}>남은 {outputCarry(data)}자는 다음 사진과 다음 날에도 이어져요. 이미 올린 사진과 겹치는 문장은 제외해요. 같은 내용을 새 종이에 다시 쓰면 중복으로 판단될 수 있어요.</Copy>{native?.supported&&!native.supportsHandwritingRewards?<Copy muted size={12}>이 버전은 손글씨 적립을 기기 제한 시간에 반영할 수 없어요. 새 아이폰 빌드가 필요해요.</Copy>:null}</CardView>
   {!data.money?<CardView><Copy>돈 보상을 켜면 다음에 정산하는 손글씨부터 100자당 500원을 함께 받아요.</Copy><Link label="돈 보상 시작·설정" onPress={()=>nav.navigate('MoneyWallet')}/></CardView>:null}
   {!pending?<Link label="이 과목 공부 마치기 · 기록은 유지" disabled={busy} onPress={()=>{void update(s=>({...stopBookTimer(s),outputDraft:undefined})).catch(e=>setError(e.message))}}/>:null}
-  {(data.handwritingReceipts??[]).slice(-8).reverse().map(r=><CardView key={r.id}><Copy weight="700">{r.subject} · {r.units}자 · {r.rewardStatus==='pending'?'보상 대기':'+'+r.minutes+'분'}</Copy><Copy muted size={12}>{new Date(r.at).toLocaleString('ko-KR')}</Copy><Copy numberOfLines={3}>{r.lines.join('\n')}</Copy></CardView>)}
+  </>:null}
+  <Link label={history?'이전 필기 접기':'이전 필기 기록 보기'} onPress={()=>setHistory(v=>!v)}/>
+  {history?(data.handwritingReceipts??[]).slice(-8).reverse().map(r=><CardView key={r.id}><Copy weight="700">{r.subject} · {r.units}자 · {r.rewardStatus==='pending'?'보상 대기':'+'+r.minutes+'분'}</Copy><Copy muted size={12}>{new Date(r.at).toLocaleString('ko-KR')}</Copy><Copy numberOfLines={3}>{r.lines.join('\n')}</Copy></CardView>):null}
  </View>;
 }

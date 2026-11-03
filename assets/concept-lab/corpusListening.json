@@ -1,0 +1,52 @@
+{
+  "audio-lab_pdf_p342_6743e94de8f2": {
+    "id": "audio-lab_pdf_p342_6743e94de8f2",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 55.824,
+    "sha256": "9d5c1746514935e444ad8f9c333e6b46e59b0d644f8b37fbaf571aa256ee0fcb",
+    "review": "ASR content compared with source script; target facts preserved; not human listening",
+    "transcriptOrigin": "textbook",
+    "similarity": 0.9426086956521739
+  },
+  "audio-lab_pdf_p350_771b470ec99f": {
+    "id": "audio-lab_pdf_p350_771b470ec99f",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 40.296,
+    "sha256": "87957e47b74f29ee3f854e2dae908e705f43f2f0ba3c935f86c9085ac2bb0cf3",
+    "review": "ASR content compared with source script; target facts preserved; not human listening",
+    "transcriptOrigin": "textbook",
+    "similarity": 0.9720101781170484
+  },
+  "audio-lab_pdf_p358_b4eff76b0f91": {
+    "id": "audio-lab_pdf_p358_b4eff76b0f91",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 35.208,
+    "sha256": "759c12eb5bfdce37e8f04757b2e046293d7af7455dab9c84a9b4da307caf4551",
+    "review": "ASR content compared with source script; target facts preserved; not human listening",
+    "transcriptOrigin": "textbook",
+    "similarity": 0.9368421052631579
+  },
+  "audio-lab_pdf_p362_cb6c61bbbf98": {
+    "id": "audio-lab_pdf_p362_cb6c61bbbf98",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 4.848,
+    "sha256": "dc417856e92a28209d901286d326233b6a633b50f2df6285829e67f0656f4495",
+    "review": "ASR content compared with source script; target facts preserved; not human listening",
+    "transcriptOrigin": "textbook",
+    "similarity": 1
+  },
+  "audio-lab_pdf_p371_0e93881f9b60": {
+    "id": "audio-lab_pdf_p371_0e93881f9b60",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 1.656,
+    "sha256": "4b917af9167470fc9c00ba62802bd0de97672b8f8fe94617fedd9a3d71c22424",
+    "review": "ASR content compared with source script; target facts preserved; not human listening",
+    "transcriptOrigin": "textbook",
+    "similarity": 0.9523809523809523
+  }
+}

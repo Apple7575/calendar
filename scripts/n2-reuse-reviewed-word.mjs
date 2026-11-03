@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {n2Root} from './n2-budget.mjs';
+const folder=path.join(n2Root,'audio'),file=path.join(folder,'manifest.json'),manifest=JSON.parse(fs.readFileSync(file)),audit=JSON.parse(fs.readFileSync(path.join(folder,'file-audit.json')));
+const target=manifest.jobs.find(j=>j.noteId==='n2_hk_p007_032'&&j.kind==='word'),source=manifest.jobs.find(j=>j.noteId==='n2_hk_p039_027'&&j.kind==='word');
+const metric=audit.results.find(row=>row.file===source.file&&row.audioHash===source.audioHash);
+if(audit.errors.length||!metric||metric.duration>1.8||target.word!==source.word||target.reading!==source.reading||!source.quality||source.payload.voice!=='cedar')throw Error('N2 same-word reuse guard failed');
+const bytes=fs.readFileSync(path.join(folder,source.file));if(crypto.createHash('sha256').update(bytes).digest('hex')!==source.audioHash)throw Error('Source SHA changed');
+const destination=`audio/${target.noteId}-word-reused-${source.audioHash.slice(0,12)}.mp3`;
+fs.writeFileSync(path.join(folder,destination),bytes);
+target.previousAudioFiles=[...new Set([...(target.previousAudioFiles??[]),target.file])];
+Object.assign(target,{file:destination,audioHash:source.audioHash,bytes:bytes.length,payload:source.payload,quality:{...source.quality,method:'identical-reviewed-N2-word-copy',sourceNoteId:source.noteId}});
+fs.writeFileSync(file,JSON.stringify(manifest,null,2));console.log(JSON.stringify({word:target.word,sourceNoteId:source.noteId,targetNoteId:target.noteId,seconds:metric.duration,existingN3Untouched:true}));

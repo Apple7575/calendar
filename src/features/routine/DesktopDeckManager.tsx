@@ -7,6 +7,7 @@ import { PublishedDeck, validatePublishedDeck } from "../../lib/japaneseDeck";
 import { useTheme } from "../../theme/ThemeContext";
 import { Action, CardView, Copy, Link } from "./ui";
 import firstDeck from "../../../assets/decks/n3-vocabulary.json";
+import n2Deck from "../../../assets/decks/n2-vocabulary.json";
 
 export function DesktopDeckManager() {
   const { session, loading } = useSession();
@@ -45,7 +46,11 @@ export function DesktopDeckManager() {
         setMessage('이 PC에 연결 정보를 저장했어요. 아직 Dot 자동 전송은 연결 전이에요. 데스크톱에서는 routine-learning MCP를 별도로 등록하고, 웹·예약 작업에서는 원격 연결이 필요해요.');
       })}/>
     </>:null}</CardView>
-    <CardView><Copy weight="700">JLPT N3 단어장 · {firstDeck.notes.length}개</Copy>
+    <CardView><Copy weight="700">공부할 단어장 선택</Copy>
+      <View style={{flexDirection:'row',flexWrap:'wrap',gap:10}}>
+        {[firstDeck,n2Deck].map(item=><Action key={item.id} secondary={deck?.id!==item.id} label={`JLPT ${item.id===n2Deck.id?'N2':'N3'} · ${item.notes.length}개`} disabled={busy} onPress={()=>preview(JSON.stringify(item,null,2))}/>)}
+      </View>
+      <Copy muted size={13}>N3와 N2는 각각 별도 단어장이에요. 기존 학습 진도와 오늘 시작한 목표는 유지돼요.</Copy>
       <Link label={showImport ? "파일 선택 접기" : "다른 덱 파일 선택 · 붙여넣기"} onPress={() => setShowImport(!showImport)} />
       {showImport ? <><Copy weight="700">컴퓨터에서 완성된 덱 선택</Copy>
       <input aria-label="완성된 덱 JSON 선택" type="file" accept=".json,application/json" onChange={event => {
@@ -55,7 +60,7 @@ export function DesktopDeckManager() {
       }} />
       <TextInput accessibilityLabel="덱 JSON 붙여넣기" multiline value={text} onChangeText={raw => { setText(raw); setDeck(null); }} placeholder="또는 완성된 덱 JSON을 붙여넣으세요" placeholderTextColor={c.textMuted}
         style={{ backgroundColor: c.inputBg, color: c.text, borderRadius: 16, padding: 16, minHeight: 150, maxHeight: 260, fontSize: 13 }} />
-      <Action label="내용 확인" secondary disabled={busy || !text} onPress={() => preview(text)} /></> : <Copy muted size={13}>N3 단어는 하나의 덱으로 이어져요. 단어·예문 음성은 cedar이며 책 페이지는 태그에만 남겨요.</Copy>}
+      <Action label="내용 확인" secondary disabled={busy || !text} onPress={() => preview(text)} /></> : null}
     </CardView>
     {remoteDecks.length?<CardView><Copy weight="800">내 계정의 단어장</Copy>{remoteDecks.map(d=><Link key={d.id} label={`${d.name} · ${d.notes.length}개`} onPress={()=>{setDeck(d);setText(JSON.stringify(d,null,2));setMessage('저장된 덱을 미리보고 있어요. 전송 전 대상 계정을 확인해 주세요.')}}/>)}</CardView>:null}
     </View><View style={{flex:1.2,width:width>800?undefined:'100%'}}>

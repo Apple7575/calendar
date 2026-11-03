@@ -1,5 +1,11 @@
 # 나의 캘린더 (calendar-app)
 
+최신 N3 실험: [문법·독해·청해 209쪽 전체 범위 1차 처리](docs/n3-corpus-2026-11-03.md). 학습 가능 686문항·합성 음성 8개, 확인 필요 항목은 분리. 누적 비용 추정 약 $3.44 / 상한 $5. **[TestFlight 1.0.0 (39) 배포 완료](docs/release-concept-n3-2026-11-03.md)**: Apple VALID / IN_BETA_TESTING 및 기존 내부 그룹 연결 확인. 실제 iPhone 실행 검증은 별도입니다.
+
+N3 실험 후속: [문법·독해 우선 확장과 합성 청해](docs/n3-grammar-reading-listening-2026-11-03.md). 새 문항 111개·저장된 AI 음성 3개 추가, 제작·검수 비용도 누적 $5 안에서 통제. 전체 PDF 전수 추출·앱 배포 완료와는 구분합니다.
+
+N3 별도 실험 생성 기능: [오답을 보고 직접 선택하는 AI 새 문제·개념별 변화 통계·누적 $5 제한](docs/n3-controlled-generation-2026-11-03.md). 전용 서버 연결 및 TestFlight 39 배포 완료. 온라인 오답 변형 기능의 실제 유료 생성 검증은 별도입니다.
+
 구글 캘린더 연동 + 매일의 할 일/일기(사진 포함)를 한곳에서 관리하는 iPhone용 캘린더 앱.
 React Native + Expo(SDK 54), Supabase(Auth/Postgres/Storage/Edge Functions) 기반.
 (SDK 54 고정 — 사용자 iPhone의 Expo Go가 지원하는 버전. 올리지 말 것.)
@@ -32,6 +38,12 @@ React Native + Expo(SDK 54), Supabase(Auth/Postgres/Storage/Edge Functions) 기�
 - **검색**: 일정/할 일/일기 통합 검색 (검색 탭)
 
 ## 시작하기
+
+PDF로 새 학습 단어장을 만들 때는 **[PDF → 학습 단어장 통합 매뉴얼](PDF_VOCABULARY_MANUAL.md)** 을 먼저 확인하세요. 원문 추출·예문·음성 검수·기존 학습 기록 보존·앱 반영 절차를 정리했습니다.
+
+N2 제작 결과는 [N2 제작 기록](docs/n2-vocabulary-2026-11-02.md), 단어장 화면 정리·직접 표시 해제·TestFlight 38 배포 상태는 [후속 배포 기록](docs/release-n2-decks-2026-11-02.md)에서 확인하세요.
+
+별도 브랜치의 [N3 개념 플래시카드 실험](docs/n3-concept-lab-2026-11-03.md)은 기존 N3/N2와 분리된 표본 기능입니다. 웹에서는 `?conceptDemo=1`로 확인하며, 온라인 AI 연결·전체 PDF 완료·앱 배포와 구분합니다.
 
 처음이라면 **[SETUP.md](./SETUP.md)** 를 따라 Google Cloud / Supabase 설정부터 하세요.
 터미널 없이 일반 앱처럼 쓰려면 **[BUILD.md](./BUILD.md)** (TestFlight 빌드)를 보세요.

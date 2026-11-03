@@ -6,12 +6,31 @@ import { AccountConnection } from './AccountConnection';
 import { useRoutine } from './RoutineProvider';
 import { Action,CardView,Copy,Icon,Link,Page,u } from './ui';
 import { extraRewardsEnabled } from '../../lib/studyRewards';
+import n2Content from '../../../assets/decks/n2-vocabulary.json';
+import {PublishedDeck,validatePublishedDeck} from '../../lib/japaneseDeck';
+import {mergeStudyDeck,n3Deck} from '../../lib/n3Deck';
+import {useConceptLab} from '../conceptLab/useConceptLab';
+const preparedDecks=[n3Deck,validatePublishedDeck(n2Content)];
 export function StudySettingsScreen({navigation}:RootScreenProps<'StudySettings'>){
- const {data,ready,syncDecks,syncingDecks,deckError}=useRoutine(),[connection,setConnection]=useState(!data.decks.length),[message,setMessage]=useState('');
+ const {data,ready,update,syncDecks,syncingDecks,deckError,accountId}=useRoutine(),[connection,setConnection]=useState(false),[message,setMessage]=useState('');
+ const {data:conceptData}=useConceptLab(accountId);
+ const conceptCount=conceptData?Object.values(conceptData.cards).filter(card=>card.status==='ready').length:null;
+ const [adding,setAdding]=useState(false),[addError,setAddError]=useState('');
+ const addingRef=React.useRef(false);
+ const available=preparedDecks.filter(deck=>!data.decks.some(existing=>existing.id===`pc:${deck.id}`));
+ const addDeck=async(deck:PublishedDeck)=>{
+  if(addingRef.current)return;
+  addingRef.current=true;setAdding(true);setAddError('');
+  try{await update(current=>mergeStudyDeck(current,deck));}
+  catch{setAddError('단어장을 추가하지 못했어요. 다시 눌러 주세요.');}
+  finally{addingRef.current=false;setAdding(false);}
+ };
  return <Page title="내 단어장" right={<Link label="닫기" onPress={()=>navigation.goBack()}/>}>
-  {data.decks.length?data.decks.map(deck=><Pressable key={deck.id} accessibilityRole="button" accessibilityLabel={`${deck.name} 카드 관리`} onPress={()=>navigation.navigate('DeckCards',{deckId:deck.id})}><CardView><View style={u.between}><View style={{flex:1}}><Copy size={18} weight="700">{deck.name}</Copy><Copy muted size={13}>{data.words.filter(w=>w.deckId===deck.id&&w.active!==false).length}장 · 새 카드 하루 {deck.newLimit??data.newLimit}장 · {deck.active?'학습 중':'쉬는 중'}</Copy></View><Icon name="chevron-forward" size={20}/></View></CardView></Pressable>):<CardView><Copy>아직 단어장이 없어요. 컴퓨터에서 준비한 덱을 받아보세요.</Copy></CardView>}
-  <CardView><Link label={connection?'컴퓨터 덱 연결 접기':'컴퓨터에서 준비한 덱 연결'} onPress={()=>setConnection(!connection)}/>{connection?<><AccountConnection onConnected={syncDecks}/><Action label={syncingDecks?'덱을 받고 있어요…':'컴퓨터 덱 받기'} secondary disabled={!ready||syncingDecks} onPress={()=>void syncDecks().then(count=>{if(count>=0)setMessage(count?`${count}개 덱을 반영했어요.`:'현재 덱이 최신이에요.');})}/>{deckError?<Copy size={13}>{deckError}</Copy>:null}{message?<Copy size={13}>{message}</Copy>:null}</>:null}</CardView>
-  <CardView><Link label="학습·보상 설정" onPress={()=>navigation.navigate('StudyPreferences')}/><Link label="즐겨찾기·확인할 단어" onPress={()=>navigation.navigate('SavedStudy')}/><Link label="진도 백업·복구" onPress={()=>navigation.navigate('RoutineBackup')}/></CardView>
+  {data.decks.length?data.decks.map(deck=><Pressable key={deck.id} accessibilityRole="button" accessibilityLabel={`${deck.name} 카드 관리`} onPress={()=>navigation.navigate('DeckCards',{deckId:deck.id})}><CardView><View style={u.between}><View style={{flex:1,gap:5}}><Copy size={20} weight="700">{deck.name}</Copy><Copy muted size={13}>{data.words.filter(w=>w.deckId===deck.id&&w.active!==false).length}장 · {deck.active?'학습 중':'쉬는 중'}</Copy></View><Icon name="chevron-forward" size={20}/></View></CardView></Pressable>):<CardView><Copy>{ready?'아직 단어장이 없어요. 컴퓨터에서 준비한 단어장을 받아보세요.':'단어장을 불러오고 있어요…'}</Copy></CardView>}
+  <Pressable accessibilityRole="button" accessibilityLabel="N3 문법·독해·청해 카드 열기" onPress={()=>navigation.navigate('ConceptLab')}><CardView><View style={u.between}><View style={{flex:1,gap:5}}><Copy size={20} weight="700">N3 문법·독해·청해</Copy><Copy muted size={13}>{conceptCount===null?'카드를 불러오는 중…':`${conceptCount}장 · 개념서 플래시카드`}</Copy></View><Icon name="chevron-forward" size={20}/></View></CardView></Pressable>
+  {ready&&available.length?<View style={{gap:10}}><Copy muted size={13}>추가할 수 있는 단어장</Copy>{available.map(deck=><View key={deck.id} style={{gap:4}}><Action compact secondary label={`${deck.name} 추가`} disabled={adding} onPress={()=>void addDeck(deck)}/><Copy muted size={12}>{deck.notes.length}장 · 단어·예문 음성 포함</Copy></View>)}{addError?<Copy size={13}>{addError}</Copy>:null}</View>:null}
+  <Link label={connection?'컴퓨터 연결 접기':'컴퓨터 단어장 가져오기'} onPress={()=>setConnection(!connection)}/>
+  {connection?<CardView><AccountConnection onConnected={syncDecks}/><Action label={syncingDecks?'단어장을 받고 있어요…':'컴퓨터 단어장 받기'} disabled={!ready||syncingDecks} onPress={()=>void syncDecks().then(count=>{if(count>=0)setMessage(count?`${count}개 단어장을 반영했어요.`:'현재 단어장이 최신이에요.');})}/>{deckError?<Copy size={13}>{deckError}</Copy>:null}{message?<Copy size={13}>{message}</Copy>:null}</CardView>:null}
  </Page>;
 }
 export function StudyPreferencesScreen({navigation}:RootScreenProps<'StudyPreferences'>){

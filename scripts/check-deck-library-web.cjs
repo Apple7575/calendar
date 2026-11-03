@@ -1,0 +1,36 @@
+const fs=require('fs'),ts=require('typescript'),assert=require('assert/strict');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
+const model=require('../src/lib/routineModel.ts'),{validatePublishedDeck}=require('../src/lib/japaneseDeck.ts');
+const n3=validatePublishedDeck(require('../assets/decks/n3-vocabulary.json')),n2=validatePublishedDeck(require('../assets/decks/n2-vocabulary.json'));
+const now=new Date(),key=model.routineDay(now),storage='routine.v1.web-n2-demo';
+let seed=model.planStudy(model.mergePublishedDeck(model.mergePublishedDeck(model.emptyData(),n3,now),n2,now),key);
+const marked=seed.words.find(w=>w.deckId==='pc:'+n2.id),other=seed.words.find(w=>w.deckId==='pc:'+n3.id);
+seed=model.favoriteWord(model.favoriteWord(seed,marked.id),other.id);
+seed=model.flagWord(seed,marked.id,['wordAudio'],'발음을 확인한 뒤 다시 공부',now,key);
+const {chromium}=require('C:/Users/SSAFY/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const out='.expo/deck-release-20261102';fs.mkdirSync(out,{recursive:true});
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce',timezoneId:'Asia/Seoul'});const page=await context.newPage(),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.addInitScript(({seed,storage})=>{if(!localStorage.getItem(storage))localStorage.setItem(storage,JSON.stringify(seed));localStorage.setItem('routine.studyAudio.auto.v1','false')},{seed,storage});
+const button=name=>page.getByRole('button',{name,exact:true}),read=()=>page.evaluate(storage=>JSON.parse(localStorage.getItem(storage)),storage);
+try{
+ await page.goto('http://localhost:8082/?n2Demo=1',{waitUntil:'networkidle',timeout:300000});await button('닫기').click();await page.getByRole('tab',{name:'학습',exact:true}).click();
+ await button('모아둔 단어').click();
+ const before=await read();
+ await page.getByTestId('saved-study-row').filter({hasText:marked.front}).getByRole('button',{name:'즐겨찾기 해제',exact:true}).click({timeout:6000});
+ await page.waitForFunction(({storage,id})=>JSON.parse(localStorage.getItem(storage)).words.find(w=>w.id===id).favorite===false,{storage,id:marked.id});
+ let after=await read();assert(after.words.find(w=>w.id===marked.id).issue);assert.equal(after.words.find(w=>w.id===other.id).favorite,true);
+ await page.getByRole('button',{name:/^확인 필요 1$/}).click();await page.screenshot({path:out+'/saved-issue-before-clear.png'});
+ await button('확인 필요 해제').click();await page.waitForFunction(({storage,id})=>!JSON.parse(localStorage.getItem(storage)).words.find(w=>w.id===id).issue,{storage,id:marked.id});
+ after=await read();assert.equal(after.words.find(w=>w.id===marked.id).favorite,false);assert.deepEqual(after.words.find(w=>w.id===marked.id).card,before.words.find(w=>w.id===marked.id).card);
+ assert.deepEqual(after.days[key].plan,before.days[key].plan);assert.deepEqual(after.days[key].paid,before.days[key].paid);assert(!after.days[key].excludedStudyIds?.includes(marked.id));assert.equal(after.words.length,before.words.length);
+ await page.getByText('확인할 단어가 없어요.',{exact:false}).waitFor();await page.screenshot({path:out+'/saved-issue-empty.png'});
+ await page.reload({waitUntil:'networkidle'});await button('닫기').click();await page.getByRole('tab',{name:'학습',exact:true}).click();
+ await button('내 단어장').click();await button(n2.name+' 카드 관리').waitFor();await button(n3.name+' 카드 관리').waitFor();
+ assert.equal(await button('학습·보상 설정').count(),0);assert.equal(await button('진도 백업·복구').count(),0);assert.equal(await button('즐겨찾기·확인할 단어').count(),0);
+ for(const width of [390,360,768]){await page.setViewportSize({width,height:width===360?740:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:`${out}/deck-library-${width}.png`});}
+ await button(n2.name+' 카드 관리').click();await page.getByText(n2.name,{exact:true}).filter({visible:true}).first().waitFor();await button('닫기').click();await button('닫기').click();
+ await button('모아둔 단어').click();after=await read();assert.equal(after.words.find(w=>w.id===marked.id).favorite,false);assert(!after.words.find(w=>w.id===marked.id).issue);
+ assert.deepEqual(errors,[]);const result={directFavoriteRemoval:true,directIssueRemoval:true,marksIndependent:true,fsrsAndFrozenPlanPreserved:true,persistsAfterReload:true,deckLibraryHasOnlyDecksAndConnection:true,n2AndN3Separate:true,widths:[360,390,768],errors};
+ fs.writeFileSync(out+'/web-qa.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));
+}catch(e){console.log((await page.locator('body').innerText()).slice(-1800));await page.screenshot({path:out+'/web-error.png'});throw e;}finally{await browser.close()}})().catch(e=>{console.error(e.stack);process.exitCode=1});

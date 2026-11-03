@@ -7,7 +7,7 @@ import {activePriorityTask,beginPriorityTask,priorityPlan,priorityTaskProgress,r
 import {addDays} from '../../lib/dateUtils';
 import {rewardChange} from '../../lib/rewardChange';
 import {useRoutine} from './RoutineProvider';
-import {Action,CardView,Copy} from './ui';
+import {Link} from './ui';
 
 export function PriorityMissionCard(){
  const {data,dayKey,update,ready,native}=useRoutine(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -23,5 +23,5 @@ export function PriorityMissionCard(){
 export function PriorityContinuationCard(){
  const {data,dayKey}=useRoutine(),task=activePriorityTask(data,dayKey),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  if(!task?.startedAt||data.bookTimer?.phase!=='focus')return null;
- return <CardView><Copy weight="800">멈추기 전에, 다음 시작 준비</Copy><Copy muted size={13}>다음에 바로 할 행동 한 줄을 남겨요.</Copy><Action secondary label="다음 시작 위치 남기기" onPress={()=>nav.navigate('PriorityPause')}/></CardView>;
+ return <Link label="다음 시작 위치 남기기" onPress={()=>nav.navigate('PriorityPause')}/>;
 }

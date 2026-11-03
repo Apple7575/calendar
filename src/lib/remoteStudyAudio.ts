@@ -1,11 +1,12 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import manifest from '../../assets/decks/remoteStudyAudio.json';
+import n2Manifest from '../../assets/decks/n2RemoteStudyAudio.json';
 import { JapaneseNote } from './japaneseDeck';
 import { supabase } from './supabase';
 import { StudyAudioKind } from './studyAudio';
 type Entry={Word:string;Word_Reading:string;Sentence:string;word:string;sentence:string;wordAliases?:string[];sentenceAliases?:string[]};
-const entries=manifest as Record<string,Entry>;
+const entries:Record<string,Entry>={...n2Manifest,...manifest};
 const requests=new Map<string,{expires:number;promise:Promise<{uri:string}>}>();
 export function remoteAudioName(note:JapaneseNote|undefined,kind:StudyAudioKind):string|null{
  if(!note)return null;const entry=entries[note.ID];if(!entry||note.Word!==entry.Word||note.Word_Reading!==entry.Word_Reading||kind==='sentence'&&note.Sentence!==entry.Sentence)return null;

@@ -12,6 +12,8 @@ import {DiaryDetailScreen} from '../features/routine/DiaryDetailScreen';
 import { StudyHistoryScreen } from '../features/routine/StudyHistoryScreen';
 import {StudyForecastScreen} from '../features/routine/StudyForecastScreen';
 import { StudyPreferencesScreen } from "../features/routine/StudySettingsScreens";
+import {ConceptLabScreen} from '../features/conceptLab/ConceptLabScreen';
+import {JapaneseSampleScreen} from '../features/conceptLab/JapaneseSampleScreen';
 import { GuidedRoutineScreen } from "../features/routine/GuidedRoutineScreen";
 import { BookStudyScreen } from "../features/routine/BookStudyScreen";
 import { BackupScreen } from "../features/routine/BackupScreen";
@@ -130,6 +132,8 @@ export function RootNavigator() {
           <Stack.Screen name="DeckCards" component={DeckCardsScreen} options={{headerShown:false}}/>
             <Stack.Screen name="StudyPreferences" component={StudyPreferencesScreen} options={{headerShown:false}}/>
             <Stack.Screen name="StudySettings" component={StudySettingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="ConceptLab" component={ConceptLabScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="JapaneseSample" component={JapaneseSampleScreen} options={{headerShown:false}}/>
           <Stack.Screen name="LegacyCalendar" component={CalendarScreen} options={{ title: "일정 캘린더" }} />
           <Stack.Screen name="LegacyToday" component={TodayScreen} options={{ title: "오늘의 기록" }} />
           <Stack.Screen name="LegacyReport" component={ReportScreen} options={{ title: "리포트" }} />

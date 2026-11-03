@@ -1,0 +1,27 @@
+const fs=require('fs'),ts=require('typescript'),assert=require('assert/strict');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
+const model=require('../src/lib/routineModel.ts'),{validatePublishedDeck}=require('../src/lib/japaneseDeck.ts'),n3=validatePublishedDeck(require('../assets/decks/n3-vocabulary.json'));
+const now=new Date(),day=model.routineDay(now),key='routine.v1.web-n2-demo';let seed=model.planStudy(model.mergePublishedDeck(model.emptyData(),n3,now),day);seed=model.favoriteWord(seed,seed.words[0].id);
+const {chromium}=require('C:/Users/SSAFY/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});try{
+ await page.addInitScript(({seed,key})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(seed));localStorage.setItem('routine.studyAudio.auto.v1','false')},{seed,key});
+ await page.goto('http://localhost:8082/?n2Demo=1',{waitUntil:'networkidle',timeout:300000});await page.getByRole('button',{name:'닫기',exact:true}).click();await page.getByRole('tab',{name:'학습',exact:true}).click();await page.getByRole('button',{name:'내 단어장',exact:true}).click();
+ const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+ await page.getByRole('button',{name:'JLPT N2 단어장 추가',exact:true}).click({timeout:6000});
+ await page.getByRole('button',{name:'JLPT N2 단어장 카드 관리',exact:true}).waitFor();
+ const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+ assert.equal(after.decks.length,2);assert.equal(after.words.filter(w=>w.deckId==='pc:hk-n2-vocabulary').length,1774);
+ assert.deepEqual(after.words.filter(w=>w.deckId==='pc:'+n3.id),before.words);assert.deepEqual(after.days[day],before.days[day]);
+ assert.equal(await page.getByRole('button',{name:'JLPT N2 단어장 추가',exact:true}).count(),0);
+ await page.screenshot({path:'.expo/deck-release-20261102/bundled-n2-added.png'});
+ await page.getByRole('button',{name:'닫기',exact:true}).click();
+ await page.getByRole('button',{name:'JLPT N2 단어장 선택',exact:true}).click();
+ await page.getByRole('button',{name:'더 공부하기',exact:true}).click();
+ await page.getByRole('button',{name:'새 단어 더 하기 · 10장',exact:true}).click();
+ await page.getByRole('button',{name:'정답 보기',exact:true}).waitFor();
+ const studying=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+ const extra=studying.days[day].additionalByDeck['pc:hk-n2-vocabulary'];
+ assert.equal(extra.ids.length,10);assert(extra.ids.every(id=>studying.words.find(word=>word.id===id).deckId==='pc:hk-n2-vocabulary'));assert.deepEqual(studying.days[day].plan,before.days[day].plan);
+ const result={n2AddedWithoutLogin:true,n3CardsAndPlanPreserved:true,noDuplicateAdd:true,n2OnlyStudyStartsWithFrozenN3Plan:true};
+ fs.writeFileSync('.expo/deck-release-20261102/bundled-n2-qa.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));
+}finally{await browser.close()}})().catch(e=>{console.error(e.stack);process.exitCode=1});

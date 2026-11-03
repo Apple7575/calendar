@@ -1,0 +1,17 @@
+import './n2-metered-fetch.mjs';
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
+import {isSinglePronunciation} from './n2-pronunciation-utils.mjs';
+const folder=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../output/vocabulary/n2-20261102/audio'),out=path.join(folder,'repair-rechecks.jsonl');
+const rows=fs.readFileSync(path.join(folder,'repairs.jsonl'),'utf8').trim().split('\n').filter(Boolean).map(JSON.parse),prior=fs.existsSync(out)?fs.readFileSync(out,'utf8').trim().split('\n').filter(Boolean).map(JSON.parse):[];
+const good=new Set([...rows,...prior].filter(isSinglePronunciation).map(r=>r.originalHash)),known=new Set(prior.map(r=>r.audioHash));
+const latest=new Map();for(const r of rows)if(!good.has(r.originalHash)&&!known.has(r.audioHash))latest.set(r.audioHash,r);
+const jobs=[...latest.values()];let failed=false;
+const clean=s=>s.normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu,'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-96));
+async function request(url,options){const r=await fetch(url,{...options,signal:AbortSignal.timeout(90000)});if(!r.ok)throw Error(`API status ${r.status}`);return r;}
+await Promise.all(Array.from({length:4},async()=>{while(jobs.length&&!failed){const j=jobs.shift();try{
+ const form=new FormData();form.append('file',new Blob([fs.readFileSync(path.join(folder,j.file))],{type:'audio/mpeg'}),path.basename(j.file));form.append('model','gpt-4o-transcribe');form.append('language','ja');form.append('response_format','json');form.append('prompt','日本語の単語の発音です。聞こえた言葉だけを書き、繰り返しを省略しないでください。');
+ const asr=await(await request('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:form})).json();
+ const text=String(asr.text??''),reading=j.reading.split(/[\/／]/)[0],word=j.word.split(/[\/／]/)[0];let accepted=[word,reading].some(t=>clean(t)===clean(text)),judgment=null;
+ if(!accepted){const r=await(await request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini-2025-04-14',input:[{role:'system',content:'Convert the full Japanese ASR transcript to hiragana, preserving repeated or extra speech. Accept only exactly one word with the expected pronunciation. Different kanji with identical reading are valid homophones; different sounds are not.'},{role:'user',content:JSON.stringify({expectedReading:reading,word,transcript:text})}],text:{format:{type:'json_schema',name:'pronunciation',strict:true,schema:{type:'object',properties:{acceptable:{type:'boolean'},heardReading:{type:'string'}},required:['acceptable','heardReading'],additionalProperties:false}}},max_output_tokens:250})})).json();judgment=JSON.parse(r.output.flatMap(o=>o.content??[]).filter(c=>c.type==='output_text').map(c=>c.text).join(''));accepted=clean(judgment.heardReading)===clean(reading)&&!/[가-힣]/.test(text);}
+ accepted=isSinglePronunciation({...j,transcription:text,judgment});fs.appendFileSync(out,JSON.stringify({...j,transcription:text,accepted,judgment,recheckedWith:'gpt-4o-transcribe'})+'\n');console.log(JSON.stringify({word,accepted,transcription:text}));
+ }catch(e){failed=true;console.error(e.message);}}}));if(failed)process.exitCode=1;

@@ -1,11 +1,11 @@
+import {focusRampStatus} from '../../lib/focusRamp';
 import {activePriorityTask} from '../../lib/priorityPlan';
 import {PriorityContinuationCard} from './PriorityMissionCard';
 import {useStudyFeedback} from './useStudyFeedback';
-import {bookDisplaySeconds} from '../../lib/bookTimerTime';
 import React,{useEffect,useRef,useState} from 'react';
 import {TextInput,View} from 'react-native';
 import {MicButton} from '../../components/MicButton';
-import {BookSession,bookNoteRewardPreview,startBookTimer,stopBookTimer,pauseBookTimer,resumeBookTimer,saveBookNote,settleBookTimer,startBookBreak} from '../../lib/bookStudy';
+import {BookSession,bookNoteRewardPreview,stopBookTimer,saveBookNote,settleBookTimer} from '../../lib/bookStudy';
 import {getDay} from '../../lib/routineModel';
 import {startOutputStudy} from '../../lib/handwriting';
 import * as Crypto from 'expo-crypto';
@@ -13,7 +13,6 @@ import {RootScreenProps} from '../../navigation/types';
 import {useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,Copy,Link,Page} from './ui';
-import {BoriScene} from './experience';
 import {FocusStart} from './FocusStart';
 import {HandwritingStudy} from './HandwritingStudy';
 import {HabitOrderCard} from './HabitOrderCard';
@@ -28,14 +27,14 @@ export function BookStudyScreen({navigation,route}:RootScreenProps<'BookStudy'>)
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),500);return()=>clearInterval(id)},[]);
  useEffect(()=>{if(timer?.phase==='break'&&timer.running&&clock>=timer.endsAt)void update(s=>settleBookTimer(s,Date.now())).catch(e=>setError(e.message))},[clock,timer?.running,timer?.endsAt,update]);
  useStudyFeedback(timer?.running&&clock>=timer.endsAt?{kind:'timer',id:timer.id+':'+timer.phase}:null);
- const left=timer?bookDisplaySeconds(timer,Math.max(clock,Date.now())):0,seconds=Math.abs(left);
  const run=(fn:Parameters<typeof update>[0])=>{void update(fn).catch(e=>setError(e.message))};
- return <Page title="손글씨 공부" right={<Link label="닫기" onPress={()=>activePriorityTask(data,dayKey)?.startedAt&&timer?.phase==='focus'?navigation.navigate('PriorityPause'):navigation.goBack()}/>}>
+ return <Page title={data.outputDraft||data.handwritingPending?'필기 제출':'공부 시작'} right={<Link label="닫기" onPress={()=>activePriorityTask(data,dayKey)?.startedAt&&timer?.phase==='focus'?navigation.navigate('PriorityPause'):navigation.goBack()}/>}>
   {route.params?.subject&&data.outputDraft&&route.params.subject!==data.outputDraft.subject&&!data.handwritingPending?<CardView><Copy>현재 {data.outputDraft.subject} 공부를 이어가는 중이에요.</Copy><Action secondary label={`${route.params.subject} 공부로 전환`} onPress={()=>run(s=>startOutputStudy({...stopBookTimer(s),outputDraft:undefined},Crypto.randomUUID(),route.params!.subject!))}/><Copy muted size={12}>지금까지 남긴 공부와 적립 시간은 유지돼요.</Copy></CardView>:null}
-  <FocusStart compact initialSubject={route.params?.subject}/>
-  {data.outputDraft||data.handwritingPending?<HandwritingStudy/>:null}
-  {timer&&timer.phase!=='idle'?<BoriScene action={timer.phase==='break'?'A38':'A36'} tone={timer.phase==='break'?'morning':'focus'} size={90} mood={timer.phase==='break'?'cheer':'focus'} title={timer.phase==='break'?'☕ 휴식 중 · 편하게 쉬어요':`${timer.subject} · ${left<=0?'추가 공부 중':'집중 중'}`} description="타이머는 공부를 돕는 도구예요. 보상은 노트 사진으로 받아요."><View style={{alignItems:'center'}}><Copy size={48} weight="800">{left<0?'+':''}{String(Math.floor(seconds/60)).padStart(2,'0')}:{String(seconds%60).padStart(2,'0')}</Copy></View><Action secondary label={timer.running?'타이머 잠깐 멈추기':'타이머 이어가기'} onPress={()=>run(s=>timer.running?pauseBookTimer(s):resumeBookTimer(s))}/>{timer.phase==='focus'?<Action secondary label="휴식 시작 · 5분" onPress={()=>run(s=>startBookBreak(s))}/>:null}<Link label="타이머 종료 · 공부 기록 유지" onPress={()=>run(s=>stopBookTimer(s))}/></BoriScene>:null}
-  <CardView><Copy weight="800">오늘 집중 공부·계획 보상 +{getDay(data,dayKey).bonus?.handwriting??0}분</Copy><Copy muted size={13}>하루 상한 없음 · 단어 보상과 별도로 적립돼요. 아침 루틴 완료 후 사용해요.</Copy></CardView>
+  {data.outputDraft||data.handwritingPending?<>
+   {focusRampStatus(data,clock).needsPlan||timer?.phase!=='focus'?<FocusStart compact initialSubject={route.params?.subject}/>:null}
+   <HandwritingStudy/>
+   {timer&&timer.phase!=='idle'?<Action secondary label="큰 타이머로 돌아가기" onPress={()=>navigation.navigate('FocusTimer')}/>:null}
+  </>:<FocusStart compact initialSubject={route.params?.subject}/>}
   {getDay(data,dayKey).orderProgress?.status==='complete'?<HabitOrderCard/>:null}
   <PriorityContinuationCard/>
   <Link label={notes?'타이머 메모 접기':'타이머 공부 메모·이전 기록'} onPress={()=>setNotes(!notes)}/>

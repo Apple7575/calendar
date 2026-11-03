@@ -1,0 +1,26 @@
+{
+  "lab_listening_trip": {
+    "id": "lab_listening_trip",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 19.632,
+    "sha256": "f82bbfec3050b6f2587ab9f1ae5a5dcfdfe79643521b83b16e9032ebbf967624",
+    "review": "ASR transcript compared with authored Japanese script; punctuation and digit notation differences only; no human listening claim"
+  },
+  "lab_listening_library": {
+    "id": "lab_listening_library",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 18,
+    "sha256": "5d31405c36b9acf7c346ee6d986427be67e4150f540dca07ec329d575c5eb0a6",
+    "review": "ASR transcript compared with authored Japanese script; punctuation and digit notation differences only; no human listening claim"
+  },
+  "lab_listening_offer": {
+    "id": "lab_listening_offer",
+    "origin": "synthetic",
+    "model": "tts-1",
+    "seconds": 4.896,
+    "sha256": "225e287e303f4f985369b9e8bf920284d1c93222cacdf213ae0013cd2a968edf",
+    "review": "ASR transcript compared with authored Japanese script; punctuation and digit notation differences only; no human listening claim"
+  }
+}

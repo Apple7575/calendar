@@ -30,7 +30,7 @@ let liveShown = "";
 let liveCommitted = "";
 
 /** 실시간 인식 시작 — 말하는 동안 onPartial로 계속 텍스트를 준다 */
-export async function startLive(onPartial: (text: string) => void): Promise<void> {
+export async function startLive(onPartial: (text: string) => void, language = "ko-KR"): Promise<void> {
   const perm = await speech.ExpoSpeechRecognitionModule.requestPermissionsAsync();
   if (!perm.granted) throw new Error("마이크·음성인식 권한이 필요해요. 설정에서 허용해 주세요.");
   liveShown = "";
@@ -50,7 +50,7 @@ export async function startLive(onPartial: (text: string) => void): Promise<void
     })
   );
   speech.ExpoSpeechRecognitionModule.start({
-    lang: "ko-KR",
+    lang: language,
     interimResults: true,
     continuous: true,
   });

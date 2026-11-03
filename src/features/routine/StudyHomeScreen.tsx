@@ -22,10 +22,12 @@ export function StudyHomeScreen(){
  const label=deckId?decks.find(d=>d.id===deckId)!.name:decks.length===1?decks[0].name:'전체 단어장';
  return <Page title="학습" right={<SettingsButton/>}>
   <Segments value={section} onChange={setSection} items={[{id:'word',label:'단어'},{id:'focus',label:'집중'}]}/>
+  <Action label="오늘의 일본어 시작" onPress={()=>nav.navigate('JapaneseSample')}/>
+  <Copy muted size={12}>25분 구성 샘플 · 예문 복습 → 독해 → 새 상황 → 말하기</Copy>
   {priorityGate(data,dayKey).blocked?<CardView><Copy weight="800">오늘 먼저 시작하기로 한 공부</Copy><Copy size={13}>{priorityGate(data,dayKey).reason}</Copy><Link label="준비한 첫 행동으로 이동" onPress={()=>nav.navigate('Main',{screen:'Today'})}/><Copy muted size={12}>단어도 자유롭게 공부할 수 있어요. 보상은 적립하고 첫 공부 뒤 사용할 수 있어요.</Copy></CardView>:null}
   {section==='focus'?<FocusStart/>:<>
    {decks.length>1?<View style={{flexDirection:'row',gap:7,flexWrap:'wrap'}}>{[{id:undefined,name:'전체 덱'},...decks].map(deck=><Pressable key={deck.id??'all'} accessibilityRole="button" accessibilityLabel={`${deck.name} 선택`} accessibilityState={{selected:deckId===deck.id}} onPress={()=>setSelected(deck.id)} style={{padding:10,borderRadius:15,borderWidth:1,borderColor:deckId===deck.id?c.primary:c.border,backgroundColor:deckId===deck.id?c.primarySoft:c.card}}><Copy size={12}>{deck.name}</Copy></Pressable>)}</View>:null}
-   {!data.words.length?<BoriScene character="C02" action="A31" tone="focus" title="첫 단어를 심어볼까요?" description="컴퓨터에서 준비한 단어장을 같은 계정으로 받아요."><Action label="첫 단어장 준비하기" onPress={()=>nav.navigate('StudySettings')}/></BoriScene>:<>
+   {!data.words.length?<BoriScene hero character="C02" action="A31" tone="focus" title="첫 단어를 심어볼까요?" description="컴퓨터에서 준비한 단어장을 같은 계정으로 받아요."><Action label="첫 단어장 준비하기" onPress={()=>nav.navigate('StudySettings')}/></BoriScene>:<>
     <BoriScene character="C02" action={progress.full?'A23':'A17'} tone="focus" size={100} mood={progress.full?'celebrate':'focus'} title={progress.full?'오늘의 기억을 잘 가꿨어요!':progress.total?`${progress.remaining}장, 차근차근 만나봐요`:'오늘 예정된 학습이 없어요'} description={label}/>
     <View style={{gap:15,paddingHorizontal:4}}><View style={{flexDirection:'row',alignItems:'baseline',gap:7}}><Text style={{fontSize:46,fontWeight:'800',color:c.text}}>{progress.done}</Text><Copy muted size={21}>/ {progress.total}장 완료</Copy></View><Progress value={progress.total?progress.done/progress.total:0} label="오늘 학습 진행률"/><View style={u.between}><Copy muted size={12}>남은 새 카드 {fresh} · 복습 {review} · 재학습 {learning}</Copy><Copy size={12}>{budget.untilNext}장 더 → +5분</Copy></View>
     <Action disabled={!ready} label={progress.full?'추가 학습하기':progress.total?started?'이어서 학습하기':'오늘 학습 시작':'더 공부하기'} onPress={()=>nav.navigate('RoutineStudySession',{level:'full',deckId})}/>
