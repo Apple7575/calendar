@@ -11,11 +11,11 @@ import {FOCUS_STEPS,focusRampStatus} from '../../lib/focusRamp';
 import {focusSubject,habitOrderPolicy} from '../../lib/habitOrder';
 import {useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
-import {Action,CardView,Choice,Copy,Field,Link,Mascot,Notice} from './ui';
+import {Action,CardView,CharacterPeek,Choice,Copy,Field,Link,Notice} from './ui';
 import {rewardChange} from '../../lib/rewardChange';
 const STAGE_MINUTES=FOCUS_STEPS.slice(1).map(s=>s/60);
 /** The art fills only the middle of its canvas, so the canvas is oversized and cropped by the panel overlapping its feet. */
-const HERO_MAX=480,HERO_PLAN_MAX=380,HERO_WIDTH_RATIO=1.3,HERO_TOP_CROP=.3,HERO_VISIBLE=.44;
+const HERO_MAX=480,HERO_PLAN_MAX=380;
 export function FocusStart({initialSubject,compact=false,secondary=false}:{initialSubject?:string;initialRewardMode?:StudyRewardMode;compact?:boolean;secondary?:boolean}){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{data,update,ready,dayKey}=useRoutine(),{colors:c}=useTheme(),{width}=useWindowDimensions();
  const [clock,setClock]=useState(Date.now()),[subject,setSubject]=useState(initialSubject??data.outputDraft?.subject??SUBJECTS[0]),[plan,setPlan]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -28,10 +28,9 @@ export function FocusStart({initialSubject,compact=false,secondary=false}:{initi
  const submit=async()=>{if(busy)return;setBusy(true);setError('');try{const id=Crypto.randomUUID();let result:ReturnType<typeof rewardChange>|undefined;await update(s=>{const next=saveFocusPlan(s,id,subject,plan);result=rewardChange(s,next,dayKey);return next});setPlan('');if(result&&result.minutes>0)nav.navigate('EarnedReward',{id,kind:'plan',quantity:1,...result});}catch(e){setError(e instanceof Error?e.message:'계획을 저장하지 못했어요.')}finally{setBusy(false)}};
  const start=async()=>{if(busy)return;setBusy(true);setError('');const breakId=resting?.id;try{await update(s=>{if(breakId)return skipBookBreak(s,breakId,Crypto.randomUUID());const current=focusRampStatus(s);if(current.needsPlan)throw new Error('계획 한 줄부터 다시 시작해 주세요.');const next=startOutputStudy(s,Crypto.randomUUID(),subject);return startBookTimer(next,Crypto.randomUUID(),next.outputDraft!.subject,Date.now(),current.required,'output')});openTimer();}catch(e){setError(e instanceof Error?e.message:'집중을 시작하지 못했어요.')}finally{setBusy(false)}};
  if(secondary)return <View style={{gap:8}}><Action secondary label={'이어서 '+minutes+'분 더 공부하기'} disabled={!ready||busy} onPress={()=>void start()}/>{error?<Notice tone="error">{error}</Notice>:null}</View>;
- const hero=Math.min(status.needsPlan?HERO_PLAN_MAX:HERO_MAX,width*HERO_WIDTH_RATIO);
  const title=status.needsPlan?'오늘 공부할 계획 한 줄':resting?(resting.running?'쉬는 중':'휴식 일시정지')+' · '+breakClock:active?'공부 진행 중':minutes+'분만 해볼까요?';
  return <View>
-  <View pointerEvents="none" style={{alignItems:'center',height:hero*HERO_VISIBLE,overflow:'hidden'}}><View style={{marginTop:-hero*HERO_TOP_CROP}}><Mascot size={hero} action="A31"/></View></View>
+  <CharacterPeek action="A31" maxSize={status.needsPlan?HERO_PLAN_MAX:HERO_MAX}/>
   <CardView>
    <View style={{gap:4}}><Copy size={25} weight="800">{title}</Copy>
     {status.expired?<Copy muted size={14}>집중 공부를 2시간 쉬었네요. 부담 없이 계획부터 다시 시작해요. 기록과 받은 보상은 남아 있어요.</Copy>:null}
