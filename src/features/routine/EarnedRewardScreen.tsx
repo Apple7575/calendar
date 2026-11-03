@@ -6,14 +6,18 @@ import {RootScreenProps} from '../../navigation/types';
 import {useRoutine} from './RoutineProvider';
 import {getDay} from '../../lib/routineModel';
 import {timeWallet} from '../../lib/timeWallet';
-import {Mascot,Icon} from './ui';
+import {Action,Mascot,Icon} from './ui';
+import {FocusThemeProvider} from '../../theme/ThemeContext';
 import {RewardResultTiles} from './RewardResultTiles';
 import {AnimalSharedLayer} from './AnimalSharedScene';
 import {useStudyFeedback} from './useStudyFeedback';
 import {focusTheme} from '../../theme/themes';
 
 /** A stack destination, not an overlay. It only displays already committed rewards. */
-export function EarnedRewardScreen({route,navigation}:RootScreenProps<'EarnedReward'>){
+export function EarnedRewardScreen(props:RootScreenProps<'EarnedReward'>){
+ return <FocusThemeProvider><EarnedRewardPage {...props}/></FocusThemeProvider>;
+}
+function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
  const p=route.params,{data,dayKey,native}=useRoutine(),{height,width}=useWindowDimensions();
  const receipt=p.kind==='handwriting'?data.handwritingReceipts?.find(r=>r.id===p.id):undefined;
  const batch=receipt?.focusBatch?data.handwritingReceipts?.find(r=>r.id===receipt.focusBatch):receipt;
@@ -36,7 +40,7 @@ export function EarnedRewardScreen({route,navigation}:RootScreenProps<'EarnedRew
     <Text style={{color:'#BFD0D8',fontSize:13,lineHeight:20,textAlign:'center'}}>{pending?'사진과 인식 결과는 저장했어요. 공부를 이어가 주세요.':!getDay(data,dayKey).paid.morning?'적립 완료 · 아침 루틴을 마치면 사용할 수 있어요.':wallet.reason}</Text>
     {p.kind==='plan'?<Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>계획은 시간 보상만 받아요.</Text>:null}
    </ScrollView>
-   <View style={{width:'100%',maxWidth:540,alignSelf:'center',padding:20,gap:10}}><Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>{pending?'기록 저장 완료 · 보상은 시간 충족 후 적립돼요':'보상 적립 완료'}</Text><Pressable accessibilityRole="button" accessibilityLabel={nextLabel} onPress={continueStudy} style={({pressed})=>({minHeight:58,width:'100%',backgroundColor:focusTheme.colors.primary,borderRadius:18,borderBottomWidth:pressed?1:6,borderBottomColor:focusTheme.colors.gradient[1],transform:[{translateY:pressed?5:0}],alignItems:'center',justifyContent:'center',padding:14})}><Text style={{color:focusTheme.colors.background,fontSize:20,fontWeight:'900'}}>{nextLabel}</Text></Pressable></View>
+   <View style={{width:'100%',maxWidth:540,alignSelf:'center',padding:20,gap:10}}><Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>{pending?'기록 저장 완료 · 보상은 시간 충족 후 적립돼요':'보상 적립 완료'}</Text><Action label={nextLabel} onPress={continueStudy}/></View>
   </SafeAreaView>
  </View>;
 }

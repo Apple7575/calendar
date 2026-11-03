@@ -24,14 +24,23 @@ const picker=ImagePicker as jest.Mocked<typeof ImagePicker>;
 const text=()=>JSON.stringify(tree.toJSON());
 const button=(label:string)=>tree.root.findAll((n:{props:{label?:string}})=>n.props.label===label)[0];
 let tree:any;
+const draft=()=>({id:'d',subject:'수능',startedAt:new Date().toISOString()});
+const readyData=()=>({...emptyData(),outputDraft:draft(),bookSessions:[{id:'s',subject:'수능',startedAt:new Date().toISOString(),completedAt:new Date().toISOString(),seconds:1500,note:'',next:'',rewardMode:'output' as const}]});
 beforeEach(async()=>{
  jest.clearAllMocks();
- useRoutine.mockReturnValue({data:{...emptyData(),outputDraft:{id:'d',subject:'수능',startedAt:new Date().toISOString()}},dayKey:'2026-11-03',update:jest.fn(),accountId:'me',native:null});
+ useRoutine.mockReturnValue({data:readyData(),dayKey:'2026-11-03',update:jest.fn(),accountId:'me',native:null});
  await act(async()=>{tree=create(React.createElement(HandwritingStudy))});
 });
 afterEach(async()=>{await act(async()=>tree.unmount())});
 const take=async()=>{await act(async()=>{await button('노트 사진 찍기')!.props.onPress()})};
 const deny=()=>picker.requestCameraPermissionsAsync.mockResolvedValue({granted:false,canAskAgain:false,status:'denied',expires:'never'} as never);
+test('before the study time is met there is no camera button',async()=>{
+ await act(async()=>tree.unmount());
+ useRoutine.mockReturnValue({data:{...emptyData(),outputDraft:draft()},dayKey:'2026-11-03',update:jest.fn(),accountId:'me',native:null});
+ await act(async()=>{tree=create(React.createElement(HandwritingStudy))});
+ expect(button('노트 사진 찍기')).toBeUndefined();
+ expect(picker.requestCameraPermissionsAsync).not.toHaveBeenCalled();
+});
 test('handwriting never offers the album',()=>{
  expect(text()).not.toContain('앨범');
  expect(picker.launchImageLibraryAsync).not.toHaveBeenCalled();
