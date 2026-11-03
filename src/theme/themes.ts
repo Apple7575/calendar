@@ -1,4 +1,5 @@
 // 앱 테마 팔레트. 색은 반드시 useTheme()를 통해 쓰고 하드코딩하지 않는다.
+import {colorRoles} from "./roles";
 
 export type ThemeId = "routine" | "lavender" | "classic" | "peach" | "mint" | "dark";
 
@@ -156,11 +157,9 @@ const routine: Theme = {
   },
 };
 
-/** Surfaces for the priority experiment, including its warm character stage. */
-export function priorityVisuals(theme:Theme){return theme.isDark?{
- stage:'#302B35',stageLine:'#685366',stageDot:'#504052',stageInk:'#E8C9B6',brand:'#A8BDFF',brandDeep:'#6D86D1',onBrand:'#172344',brandSoft:'#263555',brandInk:'#B9CAFF',paper:'#1B2230',mutedSurface:'#232C3C',success:'#8DD9BA',successSoft:'#203C36',line:'#334055',ink:'#ECF1FC',muted:'#A8B3CA',
-}:{
- stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#855D41',brand:'#4364EF',brandDeep:'#304BB8',onBrand:'#FFFFFF',brandSoft:'#EDF1FF',brandInk:'#3D59BB',paper:'#FFFFFF',mutedSurface:'#F1F4FA',success:'#2D8569',successSoft:'#E8F6EF',line:'#E3E8F2',ink:'#202C46',muted:'#5F6F88',
+/** 홈·계획 화면의 이름표. 공통 색은 현재 테마에서 받고, 캐릭터 무대의 따뜻한 색만 따로 둔다. */
+export function priorityVisuals(theme:Theme){const c=theme.colors,stage=theme.isDark?{stage:'#302B35',stageLine:'#685366',stageDot:'#504052',stageInk:'#E8C9B6'}:{stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#855D41'},role=colorRoles(theme);return {
+ ...stage,brand:c.primary,brandDeep:role.primary.edge,onBrand:role.primary.on,brandSoft:c.primarySoft,brandInk:role.primary.ink,paper:c.card,mutedSurface:c.inputBg,success:role.success.ink,successSoft:c.successSoft,line:c.border,ink:c.text,muted:c.textMuted,
 };}
 
 const dark: Theme = {
