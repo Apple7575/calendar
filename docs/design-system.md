@@ -140,11 +140,11 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 - `DeckCardsScreen`의 입력창 4개는 `Field`로 바꾼다.
 - `JapaneseSampleScreen`: 선택지와 입력은 `Choice`·`Field`, 문제·상황·해설 문장은 `Copy variant="body"`로 둔다. 문장을 줄이지 않는다. 일본어 문장에 `koreanTitle`을 쓰지 않는다.
 
-### 친구들 (feature/friends-ux, 8093)
+### 목표 탭 (feature/goal-tab, 8093)
 
-- 담당자 회신(2026-11-03): 적용은 목표 탭이 친구들 탭을 대체하므로 `BoriHomeScreen` 대신 목표 탭에 공통 컴포넌트를 쓴다. 기존 친구들 화면의 밝은 정원 배경은 다크 모드에서 튄다.
-- `AnimalCharacterPicker` 역할 라벨: PM 보류 해제에 따라 13/20으로 올리고 타일 좌우 여백을 2로 줄였다. 문구는 그대로이고 360·375·390px에서 한 줄, 타일 높이 116px이다.
-- 320px에서 타일이 3+1로 나뉘는 것은 기존 동작이다. 라벨 크기와 무관하게 난다.
+- 친구들 탭은 목표 탭으로 대체됐다. `BoriHomeScreen`은 삭제됐고 검수 대상이 아니다.
+- 병합 후 캐릭터는 `CharacterAction`이나 `EmptyState character`, 꼭 읽을 문장은 `Copy variant="lead"`를 검토한다.
+- `AnimalCharacterPicker` 역할 라벨: PM 보류 해제에 따라 13/20으로 올리고 타일 좌우 여백을 2로 줄였다. 문구는 그대로이고 360·375·390px에서 한 줄, 잘림 없음, 타일 높이 116px이다. 320px에서 타일이 3+1로 나뉘는 것은 기존 동작이다.
 
 ### PM·통합
 
