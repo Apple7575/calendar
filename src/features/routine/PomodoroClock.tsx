@@ -16,9 +16,9 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
  const button=(label:string,fn:()=>void,primary=false,compact=false)=><Pressable accessibilityRole="button" onPress={fn} style={({pressed})=>({minHeight:44,justifyContent:'center',paddingVertical:compact?10:13,paddingHorizontal:compact?13:20,borderRadius:12,backgroundColor:primary?p.accent:'#ffffff0D',borderWidth:1,borderColor:primary?p.accent:'#81909B66',transform:[{scale:pressed?.97:1}]})}><Text style={{color:primary?(design==='B'?'#FFFFFF':'#17251C'):p.text,fontSize:compact?14:17,fontWeight:'700',textAlign:'center'}}>{label}</Text></Pressable>;
  return <View testID="focus-clock" onLayout={e=>setArea(e.nativeEvent.layout)} style={{flex:1,backgroundColor:p.bg,padding:landscape?16:24,gap:10}}>
   <View style={{flexDirection:'row',alignItems:'center',gap:12,justifyContent:'space-between'}}>
-   <Text style={{color:p.accent,fontSize:18,fontWeight:'800'}}>{resting?'휴식 중':idle?'다음 공부 준비':overtime?'추가 공부 중':'집중 시간'}</Text>
+   <Text numberOfLines={1} style={{color:p.accent,fontSize:18,fontWeight:'800',flexShrink:0}}>{resting?'휴식 중':idle?'다음 공부 준비':overtime?'추가 공부 중':'집중 시간'}</Text>
    <View style={{flex:1,alignItems:'center'}}>{button(revealed?subject:'과목 보기',()=>setRevealed(v=>!v),false,true)}</View>
-   {phase==='focus'&&onLeaveNote?button('다음 시작 위치 남기기',onLeaveNote,false,true):null}
+   {landscape&&phase==='focus'&&onLeaveNote?button('다음 시작 위치 남기기',onLeaveNote,false,true):null}
    {button('돌아가기',onClose,false,true)}
   </View>
   <View style={{flex:1,flexDirection:landscape?'row':'column',gap:landscape?28:18,alignItems:'center',justifyContent:'center'}}>
@@ -39,6 +39,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
     {resting&&needsPlan&&onSkipBreak?null:button(pauseLabel,onPause,!resting&&!ready&&(idle||!running),resting)}
     {phase==='focus'&&onBreak?button('휴식 시작 · 5분',onBreak,false,true):null}
     {onPhoto&&(!ready||resting)?button('필기 사진 제출',onPhoto,false,true):null}
+    {!landscape&&phase==='focus'&&onLeaveNote?button('다음 시작 위치 남기기',onLeaveNote,false,true):null}
     {onAdjust?<><Pressable accessibilityRole="button" accessibilityLabel="타이머 시간 조정" accessibilityState={{expanded:adjusting}} onPress={()=>setAdjusting(v=>!v)} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:p.muted,fontSize:13,textAlign:'center'}}>시간 조정 {adjusting?'−':'+'}</Text></Pressable>{adjusting?<View style={{gap:8}}><View style={{flexDirection:'row',gap:8,justifyContent:'center'}}>{button('−1분',()=>onAdjust(-60),false,true)}{button('+1분',()=>onAdjust(60),false,true)}{button('−5분',()=>onAdjust(-300),false,true)}{button('+5분',()=>onAdjust(300),false,true)}</View></View>:null}</>:null}
     <Text style={{color:p.muted,fontSize:12,textAlign:'center'}}>{needsPlan?'계획 한 줄부터 +5분':ready?'이번 단계 충족 · 사진 확인하면 +5분':resting?'쉬는 시간은 공부 시간에 포함되지 않아요':'사진은 언제든 · 실제 집중 '+requiredMinutes+'분 후 +5분'}</Text>
    </View>

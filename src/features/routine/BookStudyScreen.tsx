@@ -27,7 +27,9 @@ export function BookStudyScreen(props:RootScreenProps<'BookStudy'>){
 }
 function BookStudyPage({navigation,route}:RootScreenProps<'BookStudy'>){
  const {data,dayKey,update,ready}=useRoutine(),focused=useIsFocused(),[clock,setClock]=useState(Date.now()),[error,setError]=useState(''),[notes,setNotes]=useState(false),[hasPhoto,setHasPhoto]=useState(false),timer=data.bookTimer,draft=data.outputDraft;
- const stage=focusFlowStage(data,hasPhoto,clock,!!route.params?.capture),working=stage==='submit'||stage==='review',capturing=(stage==='capture'||working)&&(!!draft||!!data.handwritingPending);
+ // Saving clears the pending result; stay on this page so that cannot race the reward screen's navigation.
+ const submitting=useRef(false);if(hasPhoto||data.handwritingPending)submitting.current=true;
+ const stage=focusFlowStage(data,hasPhoto,clock,!!route.params?.capture||submitting.current),working=stage==='submit'||stage==='review',capturing=(stage==='capture'||working)&&(!!draft||!!data.handwritingPending);
  const switchTo=route.params?.subject&&draft&&route.params.subject!==draft.subject&&!working?route.params.subject:undefined,toTimer=opensTimer(stage);
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),500);return()=>clearInterval(id)},[]);
  useEffect(()=>{if(timer?.phase==='break'&&timer.running&&clock>=timer.endsAt)void update(s=>settleBookTimer(s,Date.now())).catch(e=>setError(e.message))},[clock,timer?.running,timer?.endsAt,update]);
