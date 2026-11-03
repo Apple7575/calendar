@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 const fs=require('fs'),ts=require('typescript'),assert=require('assert/strict');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
 const {createLab,labQueue}=require('../src/lib/conceptLab.ts'),{sampleBook}=require('../src/lib/conceptLabContent.ts'),{labCardSummary}=require('../src/lib/conceptLabPresentation.ts');
@@ -7,7 +8,7 @@ const readingCard=corpus.cards.find(c=>c.id===reading.questionIds[0]),audioPage=
 const {chromium}=require('C:/Users/SSAFY/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright'),key='routine.concept-lab.v1.web-concept-demo',seed={...createLab(),studyVocabulary:false};seed.settings.dailyNew=30;assert(!labQueue(seed).includes(audioCard.id));
 (async()=>{const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage({viewport:{width:390,height:900},reducedMotion:'reduce'}),errors=[];page.on('pageerror',e=>errors.push(e.message));const button=name=>page.getByRole('button',{name,exact:true});try{
  await page.addInitScript(({key,seed})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(seed));window.__sourcePlays=0;const original=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(...args){return original.apply(this,args).then(()=>{if(!this.paused)window.__sourcePlays++;});};},{key,seed});
- await page.goto('http://localhost:8082/?conceptDemo=1',{waitUntil:'networkidle',timeout:300000});await button('카드 찾기·오류 신고').click();assert.equal(await button('오류 신고·수정').count(),40);
+ await page.goto(previewUrl('/?conceptDemo=1'),{waitUntil:'networkidle',timeout:300000});await button('카드 찾기·오류 신고').click();assert.equal(await button('오류 신고·수정').count(),40);
  await page.getByRole('textbox',{name:'카드 검색',exact:true}).fill('PDF '+audioPage);await page.getByText(labCardSummary(audioCard),{exact:true}).locator('..').getByRole('button',{name:'이 표본 학습',exact:true}).click();
  assert.equal(await page.getByRole('textbox').count(),0);await button('문제 음성 듣기').click();await page.waitForFunction(()=>window.__sourcePlays>0,{},{timeout:15000});assert.equal(await page.getByText(corpus.bundles.find(b=>b.id===audioCard.bundleId).transcript,{exact:true}).count(),0);await page.screenshot({path:'.expo/concept-lab-20261102/corpus-listening-front.png'});
  await button('정답 보기').click();await page.getByText(audioCard.answer,{exact:true}).waitFor();await button('좋음').click();await button('중단').click();

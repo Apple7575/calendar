@@ -1,10 +1,9 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 // Isolated browser fixture only. Never calls paid OCR or uses the user's browser storage.
 const fs = require('fs');
 const assert = require('assert/strict');
 const {chromium} = require('C:/Users/SSAFY/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const out = '.expo/action-flow-after';
-const port = process.env.PREVIEW_PORT;
-if (!port) throw new Error('Set PREVIEW_PORT to your worktree port. See docs/AGENT_PREVIEW_PORTS.md.');
 fs.mkdirSync(out, {recursive:true});
 
 (async () => {
@@ -22,7 +21,7 @@ fs.mkdirSync(out, {recursive:true});
   measurements.push({name,viewport:`${v.width}x${v.height}`,y:Math.round(b.y),height:Math.round(b.height)});
  };
  try {
-  await page.goto(`http://localhost:${port}/?priorityDemo=1`,{waitUntil:'networkidle'});
+  await page.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle'});
   await button('2분, 이 행동부터 시작').waitFor();
   for (const [width,height] of [[390,844],[360,740]]) {
    await page.setViewportSize({width,height});
