@@ -93,12 +93,14 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 ### 집중 학습 (feature/focus-ux, 8123)
 
-- `StudyHomeScreen`: 단어 탭에 채워진 버튼이 `오늘의 일본어 시작`과 `오늘 학습 시작` 두 개 있어 무엇을 먼저 누를지 경쟁한다. 하나만 기본으로 두고 다른 하나는 `NavCard`로 바꾼다. 덱 칩(약 38px)은 `Choice`로 바꾼다.
-- `FocusRampStart`: 공부 주제 칩은 `Choice`, 입력창 2개는 `Field`로 바꾼다.
-- `BookStudyScreen`·제출 화면: 글자 버튼 4개가 같은 무게로 쌓여 있다. `Link`가 이제 파란색이라 더 눈에 띈다. 부가 항목을 접거나 `MenuRow`로 묶는다. 오류는 `Notice tone="error"`로 바꾼다.
-- `EarnedRewardScreen`: 기본 버튼이 앱 기본색이 아닌 하늘색이고 수치 타일이 3색이다. 집중 테마로 통일할 때 `Action`을 쓰고 타일 색은 `success` 하나로 줄인다. 축하 연출과 동물은 유지한다.
-- `PomodoroClock`·타이머: focus-ux 브랜치의 390px 상단에서 `과목 보기`가 한 글자씩 세로로 깨지고 `집중 시간`이 두 줄로 나뉜다. 버튼 3개가 한 줄에 들어가지 않으므로 부가 행동을 아래로 옮긴다. 가로 배치는 유지하되 `돌아가기` 버튼이 `정지` 버튼과 맞닿는 문제를 고친다.
-- `scripts/check-action-flow-ui.cjs`: focus-ux에서 `앨범에서 노트 선택` 단계의 filechooser 대기가 시간 초과된다. 이 브랜치와 합치지 않은 단독 상태에서도 같으므로 흐름 변경에 맞춰 검사를 갱신한다.
+기준 커밋 `f67ed45`. 타이머 세로 상단 깨짐과 `EarnedRewardScreen` 타일 색은 이 커밋에서 해결됐다.
+
+- `StudyHomeScreen`: 집중 쪽은 채워진 버튼이 하나로 정리됐다. 단어 쪽은 `오늘의 일본어 시작`과 `오늘 학습 시작`이 아직 함께 채워져 있다. 덱 칩은 `Choice`로 바꾼다.
+- `FocusRampStart`: 공부 주제 칩(높이 40px)은 `Choice`, 입력창 2개는 `Field`로 바꾼다.
+- `HandwritingStudy`: 오류는 `Notice tone="error"`로 바꾼다.
+- 타이머 가로 화면: 상단 버튼과 `일시정지` 버튼 사이에 간격이 없다.
+- `scripts/check-action-flow-ui.cjs`: develop과 충돌한다. 이 브랜치와 무관하며 develop과 `f67ed45`만 합쳐도 난다. 자체 포트 변수 대신 develop의 `previewUrl`을 쓰는 쪽으로 정리한다.
+- `scripts/check-priority-first-web.cjs`: focus-ux에서 `다음 시작 위치 남기기`를 찾지 못해 시간 초과된다. 단독 상태에서도 같다. 이 스크립트와 `check-priority-ui-layout.cjs`는 `PREVIEW_PORT`를 읽는다.
 
 ### 단어장·일본어 학습 (feature/vocabulary, 8092)
 
