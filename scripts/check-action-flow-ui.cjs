@@ -59,7 +59,7 @@ fs.mkdirSync(out, {recursive:true});
   await imagePage.screenshot({path:`${out}/qa-note.png`});
   await imagePage.close();
   const chooserPromise = page.waitForEvent('filechooser');
-  await button('앨범에서 노트 선택').click();
+  await button('노트 사진 찍기').click();
   const chooser = await chooserPromise;
   assert(await button('노트 사진 찍기').isDisabled());
   await capture('submit-loading-390');
@@ -75,7 +75,7 @@ fs.mkdirSync(out, {recursive:true});
   assert.equal(await page.getByText('단계 완료마다 +5분 · 필기 100자당 500원',{exact:true}).count(),0);
   await button('보상 기준·사진 안내').click();
   await page.getByText('단계 완료마다 +5분 · 필기 100자당 500원',{exact:true}).waitFor();
-  await button('보상 기준 접기').click();
+  await button('보상 기준·사진 안내').click();
 
   const fixture = async seconds => {
    await page.evaluate(seconds => {
@@ -104,11 +104,16 @@ fs.mkdirSync(out, {recursive:true});
   await button('이어서 공부하기').click();
   await page.getByTestId('focus-clock').waitFor();
   await button('필기 사진 제출').click();
+  await button('큰 타이머로 돌아가기').click();
+  await page.getByTestId('focus-clock').waitFor();
+  await button('필기 사진 제출').click();
   await inViewport('노트 사진 찍기');
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('routine.v1.web-priority-demo')).handwritingReceipts.length), paid);
   await page.evaluate(()=>localStorage.setItem('theme.id.v2','dark'));
   await page.reload({waitUntil:'networkidle'});
   await button('손글씨 공부로 시간 모으기').click();
+  await page.getByTestId('focus-clock').waitFor(); // An active timer is the study page.
+  await button('필기 사진 제출').click();
   await inViewport('노트 사진 찍기');
   await capture('submit-dark-360');
   assert.deepEqual(errors,[]);

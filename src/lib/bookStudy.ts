@@ -3,7 +3,8 @@ import { getDay,routineDay,withDay } from './routineModel';
 import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
-import {claimFocusPlan,focusRampStatus} from './focusRamp';
+import {claimFocusPlan,focusRampAccess,focusRampStatus} from './focusRamp';
+import {startOutputStudy} from './handwriting';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
@@ -51,6 +52,21 @@ export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.phase!=='focus')return data;
  const next=stopBookTimer(data,now);
  return {...next,bookTimer:{...next.bookTimer!,phase:'break',endsAt:now+300000,remaining:300,running:true}};
+}
+/**
+ * Leave a break early, whether it is running or paused. Keyed to the break's timer so a repeated
+ * press or a press racing the break's natural end moves to study once. Rest never becomes focus
+ * time: real time stays in bookSessions and the countdown continues the unfinished ramp stage.
+ */
+export function skipBookBreak(data:RoutineData,breakTimerId:string,id:string,now=Date.now()):RoutineData{
+ const t=data.bookTimer;if(!t||t.id!==breakTimerId||t.phase==='focus')return data;
+ const idle:RoutineData={...data,bookTimer:{...t,phase:'idle',remaining:0,running:false}};
+ if(t.rewardMode!=='output')return startBookTimer(idle,id,t.subject,now,t.duration??1500,t.rewardMode??'standard');
+ if(focusRampStatus(data,now).needsPlan)throw new Error('공부를 2시간 쉬었어요. 계획 한 줄부터 다시 시작해 주세요.');
+ const drafted=startOutputStudy(idle,'draft-'+id,t.subject,new Date(now)),subject=drafted.outputDraft!.subject;
+ const {required,remaining}=focusRampAccess(drafted,subject,now),next=startBookTimer(drafted,id,subject,now,required,'output');
+ if(remaining<=0||remaining>=required)return next;
+ return {...next,bookTimer:{...next.bookTimer!,remaining,endsAt:now+remaining*1000,targetSeconds:remaining}};
 }
 export function adjustBookTimer(data:RoutineData,delta:number,now=Date.now()):RoutineData{
  if(![-300,-60,60,300].includes(delta))throw new Error('시간은 1분 또는 5분씩 조절해 주세요.');

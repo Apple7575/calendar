@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { DEFAULT_THEME_ID, getTheme, Theme, ThemeId } from "./themes";
+import { StatusBar } from "expo-status-bar";
+import { DEFAULT_THEME_ID, focusTheme, getTheme, Theme, ThemeId } from "./themes";
 
 const STORAGE_KEY = "theme.id.v2";
 
@@ -32,6 +33,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme: getTheme(themeId), setThemeId }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+/** 집중 공부 화면만 타이머 팔레트로 그린다. 사용자가 고른 앱 테마는 바꾸지 않는다. */
+export function FocusThemeProvider({ children }: { children: ReactNode }) {
+  const { setThemeId } = useContext(ThemeContext);
+  return (
+    <ThemeContext.Provider value={{ theme: focusTheme, setThemeId }}>
+      <StatusBar style="light" />
       {children}
     </ThemeContext.Provider>
   );
