@@ -111,7 +111,7 @@ export function Notice({tone="info",children,actionLabel,onAction}:{tone?:Notice
 }
 /** 빈 상태. 왜 비어 있는지와 첫 행동을 내용이 나타날 자리에 둔다. */
 export function EmptyState({title,description,actionLabel,onAction,character}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;character?:AnimalCharacterId}){
-  return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact secondary label={actionLabel} onPress={onAction}/></View>:null}</View>;
+  return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact label={actionLabel} onPress={onAction}/></View>:null}</View>;
 }
 /** 캐릭터가 버튼 뒤에서 내다보는 다음 행동. 왼쪽에 지금 상태를 적고, 그래픽은 화면의 주인공 하나에만 쓴다. */
 export function CharacterAction({children,action,character='C03',pose='A31',small=false}:{children:ReactNode;action:ReactNode;character?:AnimalCharacterId;pose?:AnimalActionId;small?:boolean}){
