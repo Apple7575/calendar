@@ -29,7 +29,7 @@ export function ConceptLabSession({data,busy,error,update,onDone}:Props){
  const grading=(id:string)=> <StudyRatingBar revealed={session.revealed} busy={busy} onReveal={flip} onAnswer={grade=>evaluate(id,grade)} revealLabel={flipLabel} interval={grade=>labIntervalLabel(data,id,grade,session.answers.find(a=>a.cardId===id)?.hint??hint)}/>;
  const footer=!session.revealed||single?grading(card.id):<Action label="평가 저장 · 다음 카드" disabled={busy||session.ids.some(id=>!evaluations[id])} onPress={()=>save(evaluations)}/>;
  function reasons(id:string){return evaluations[id]?.correct===false?<><Copy muted size={13}>막힌 이유 (선택)</Copy>{Object.entries(errorCauses).filter(([value])=>value!=='custom').map(([value,label])=><Link key={value} disabled={busy} label={`${evaluations[id].reason===value?'✓ ':''}${label}`} onPress={()=>setEvaluations(old=>({...old,[id]:{...old[id],reason:value as ErrorCause}}))}/>)}</>:null;}
- return <Page key={`${session.id}-${session.revealed?'feedback':index}`} title="오늘의 학습" right={<Link label="중단" onPress={onDone}/>} footer={footer} floatingFooter fillContent={single}>
+ return <Page key={`${session.id}-${Math.min(index,session.ids.length-1)}`} title="오늘의 학습" right={<Link label="중단" onPress={onDone}/>} footer={footer} floatingFooter fillContent={single}>
   <Copy muted size={12}>개념서 N3 · 별도 실험 단어장 · {single?abilityLabels[card.ability]:`문제 묶음 ${Math.min(index+1,session.ids.length)}/${session.ids.length}`}</Copy>
   {error?<Copy>{error}</Copy>:null}
   {!session.revealed?<>
