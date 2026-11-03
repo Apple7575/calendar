@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
-import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeContext";
@@ -9,46 +9,122 @@ import {useNavigation,useRoute} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
 import {tapLight} from '../../lib/haptics';
+import {colorRoles} from '../../theme/roles';
+import {BoriMascot as Mascot} from './BoriMascot';
+import type {AnimalActionId,AnimalCharacterId} from './animalAssets';
+import {control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
 
+/** 오른쪽 링크로 지금 나갈 수 있으면 뒤로 화살표를 겹쳐 두지 않는다. 비활성이면 나가는 길이 없어지므로 화살표를 남긴다. */
+const EXIT_LABELS=['닫기','나가기','중단'];
+function isExitAction(right:ReactNode){return React.isValidElement(right)&&right.type===Link&&EXIT_LABELS.includes((right.props as {label?:string}).label??'')&&!(right.props as {disabled?:boolean}).disabled}
+export function ProfileButton(){
+ const {colors:c}=useTheme(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+ return <Pressable accessibilityRole="button" accessibilityLabel="프로필·설정" onPress={()=>nav.navigate('SettingsHub')} style={{width:control.touch,height:control.touch,borderRadius:control.touch/2,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'}}><Icon name="person-outline" size={21} color={c.primary}/></Pressable>;
+}
 export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef,showHeader=true }: { title: string; showHeader?:boolean; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
   const { colors: c } = useTheme();
   const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),route=useRoute();
-  const back=nav.canGoBack()&&!['Today','Study','Bori','Records','Calendar','More'].includes(route.name);
-  if(embedded)return <View style={{gap:18}}>{children}</View>;
+  const pushed=nav.canGoBack()&&!['Today','Study','GoalTab','Records','Calendar','More'].includes(route.name);
+  const back=pushed&&!isExitAction(right);
+  if(embedded)return <View style={{gap:space.md}}>{children}</View>;
   const content = <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.surface }}>
-    {showHeader?<View style={[u.header,{gap:10}]}>{back?<Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={()=>nav.goBack()} style={{minWidth:44,minHeight:44,justifyContent:'center'}}><Icon name="arrow-back" size={23}/></Pressable>:null}<Text accessibilityRole="header" style={[u.title, { color: c.text,flex:1,fontSize:25 }]}>{title}</Text>{right??<Pressable accessibilityRole="button" accessibilityLabel="프로필·설정" onPress={()=>nav.navigate('SettingsHub')} style={{width:44,height:44,borderRadius:22,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'}}><Icon name="person-outline" size={21}/></Pressable>}</View>:null}
-    {scrollable ? <ScrollView ref={scrollRef} scrollEnabled={scrollEnabled} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : 24 } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
-      : <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 16, paddingBottom: 12 }}>{children}</View>}
-    {footer ? floatingFooter ? <View style={{position:'absolute',left:12,right:12,bottom:0}}>{footer}</View> : <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.surface, borderTopWidth: 1, borderColor: c.border, padding: 16 }}>{footer}</SafeAreaView> : null}
+    {showHeader?<View style={u.header}>{back?<Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={()=>nav.goBack()} style={{minWidth:control.touch,minHeight:control.touch,justifyContent:'center'}}><Icon name="arrow-back" size={23} color={c.text}/></Pressable>:null}<Text accessibilityRole="header" style={[type.title, { color: c.text,flex:1 }]}>{title}</Text>{right??(pushed?null:<ProfileButton/>)}</View>:null}
+    {scrollable ? <ScrollView ref={scrollRef} scrollEnabled={scrollEnabled} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : space.xl } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
+      : <View style={{ flex: 1, minHeight: 0, paddingHorizontal: gutter, paddingBottom: space.sm }}>{children}</View>}
+    {footer ? floatingFooter ? <View style={{position:'absolute',left:gutter,right:gutter,bottom:0}}>{footer}</View> : <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.surface, borderTopWidth: 1, borderColor: c.border, padding: gutter }}>{footer}</SafeAreaView> : null}
   </SafeAreaView>;
   return Platform.OS === "web" ? <MotionEnter style={{ flex: 1, backgroundColor: c.surface }}>{content}</MotionEnter> : content;
 }
-export function CardView({ children, style }: { children: ReactNode; style?: object }) {
+/** 정보 카드. 누를 수 없는 묶음에만 쓴다. 눌러서 이동하면 NavCard, 고르는 항목이면 Choice. */
+export function CardView({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors: c } = useTheme();
   return <View style={[u.card, { backgroundColor: c.card }, style]}>{children}</View>;
 }
-export function Copy({ children, muted = false, size = 15, weight = "500",numberOfLines,style }: { children: ReactNode; muted?: boolean; size?: number; numberOfLines?:number;style?:import('react-native').StyleProp<import('react-native').TextStyle>;weight?: "400" | "500" | "600" | "700" | "800" }) {
+/** 글자. 새 코드는 variant로 역할을 고른다. size는 가까운 글자 단계로 맞춰진다. */
+export function Copy({ children, muted = false, size, variant, weight,numberOfLines,style }: { children: ReactNode; muted?: boolean; size?: number; variant?:TypeRole; numberOfLines?:number;style?:StyleProp<TextStyle>;weight?: "400" | "500" | "600" | "700" | "800" }) {
   const { colors: c } = useTheme();
-  return <Text numberOfLines={numberOfLines} style={[{ color: muted ? c.textMuted : c.text, fontSize: size, fontWeight: weight, lineHeight: size * 1.5, letterSpacing: -0.3 },style]}>{children}</Text>;
+  const base=variant?type[variant]:size!==undefined?{...typeStep(size),fontWeight:"500" as const}:type.body;
+  return <Text numberOfLines={numberOfLines} style={[base,{ color: muted ? c.textMuted : c.text },weight?{fontWeight:weight}:null,style]}>{children}</Text>;
 }
-export function Action({ label, onPress, secondary = false, disabled = false, compact = false }: {
-  label: string; onPress: () => void; secondary?: boolean; disabled?: boolean; compact?: boolean;
+export type ActionVariant="primary"|"secondary"|"danger";
+/** 버튼. 입체감 없이 납작하게, 채운 색으로 위계를 나눈다. primary는 화면(또는 영역)의 다음 행동 하나에만 쓴다. */
+export function Action({ label, onPress, variant, secondary = false, disabled = false, compact = false, loading = false, icon, accessibilityLabel }: {
+  label: string; onPress: () => void; variant?:ActionVariant; secondary?: boolean; disabled?: boolean; compact?: boolean; loading?:boolean; icon?:React.ComponentProps<typeof Ionicons>["name"]; accessibilityLabel?:string;
 }) {
-  const { colors: c, isDark } = useTheme();
-  const press = usePressMotion(disabled);
+  const theme = useTheme(), role=colorRoles(theme);
+  const kind=role[variant??(secondary?"secondary":"primary")];
+  const inactive=disabled||loading;
+  const press = usePressMotion(inactive);
   const reduced = useReducedMotion();
-  return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={()=>{tapLight();onPress();}}
+  return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled:inactive,busy:loading }} aria-busy={loading} disabled={inactive} onPress={()=>{tapLight();onPress();}}
     onPressIn={press.pressIn} onPressOut={press.pressOut}
-    style={({ pressed }) => [u.action, { minHeight: compact ? 48 : 58, backgroundColor: secondary ? c.inputBg : c.primary,borderRadius:20,borderWidth:1,borderBottomWidth:pressed?1:4,borderColor:secondary?c.border:c.primary,transform:[{translateY:pressed&&!reduced?3:0}],
-      opacity: disabled ? 0.45 : 1 }]}>
-    <Text style={{ color: secondary ? c.text : isDark ? c.background : c.white, fontWeight: "700", fontSize: compact ? 15 : 17, textAlign: "center" }}>{label}</Text>
+    style={({ pressed }) => [u.action, { minHeight: compact ? control.compact : control.large, backgroundColor: kind.fill,borderColor:kind.edge,borderWidth:1,
+      opacity: disabled ? 0.5 : pressed&&!reduced ? 0.85 : 1 }]}>
+    {loading?<ActivityIndicator size="small" color={kind.on}/>:null}
+    <Text style={[compact?type.label:type.section,{ color: kind.on, textAlign: "center",flexShrink:1 }]}>{label}</Text>
+    {icon&&!loading?<Ionicons name={icon} size={18} color={kind.on}/>:null}
   </Pressable></Animated.View>;
 }
-export function Link({ label, onPress,disabled=false }: { label: string; onPress: () => void;disabled?:boolean }) {
-  const { colors: c } = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 6,opacity:disabled?0.45:1 }}>
-    <Text style={{ color: c.textMuted, fontWeight: "600", textAlign: "center", fontSize: 14 }}>{label}</Text>
+/** 글자 버튼. 이동·열기는 기본 색, 닫기·건너뛰기처럼 물러나는 행동은 muted. */
+export function Link({ label, onPress,disabled=false,muted }: { label: string; onPress: () => void;disabled?:boolean;muted?:boolean }) {
+  const theme=useTheme(),{colors:c}=theme;
+  const quiet=muted??EXIT_LABELS.includes(label);
+  return <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={{ minHeight: control.touch,minWidth:control.touch, alignItems:"center",justifyContent: "center", paddingHorizontal: space.xs,opacity:disabled?0.5:1 }}>
+    <Text style={[type.label,{ color: quiet?c.textMuted:colorRoles(theme).primary.ink, textAlign: "center" }]}>{label}</Text>
   </Pressable>;
+}
+/** 이동 가능한 카드. 전체가 눌리고 오른쪽 화살표로 이동을 알린다. */
+export function NavCard({title,subtitle,icon,right,onPress,disabled=false,accessibilityLabel}:{title:string;subtitle?:string;icon?:React.ComponentProps<typeof Ionicons>["name"];right?:ReactNode;onPress:()=>void;disabled?:boolean;accessibilityLabel?:string}){
+  const {colors:c}=useTheme();
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??title} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({pressed})=>[u.between,{minHeight:control.large,padding:space.md,borderRadius:radii.card,backgroundColor:pressed?c.primarySoft:c.card,opacity:disabled?0.5:1}]}>
+    {icon?<Icon name={icon} size={22} color={c.primary}/>:null}
+    <View style={{flex:1,gap:2}}><Copy variant="label">{title}</Copy>{subtitle?<Copy variant="caption" muted>{subtitle}</Copy>:null}</View>
+    {right}<Icon name="chevron-forward" size={18}/>
+  </Pressable>;
+}
+/** 선택 항목. 여러 개 중 하나(또는 여러 개)를 고른다. fill이면 한 줄을 다 쓰는 항목. 학습 내용을 고를 때는 labelVariant="lead"나 "body". */
+export function Choice({label,description,selected,onPress,disabled=false,fill=false,accessibilityLabel,labelVariant='caption'}:{label:string;description?:string;selected:boolean;onPress:()=>void;disabled?:boolean;fill?:boolean;accessibilityLabel?:string;labelVariant?:'caption'|'body'|'lead'}){
+  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme);
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} accessibilityState={{selected,disabled}} {...({'aria-pressed':selected} as object)} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={{flexDirection:'row',alignItems:'center',gap:space.xs,minHeight:control.touch,paddingHorizontal:space.sm,paddingVertical:space.xs,borderRadius:radii.chip,borderWidth:1,borderColor:selected?c.primary:c.border,backgroundColor:selected?c.primarySoft:c.card,opacity:disabled?0.5:1,alignSelf:fill?'stretch':'flex-start'}}>
+    {selected?<Icon name="checkmark-circle" size={17} color={role.primary.ink}/>:null}
+    <View style={{flexShrink:1,flexGrow:fill?1:0,gap:2}}><Copy variant={labelVariant} weight={selected?'700':'500'} style={selected?{color:role.primary.ink}:undefined}>{label}</Copy>{description?<Copy variant="caption" muted>{description}</Copy>:null}</View>
+  </Pressable>;
+}
+/** 입력창. 이름표는 위에, 설명과 오류는 아래에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. */
+export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength,minHeight}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number;minHeight?:number}){
+  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),[focused,setFocused]=useState(false);
+  return <View style={{gap:space.xs}}>
+    {label?<Copy variant="caption" weight="700" muted>{label}</Copy>:null}
+    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
+    {error?<Copy variant="caption" style={{color:role.danger.ink}}>{error}</Copy>:helper?<Copy variant="caption" muted>{helper}</Copy>:null}
+  </View>;
+}
+export type NoticeTone="info"|"success"|"warning"|"error";
+/** 상태 안내 한 줄. 오류는 일어난 자리에서 무슨 일이 있었는지와 다음 행동을 함께 말한다. */
+export function Notice({tone="info",children,actionLabel,onAction}:{tone?:NoticeTone;children:ReactNode;actionLabel?:string;onAction?:()=>void}){
+  const role=colorRoles(useTheme()),kind=tone==="error"?role.danger:role[tone];
+  const icon=({info:'information-circle',success:'checkmark-circle',warning:'alert-circle',error:'alert-circle'} as const)[tone];
+  return <View accessibilityRole={tone==="error"?"alert":undefined} style={{flexDirection:'row',gap:space.xs,alignItems:'flex-start',padding:space.sm,borderRadius:radii.chip,backgroundColor:kind.soft}}>
+    <Icon name={icon} size={18} color={kind.ink}/>
+    <View style={{flex:1,alignItems:'flex-start'}}><Copy variant="caption">{children}</Copy>{actionLabel&&onAction?<Link label={actionLabel} onPress={onAction} muted={false}/>:null}</View>
+  </View>;
+}
+/** 빈 상태. 왜 비어 있는지와 첫 행동을 내용이 나타날 자리에 둔다. */
+export function EmptyState({title,description,actionLabel,onAction,character}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;character?:AnimalCharacterId}){
+  return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact label={actionLabel} onPress={onAction}/></View>:null}</View>;
+}
+/** 캐릭터가 버튼 뒤에서 내다보는 다음 행동. 왼쪽에 지금 상태를 적고, 그래픽은 화면의 주인공 하나에만 쓴다. */
+export function CharacterAction({children,action,character='C03',pose='A31',small=false}:{children:ReactNode;action:ReactNode;character?:AnimalCharacterId;pose?:AnimalActionId;small?:boolean}){
+  const size=small?150:180,height=small?100:124;
+  return <View>
+    <View style={{height,justifyContent:'center',paddingRight:size*.62}}>{children}<View pointerEvents="box-none" style={{position:'absolute',right:-space.xs,bottom:-size*.2}}><Mascot character={character} action={pose} size={size}/></View></View>
+    <View style={{zIndex:1}}>{action}</View>
+  </View>;
+}
+/** 불러오는 중. 무엇을 기다리는지 함께 적는다. */
+export function LoadingState({label}:{label:string}){
+  const {colors:c}=useTheme();
+  return <View accessibilityLiveRegion="polite" style={[u.row,{gap:space.xs,paddingVertical:space.md}]}><ActivityIndicator size="small" color={c.primary}/><Copy variant="caption" muted>{label}</Copy></View>;
 }
 export function Progress({ value, label }: { value: number; label: string }) {
   const { colors: c } = useTheme();
@@ -68,7 +144,7 @@ export function Progress({ value, label }: { value: number; label: string }) {
       transform: [{ translateX: amount.interpolate({ inputRange: [0, 1], outputRange: [-width / 2, 0] }) }, { scaleX: amount }] }} />
   </View>;
 }
-export { BoriMascot as Mascot } from "./BoriMascot";
+export { Mascot };
 export type { MascotMood } from "./boriAssets";
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 function RingSegment({ amount, arc, length, rotation, locked, color }: {
@@ -116,11 +192,11 @@ export function Icon({ name, size = 24, color }: { name: keyof typeof Ionicons.g
   const { colors } = useTheme(); return <Ionicons name={name} size={size} color={color ?? colors.textMuted} />;
 }
 export const u = StyleSheet.create({
-  header: { paddingHorizontal: 22, paddingTop: 14, paddingBottom: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  title: { fontSize: 27, fontWeight: "800", letterSpacing: -0.9 },
-  page: { paddingHorizontal: 16, gap: 16, paddingBottom: 32 },
-  card: { padding: 22, borderRadius: 26, gap: 16 },
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  between: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  action: { paddingHorizontal: 18, paddingVertical: 13, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  header: { paddingHorizontal: gutter, paddingTop: space.xs, paddingBottom: space.sm, minHeight: control.touch + space.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.xs },
+  title: type.title,
+  page: { paddingHorizontal: gutter, gap: space.md, paddingBottom: space.xxl },
+  card: { padding: space.lg, borderRadius: radii.card, gap: space.sm },
+  row: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  between: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
+  action: { flexDirection: "row", gap: space.xs, paddingHorizontal: space.lg, paddingVertical: space.sm, borderRadius: radii.control, alignItems: "center", justifyContent: "center" },
 });

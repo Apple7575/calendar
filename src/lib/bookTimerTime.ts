@@ -14,3 +14,8 @@ export function bookDisplaySeconds(t:BookTimer,now=Date.now()){
  const overtime=bookFocusSeconds(t,now)-(t.targetSeconds??t.duration??1500);
  return overtime>0?-overtime:bookRemaining(t,now);
 }
+/** Seconds since a break ended by itself, for the + display only. Study time, rewards and locks never read it. */
+export function bookRestOvertime(t:BookTimer,now=Date.now()):number|null{
+ if(t.phase!=='idle'||typeof t.restEndedAt!=='number'||!Number.isFinite(t.restEndedAt))return null;
+ return Math.max(0,Math.floor((now-t.restEndedAt)/1000));
+}

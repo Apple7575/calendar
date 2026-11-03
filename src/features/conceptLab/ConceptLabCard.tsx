@@ -19,7 +19,7 @@ export function ConceptLabCard({card,revealed,fill=false,hint,onHint,onReveal,bu
  const choiceValue=(text:string)=>normalizeAnswer(text.replace(/^\s*(?:[a-dA-D1-4][.．:：)）]\s*|[a-dA-D1-4]\s+|[①②③④]\s*)/u,''));
  const separateChoices=card.choices?.length&&!card.choices.every(choice=>normalizeAnswer(face.front).includes(choiceValue(choice)));
  function blankMarked(line:string){return line.split(/([（(]\s*[）)]|_{2,}|＿+)/g).map((part,index)=>/^(?:[（(]\s*[）)]|_{2,}|＿+)$/.test(part)?<Text key={index} accessible accessibilityLabel="빈칸: 여기에 들어갈 표현을 떠올려 보세요" testID="concept-answer-blank" style={{color:c.primary,backgroundColor:c.primarySoft}}>{'（'}<Icon name="create-outline" size={20} color={c.primary}/>{' ____ ）'}</Text>:part);}
- return <StudyCardSurface fill={fill} revealed={revealed} onReveal={onReveal} canReveal={!busy}>
+ return <StudyCardSurface animate={!revealed} fill={fill} revealed={revealed} onReveal={onReveal} canReveal={!busy}>
   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',minHeight:24}}><Copy muted size={12}>{typeLabels[card.type]} · {card.novel?'새 적용 문제':'기본 문제'}</Copy><Copy muted size={12}>{card.origin==='textbook'?'교재 기반':'AI 작성'}</Copy></View>
   <Copy muted size={12} style={{textAlign:face.large?'center':'left',paddingLeft:inset}}>{face.label}</Copy>
   {cue?<View accessible accessibilityLabel={`${cue.kind==='seen'?'직접 본 정보':'들은 정보'}: ${cue.text}`} style={{flexDirection:'row',alignItems:'flex-start',gap:8,paddingVertical:8}}><View style={{width:22,paddingTop:2}}><Icon name={cue.kind==='seen'?'eye-outline':'chatbubble-outline'} size={22} color={c.textMuted}/></View><Copy size={17} weight="600" style={{flex:1}}>{cue.text}</Copy></View>:null}
@@ -37,7 +37,7 @@ export function ConceptLabCard({card,revealed,fill=false,hint,onHint,onReveal,bu
    {details?<>{brief?<><Copy muted size={12}>자세한 해설</Copy><Copy size={13}>{card.explanation}</Copy></>:null}<Copy muted size={13}>채점 기준: {card.rubric}</Copy>{card.accepted.length?<Copy muted size={12}>인정할 수 있는 답: {card.accepted.join(' / ')}</Copy>:null}<Copy muted size={12}>근거: {sources.map(e=>`PDF ${e.source.pdfPage} · 인쇄 ${e.source.printedPage??'미확인'}쪽`).join(', ')}</Copy></>:null}
    {children}
   </View>:<View style={{alignItems:'center',gap:8,paddingTop:12}}>
-   {hint?<Copy muted size={13}>{card.hint}</Copy>:<Pressable accessibilityRole="button" accessibilityLabel="힌트 보기" disabled={busy} onPress={event=>{event.stopPropagation();onHint();}} style={{minHeight:32,justifyContent:'center'}}><Copy muted size={13}>힌트 보기</Copy></Pressable>}
+   {hint?<Copy muted size={13}>{card.hint}</Copy>:<Pressable accessibilityRole="button" accessibilityLabel="힌트 보기" disabled={busy} onPress={event=>{event.stopPropagation();onHint();}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={13}>힌트 보기</Copy></Pressable>}
   </View>}
  </StudyCardSurface>;
 }

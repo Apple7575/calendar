@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 // Isolated browser fixture only. Never calls paid OCR or uses the user's browser storage.
 const fs = require('fs');
 const assert = require('assert/strict');
@@ -20,7 +21,7 @@ fs.mkdirSync(out, {recursive:true});
   measurements.push({name,viewport:`${v.width}x${v.height}`,y:Math.round(b.y),height:Math.round(b.height)});
  };
  try {
-  await page.goto('http://localhost:8082/?priorityDemo=1',{waitUntil:'networkidle'});
+  await page.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle'});
   await button('2분, 이 행동부터 시작').waitFor();
   for (const [width,height] of [[390,844],[360,740]]) {
    await page.setViewportSize({width,height});
@@ -41,7 +42,8 @@ fs.mkdirSync(out, {recursive:true});
   await page.getByTestId('focus-clock').waitFor();
   for (const [width,height] of [[390,844],[844,390],[360,740]]) {
    await page.setViewportSize({width,height});
-   await inViewport('필기 사진 제출');
+   await inViewport('일시정지');
+   assert.equal(await button('필기 사진 제출').count(),0,'No photo before the study time is met');
    assert.equal(await button('+1분').count(),0);
    await capture(`study-${width}`);
   }
@@ -49,6 +51,17 @@ fs.mkdirSync(out, {recursive:true});
   await button('+1분').click();
   await button('타이머 시간 조정').click();
   await page.setViewportSize({width:390,height:844});
+  const meetStudyTime = async () => {
+   await page.evaluate(() => {const key='routine.v1.web-priority-demo',s=JSON.parse(localStorage.getItem(key)),now=Date.now();s.bookTimer={...s.bookTimer,focusElapsed:121,focusResumedAt:now};localStorage.setItem(key,JSON.stringify(s));});
+   await page.reload({waitUntil:'networkidle'});
+   await button('집중 공부로 시간 모으기').click();
+   await page.getByTestId('focus-clock').waitFor();
+  };
+  await meetStudyTime();
+  await button('필기 사진 제출').click();
+  await inViewport('노트 사진 찍기');
+  await button('큰 타이머로 돌아가기').click();
+  await page.getByTestId('focus-clock').waitFor();
   await button('필기 사진 제출').click();
   await inViewport('노트 사진 찍기');
   await capture('submit-empty-390');
@@ -58,7 +71,7 @@ fs.mkdirSync(out, {recursive:true});
   await imagePage.screenshot({path:`${out}/qa-note.png`});
   await imagePage.close();
   const chooserPromise = page.waitForEvent('filechooser');
-  await button('앨범에서 노트 선택').click();
+  await button('노트 사진 찍기').click();
   const chooser = await chooserPromise;
   assert(await button('노트 사진 찍기').isDisabled());
   await capture('submit-loading-390');
@@ -74,7 +87,7 @@ fs.mkdirSync(out, {recursive:true});
   assert.equal(await page.getByText('단계 완료마다 +5분 · 필기 100자당 500원',{exact:true}).count(),0);
   await button('보상 기준·사진 안내').click();
   await page.getByText('단계 완료마다 +5분 · 필기 100자당 500원',{exact:true}).waitFor();
-  await button('보상 기준 접기').click();
+  await button('보상 기준·사진 안내').click();
 
   const fixture = async seconds => {
    await page.evaluate(seconds => {
@@ -84,7 +97,7 @@ fs.mkdirSync(out, {recursive:true});
     localStorage.setItem(key,JSON.stringify(s));
    },seconds);
    await page.reload({waitUntil:'networkidle'});
-   await button('손글씨 공부로 시간 모으기').click();
+   await button('집중 공부로 시간 모으기').click();
   };
   await fixture(0);
   await page.getByText('읽은 내용을 확인해 주세요',{exact:true}).waitFor();
@@ -102,14 +115,27 @@ fs.mkdirSync(out, {recursive:true});
   const paid = await page.evaluate(() => JSON.parse(localStorage.getItem('routine.v1.web-priority-demo')).handwritingReceipts.length);
   await button('이어서 공부하기').click();
   await page.getByTestId('focus-clock').waitFor();
-  await button('필기 사진 제출').click();
-  await inViewport('노트 사진 찍기');
+  assert.equal(await button('필기 사진 제출').count(),0,'The next stage starts without a photo button');
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('routine.v1.web-priority-demo')).handwritingReceipts.length), paid);
   await page.evaluate(()=>localStorage.setItem('theme.id.v2','dark'));
   await page.reload({waitUntil:'networkidle'});
-  await button('손글씨 공부로 시간 모으기').click();
-  await inViewport('노트 사진 찍기');
-  await capture('submit-dark-360');
+  await button('집중 공부로 시간 모으기').click();
+  await page.getByTestId('focus-clock').waitFor(); // An active timer is the study page.
+  await capture('timer-dark-360');
+  // A naturally ended break counts up, then the button restarts the whole stage.
+  await page.evaluate(() => {const key='routine.v1.web-priority-demo',s=JSON.parse(localStorage.getItem(key)),now=Date.now();s.bookTimer={...s.bookTimer,phase:'break',running:true,remaining:300,endsAt:now-5000};localStorage.setItem(key,JSON.stringify(s));});
+  await page.reload({waitUntil:'networkidle'});
+  await button('집중 공부로 시간 모으기').click();
+  await page.getByTestId('focus-clock').waitFor();
+  await page.getByText('휴식 끝',{exact:true}).waitFor();
+  const overtime = await page.getByRole('timer').innerText();
+  assert(/^\+00:\d\d$/.test(overtime), `Rest overtime must count up: ${overtime}`);
+  await capture('rest-ended-360');
+  await inViewport('이 과목 공부 마치기');
+  await button('5분 집중 시작').click();
+  await page.getByText('집중 시간',{exact:true}).waitFor();
+  const restarted = await page.getByRole('timer').innerText();
+  assert(/^0[45]:\d\d$/.test(restarted), `The whole stage must restart: ${restarted}`);
   assert.deepEqual(errors,[]);
   fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({measurements,errors},null,2));
   console.log(JSON.stringify({primaryActionsVisible:true,secondaryControlsWork:true,rewardContinuesToTimer:true,noDuplicateReceipt:true,errors}));

@@ -52,7 +52,7 @@ export type RootStackParamList = {
   RoutineBackup: undefined;
   AnimalPreview: undefined;
   FocusTimer: undefined;
-  BookStudy: {subject?:string;rewardMode?:'standard'|'free'}|undefined;
+  BookStudy: {subject?:string;rewardMode?:'standard'|'free';capture?:boolean}|undefined;
   HabitOrderSettings: undefined;
   /** date: "YYYY-MM-DD" */
   DayDetail: { date: string };
@@ -128,7 +128,7 @@ export type MainTabParamList = {
   Today: undefined;
   Study: undefined;
   More: undefined;
-  Bori:undefined;
+  GoalTab:undefined;
   Records:{section?:'calendar'|'diary'|'stats'}|undefined;
 };
 

@@ -1,6 +1,7 @@
 // Local stdio MCP. Credentials are encrypted with Windows DPAPI and never sent to the model.
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),readline=require('node:readline'),{execFileSync}=require('node:child_process');
 const {createClient}=require('@supabase/supabase-js');
+const {previewOrigins}=require('./lib/preview-url.cjs');
 const ts=require('typescript');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
 const {validateLearningSummary}=require('../src/lib/learningSummary.ts');
@@ -34,6 +35,20 @@ async function rpc(request){
  }
  throw Error('Unsupported method');
 }
+function createPairingServer(origins=previewOrigins()){
+ return http.createServer(async(req,res)=>{
+  const origin=req.headers.origin;if(!origin||!origins.has(origin)){res.writeHead(403);return res.end();}
+  res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Private-Network','true');res.setHeader('Content-Type','application/json');
+  if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
+  if(req.method==='GET'&&req.url==='/status')return res.end(JSON.stringify({ready:fs.existsSync(credentials)}));
+  if(req.method!=='POST'||req.url!=='/pair'||!req.headers['content-type']?.startsWith('application/json')){res.writeHead(404);return res.end('{}');}
+  try{
+   let body='';for await(const chunk of req){body+=chunk;if(body.length>24000)throw Error('Request too large');}
+   const tokens=JSON.parse(body);if(typeof tokens.access_token!=='string'||typeof tokens.refresh_token!=='string')throw Error('로그인 정보가 없어요.');
+   await sessionClient(tokens);res.end(JSON.stringify({ok:true}));
+  }catch(e){res.writeHead(e.stage==='network'?503:400);res.end(JSON.stringify({stage:e.stage??'request',error:e.stage==='network'?'PC 연결 도구가 서버에 접근하지 못했어요. 네트워크 연결을 확인해 주세요.':e.stage==='storage'?'Windows 암호화 저장에 실패했어요. PC 연결 도구의 실행 권한을 확인해 주세요.':'로그인 연결을 확인하지 못했어요. 같은 계정으로 다시 로그인해 주세요.'}));}
+ });
+}
 if(process.argv.includes('--inventory')){
  (async()=>{const {api}=await sessionClient(JSON.parse(protect(fs.readFileSync(credentials,'utf8'),true)));const counts={};
   for(const table of ['diaries','diary_photos','events','tasks','routines','routine_checks','workout_records','meals','daily_logs','vocab','expressions']){
@@ -54,20 +69,8 @@ if(process.argv.includes('--inventory')){
   }finally{const {error}=await storage.remove([file]);process.stdout.write(JSON.stringify({testDataRemoved:!error})+'\n');}
  })().catch(e=>{process.stderr.write(e.message+'\n');process.exitCode=1;});
 }else if(process.argv.includes('--pair')){
- const origins=new Set(['http://localhost:8082','http://127.0.0.1:8082']);
- http.createServer(async(req,res)=>{
-  const origin=req.headers.origin;if(!origin||!origins.has(origin)){res.writeHead(403);return res.end();}
-  res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Private-Network','true');res.setHeader('Content-Type','application/json');
-  if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
-  if(req.method==='GET'&&req.url==='/status')return res.end(JSON.stringify({ready:fs.existsSync(credentials)}));
-  if(req.method!=='POST'||req.url!=='/pair'||!req.headers['content-type']?.startsWith('application/json')){res.writeHead(404);return res.end('{}');}
-  try{
-   let body='';for await(const chunk of req){body+=chunk;if(body.length>24000)throw Error('Request too large');}
-   const tokens=JSON.parse(body);if(typeof tokens.access_token!=='string'||typeof tokens.refresh_token!=='string')throw Error('로그인 정보가 없어요.');
-   await sessionClient(tokens);res.end(JSON.stringify({ok:true}));
-  }catch(e){res.writeHead(e.stage==='network'?503:400);res.end(JSON.stringify({stage:e.stage??'request',error:e.stage==='network'?'PC 연결 도구가 서버에 접근하지 못했어요. 네트워크 연결을 확인해 주세요.':e.stage==='storage'?'Windows 암호화 저장에 실패했어요. PC 연결 도구의 실행 권한을 확인해 주세요.':'로그인 연결을 확인하지 못했어요. 같은 계정으로 다시 로그인해 주세요.'}));}
- }).listen(8766,'127.0.0.1',()=>process.stderr.write('Routine Dot pairing is listening on loopback port 8766. No credentials are logged.\n'));
+ createPairingServer().listen(8766,'127.0.0.1',()=>process.stderr.write('Routine Dot pairing is listening on loopback port 8766 for '+[...previewOrigins()].join(', ')+'. No credentials are logged.\n'));
 }else if(require.main===module){
  let queue=Promise.resolve();readline.createInterface({input:process.stdin,crlfDelay:Infinity}).on('line',line=>{queue=queue.then(async()=>{let request;try{request=JSON.parse(line);if(request.id===undefined)return;const result=await rpc(request);process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:request.id,result})+'\n');}catch(e){process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:request?.id??null,error:{code:-32603,message:e.message}})+'\n');}});});
 }
-module.exports={rpc,sessionClient,loadTokens:()=>JSON.parse(protect(fs.readFileSync(credentials,'utf8'),true))};
+module.exports={rpc,sessionClient,createPairingServer,loadTokens:()=>JSON.parse(protect(fs.readFileSync(credentials,'utf8'),true))};
