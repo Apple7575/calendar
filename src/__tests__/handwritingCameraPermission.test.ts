@@ -16,7 +16,8 @@ jest.mock('../features/routine/RoutineProvider',()=>({useRoutine:jest.fn()}));
 jest.mock('../features/routine/ui',()=>{
  const {createElement:h}=jest.requireActual('react'),rn=jest.requireActual('react-native');
  const press=({label,onPress,disabled}:{label:string;onPress:()=>void;disabled?:boolean})=>h(rn.Pressable,{onPress,disabled,accessibilityRole:'button'},h(rn.Text,null,label));
- return {Action:press,Link:press,CardView:({children}:{children:React.ReactNode})=>h(rn.View,null,children),Copy:({children}:{children:React.ReactNode})=>h(rn.Text,null,children)};
+ const Notice=({children,tone}:{children:React.ReactNode;tone?:string})=>h(rn.View,{accessibilityRole:tone==='error'?'alert':undefined},h(rn.Text,null,children));
+ return {Notice,Action:press,Link:press,CardView:({children}:{children:React.ReactNode})=>h(rn.View,null,children),Copy:({children}:{children:React.ReactNode})=>h(rn.Text,null,children)};
 });
 const {useRoutine}=jest.requireMock('../features/routine/RoutineProvider');
 const picker=ImagePicker as jest.Mocked<typeof ImagePicker>;
@@ -41,6 +42,11 @@ test('denied camera explains settings, offers retry, and never falls back to the
  expect(copy).toContain('카메라 권한');expect(copy).toContain('설정');expect(copy).not.toContain('앨범');
  expect(picker.launchCameraAsync).not.toHaveBeenCalled();expect(picker.launchImageLibraryAsync).not.toHaveBeenCalled();
  expect(button('설정 열기')).toBeDefined();expect(button('다시 시도')).toBeDefined();
+});
+test('a failed camera request is announced as an error',async()=>{
+ deny();await take();
+ const alert=tree.root.findAll((n:{type:unknown;props:{tone?:string}})=>typeof n.type==='function'&&n.props.tone==='error');
+ expect(alert).toHaveLength(1);
 });
 test('settings button opens system settings',async()=>{
  const open=jest.spyOn(Linking,'openSettings').mockResolvedValue();
