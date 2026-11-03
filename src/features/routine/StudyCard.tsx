@@ -29,7 +29,7 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
   return <StudyCardSurface fill={fill} revealed={revealed} onReveal={onReveal} canReveal={!details} overlay={<StudyCardMenu word={word} visible={details} onClose={()=>setDetails(false)} auto={audio.auto} sentenceAuto={audio.sentenceAuto} toggleAuto={audio.toggleAuto} toggleSentenceAuto={audio.toggleSentenceAuto} rates={audio.rates} setRate={audio.setRate}/>}>
     <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',height:24}}>
       <Copy muted size={12}>{word.kind==='sentence'?'문장':'단어'} · {word.card.reps===0?'새 카드':'복습 카드'}{word.favorite?' · ★':''}{word.issue?' · 확인 필요':''}</Copy>
-      <Pressable accessibilityRole="button" accessibilityLabel="학습 카드 옵션" hitSlop={8} onPress={e=>{e.stopPropagation();setDetails(true)}} style={{width:32,height:32,justifyContent:'center',alignItems:'center'}}><Icon name="ellipsis-horizontal" size={20}/></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="학습 카드 옵션" onPress={e=>{e.stopPropagation();setDetails(true)}} style={{width:44,height:44,justifyContent:'center',alignItems:'center'}}><Icon name="ellipsis-horizontal" size={20}/></Pressable>
     </View>
     <Pressable testID="study-word-anchor" accessible={revealed} accessibilityRole={revealed?"button":undefined} accessibilityLabel={revealed?"단어 영역 듣기":undefined} onPress={e=>{e.stopPropagation();if(revealed)void audio.play(word.kind==='sentence'?'sentence':'word');else if(!details)onReveal();}} style={{alignItems:'center',paddingHorizontal:word.kind==='sentence'?0:38,minHeight:word.kind==='sentence'?82:compact?84:94,justifyContent:'flex-start'}}>
       <Text testID="study-word-title" style={{color:c.text,fontSize:word.kind==='sentence'?24:compact?40:44,lineHeight:word.kind==='sentence'?35:compact?60:66,fontWeight:'700',textAlign:'center'}}>{word.front}</Text>
@@ -43,12 +43,12 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
         <Text testID="study-sentence" style={{color:c.text,fontSize:compact?18:19,lineHeight:compact?26:28,fontWeight:'500'}}>{word.fields.Sentence}</Text>
         <Text testID="study-sentence-meaning" style={{color:c.textMuted,fontSize:14,lineHeight:21}}>{word.fields.Sentence_Meaning}</Text>
       </Pressable>:word.kind==='sentence'?<View style={{alignItems:'center'}}>{audioButton('sentence')}</View>:null}
-      {word.fields?.Sentence_Reading||word.fields?.Grammar_Note||word.fields?.Hint?<Pressable accessibilityRole="button" accessibilityLabel="읽기·학습 메모" onPress={e=>{e.stopPropagation();setExtra(!extra)}} style={{minHeight:32,justifyContent:'center'}}><Copy muted size={12}>{extra?'학습 메모 접기':'읽기·학습 메모'}</Copy></Pressable>:null}
+      {word.fields?.Sentence_Reading||word.fields?.Grammar_Note||word.fields?.Hint?<Pressable accessibilityRole="button" accessibilityLabel="읽기·학습 메모" onPress={e=>{e.stopPropagation();setExtra(!extra)}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={12}>{extra?'학습 메모 접기':'읽기·학습 메모'}</Copy></Pressable>:null}
       {extra?<View style={{gap:6}}>{word.fields?.Sentence_Reading?<Copy muted size={13}>{word.fields.Sentence_Reading}</Copy>:null}{word.fields?.Grammar_Note?<Copy muted size={13}>{word.fields.Grammar_Note}</Copy>:null}{word.fields?.Hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:null}</View>:null}
       {audio.sourceLoading?<Copy muted size={12}>음성을 준비하고 있어요…</Copy>:null}
-      {audio.error?<View><Copy muted size={12}>{audio.error}</Copy><Pressable accessibilityRole="button" accessibilityLabel="음성 다시 준비" onPress={e=>{e.stopPropagation();audio.retrySources()}} style={{minHeight:36,justifyContent:'center'}}><Copy muted size={12}>다시 받기</Copy></Pressable></View>:null}
+      {audio.error?<View><Copy muted size={12}>{audio.error}</Copy><Pressable accessibilityRole="button" accessibilityLabel="음성 다시 준비" onPress={e=>{e.stopPropagation();audio.retrySources()}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={12}>다시 받기</Copy></Pressable></View>:null}
     </Animated.View>:<View style={{alignItems:'center',gap:8,paddingTop:12}}>
-      {word.fields?.Hint?hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:<Pressable accessibilityRole="button" accessibilityLabel="힌트 보기" hitSlop={6} onPress={e=>{e.stopPropagation();setHint(true)}} style={{minHeight:32,justifyContent:'center'}}><Copy muted size={13}>힌트 보기</Copy></Pressable>:null}
+      {word.fields?.Hint?hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:<Pressable accessibilityRole="button" accessibilityLabel="힌트 보기" onPress={e=>{e.stopPropagation();setHint(true)}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={13}>힌트 보기</Copy></Pressable>:null}
     </View>}
   </StudyCardSurface>;
 }
