@@ -3,7 +3,7 @@ import {Pressable,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {RootScreenProps} from '../../navigation/types';
 import {useRoutine} from '../routine/RoutineProvider';
-import {Action,CardView,Copy,Link,Page} from '../routine/ui';
+import {Action,CardView,Choice,Copy,Link,Page} from '../routine/ui';
 import {StudyCardSurface} from '../routine/StudyCardSurface';
 import {useTheme} from '../../theme/ThemeContext';
 import {BoriScene} from '../routine/experience';
@@ -63,7 +63,7 @@ export function JapaneseSampleScreen({navigation}:RootScreenProps<'JapaneseSampl
     {kind==='familiar'?<><Copy size={22} weight="700">{concept.example}</Copy><Copy size={18}>{concept.question}</Copy></>:<><Copy size={18}>{concept.situation}</Copy><Copy muted>이 상황에 알맞은 표현을 고르고, 머릿속으로 문장을 만들어 보세요.</Copy></>}
     {revealed?<><Copy muted size={13} weight="700">{kind==='familiar'?'기본 예문 정답':'새 상황 정답 예시'}</Copy><Copy size={21} weight="700">{kind==='familiar'?concept.answer:concept.application}</Copy><Copy>{kind==='familiar'?concept.explanation:concept.criterion}</Copy></>:null}
    </StudyCardSurface>
-   {kind==='novel'&&!revealed?<View style={{gap:8}}>{concepts.map(option=><Action key={option.id} compact secondary label={`${selection===option.id?'✓ ':''}${option.title}`} disabled={busy} onPress={()=>setSelection(option.id)}/>)}</View>:null}
+   {kind==='novel'&&!revealed?<View style={{gap:8}}>{concepts.map(option=><Choice key={option.id} fill label={option.title} selected={selection===option.id} disabled={busy} onPress={()=>setSelection(option.id)}/>)}</View>:null}
    {revealed?<>
     {kind==='novel'?<Copy size={14} weight="700">{selection===concept.id?`고른 표현 ${concepts.find(o=>o.id===selection)?.title} · 정답`:`고른 표현 ${concepts.find(o=>o.id===selection)?.title} · 정답 ${concept.title}`}</Copy>:null}
     {(pickedWrong||asking)&&!retryItem?<><Copy muted size={13} weight="700">막힌 이유</Copy><View style={{flexDirection:'row',gap:8}}>{reasons.map(value=><Pressable key={value} accessibilityRole="button" accessibilityLabel={value} accessibilityState={{disabled:busy}} disabled={busy} onPress={()=>record(false,value)} style={{flex:1,minHeight:46,paddingHorizontal:4,alignItems:'center',justifyContent:'center',borderRadius:12,borderWidth:1,borderColor:c.border,backgroundColor:c.card}}><Copy size={13} weight="700">{value}</Copy></Pressable>)}</View></>:null}
