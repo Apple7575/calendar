@@ -1,0 +1,46 @@
+{
+  "checked_on": "2026-11-03",
+  "note": "원본 파일은 저장소에 넣지 않는다. 카드에 쓰인 법령·고시·공고 조항만 sources/의 발췌본으로 둔다. Q-net과 law.go.kr 원문은 직접 대조하지 못했다.",
+  "sources": [
+    {
+      "id": "exam_standard",
+      "title": "전기공사기사 출제기준(필기·실기), 적용기간 2024.01.01~2026.12.31",
+      "url": "https://elec.inup.co.kr/standard/%EC%A0%84%EA%B8%B0%EA%B3%B5%EC%82%AC%EA%B8%B0%EC%82%AC_%EC%B6%9C%EC%A0%9C%EA%B8%B0%EC%A4%80(2024.1.1~2026.12.31).pdf",
+      "sha256": "45509336cfad850baf053c2f63cf55ddb9a7d25cc56a0daf0227a25fa485be49",
+      "authority": "secondary",
+      "basis_date": null,
+      "extract": null,
+      "note": "민간 학원 사이트에 올라온 사본. 공개 저장소이므로 발췌본을 넣지 않고 URL과 해시만 둔다. 카드 근거로 쓰지 않는다. 주요항목 4개는 대산전기학원 안내와 일치하지만 Q-net 원본과 대조하지 못했다."
+    },
+    {
+      "id": "technical_standard",
+      "title": "전기설비기술기준 (기후에너지환경부 고시 제2025-18호)",
+      "url": "https://kec.kea.kr/sub_tech/criterion_all.php?mode=view&number=2413&page=1&b_name=report",
+      "sha256": "403788e0275a8a679767cccdb7096d112e061e838b58a6eac881952fcba94034",
+      "authority": "primary",
+      "basis_date": "2025-10-01",
+      "extract": "extract-technical-standard-art52.txt",
+      "note": "대한전기협회 KEC 사이트에 게시된 고시 전문 HWP. 2026-11-03 게시판 목록에서 가장 최신 고시였다."
+    },
+    {
+      "id": "kec_2026",
+      "title": "한국전기설비규정 개정 전문 (기후에너지환경부 공고 제2025-227호)",
+      "url": "https://kec.kea.kr/sub_tech/regulation_all.php?mode=view&number=2454&page=1&b_name=report2",
+      "sha256": "82dc2a7a1ffc6884173cec6d14be8fe72134625cb63f17306f4e4b5201879d97",
+      "authority": "primary",
+      "basis_date": "2026-01-05",
+      "extract": "extract-kec-2026.txt",
+      "note": "2026-11-03 게시판 목록에서 가장 최신 공고였다. 이번 개정의 주요 내용은 전기자동차 충전장치 기준이다. 경과조치와 시험 적용 기준일은 따로 확인하지 않았다."
+    },
+    {
+      "id": "safety_act_rule",
+      "title": "전기안전관리법 시행규칙 제6조 (게시 사본)",
+      "url": "https://www.nepla.ai/law/%EC%A0%84%EA%B8%B0%EC%95%88%EC%A0%84%EA%B4%80%EB%A6%AC%EB%B2%95-%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99",
+      "sha256": "095eca4c8318e243a13801fc1623bd7c02faaebb6ebf31d07b00512d01e17bad",
+      "authority": "secondary",
+      "basis_date": "2026-09-18",
+      "extract": "extract-safety-act-rule-art6.txt",
+      "note": "국가법령정보센터 원문이 아닌 민간 사이트의 법령 사본. 시행일은 페이지 표기를 그대로 옮겼다. 해시는 내려받은 시점의 HTML 기준이다."
+    }
+  ]
+}
