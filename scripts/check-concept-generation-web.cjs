@@ -1,3 +1,4 @@
+const {previewUrl}=require('./lib/preview-url.cjs');
 // Browser contract test. Auth/model responses are explicit fixtures; no paid AI call is made.
 const fs=require('fs'),ts=require('typescript'),assert=require('assert/strict');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
@@ -22,7 +23,7 @@ const auth={access_token:`${base({alg:'HS256',typ:'JWT'})}.${base({sub:user.id,r
   return route.fulfill({status:200,headers,body:JSON.stringify(url.includes('/auth/v1/user')?user:[])});
  });
  await page.addInitScript(({key,seed,auth})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(seed));localStorage.setItem('sb-qlurqptsnvxvlbsvpjie-auth-token',JSON.stringify(auth));},{key,seed,auth});
- await page.goto('http://localhost:8082/?conceptDemo=1',{waitUntil:'networkidle',timeout:300000});const button=name=>page.getByRole('button',{name,exact:true});
+ await page.goto(previewUrl('/?conceptDemo=1'),{waitUntil:'networkidle',timeout:300000});const button=name=>page.getByRole('button',{name,exact:true});
  await button('오답으로 AI 새 문제 만들기').click();await page.getByText('만들 항목을 직접 골라요',{exact:true}).waitFor();
  const checkbox=page.getByRole('checkbox',{name:'추측과 전달의 そうだ · 접속·활용 연습',exact:true});await checkbox.waitFor();
  assert.equal(await page.getByRole('checkbox',{checked:true}).count(),0);assert.equal(requests.filter(r=>r.task==='generate').length,0);
