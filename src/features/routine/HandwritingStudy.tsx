@@ -14,7 +14,8 @@ import {useRoutine} from './RoutineProvider';
 import {Action,CardView,Copy,Link} from './ui';
 import {rewardChange} from '../../lib/rewardChange';
 
-export function HandwritingStudy(){
+/** `primary` is false when another action leads the page; photos stay available either way. */
+export function HandwritingStudy({primary=true,onPhotoChange}:{primary?:boolean;onPhotoChange?:(hasPhoto:boolean)=>void}){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  const {data,dayKey,update,accountId,native}=useRoutine(),draft=data.outputDraft,pending=data.handwritingPending;
  const [photo,setPhoto]=useState<{uri:string;base64:string;hash:string}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[permission,setPermission]=useState(false),[details,setDetails]=useState(false),[history,setHistory]=useState(false);
@@ -26,11 +27,12 @@ export function HandwritingStudy(){
  useEffect(()=>{live.current=true;return()=>{live.current=false;controller.current?.abort()}},[]);
 
  const subject=pending?.subject??draft?.subject??'공부',today=outputUnitsOnDay(data,dayKey,subject),preview=useMemo(()=>pending?outputPreview(data,pending.imageHash,pending.analysis):undefined,[data.handwritingReceipts,pending]);
- const pick=async(camera:boolean)=>{
+ useEffect(()=>{onPhotoChange?.(!!photo)},[photo,onPhotoChange]);
+ const pick=async()=>{
   setBusy(true);setError('');setPermission(false);
   try{
-   if(camera&&Platform.OS!=='web'){const result=await ImagePicker.requestCameraPermissionsAsync();if(!result.granted){setPermission(true);throw new Error('노트를 찍으려면 카메라 권한이 필요해요. 앨범에서 고를 수도 있어요.');}}
-   const picked=await(camera?ImagePicker.launchCameraAsync({mediaTypes:['images'],quality:1}):ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],quality:1,selectionLimit:1}));
+   if(Platform.OS!=='web'){const result=await ImagePicker.requestCameraPermissionsAsync();if(!result.granted){setPermission(true);throw new Error('노트를 찍으려면 카메라 권한이 필요해요. 설정에서 카메라를 켠 뒤 다시 시도해 주세요.');}}
+   const picked=await ImagePicker.launchCameraAsync({mediaTypes:['images'],quality:1});
    if(picked.canceled)return;
    const asset=picked.assets[0],longest=Math.max(asset.width,asset.height),actions:ImageManipulator.Action[]=longest>2200?[{resize:asset.width>=asset.height?{width:2200}:{height:2200}}]:[];
    const image=await ImageManipulator.manipulateAsync(asset.uri,actions,{compress:0.9,format:ImageManipulator.SaveFormat.JPEG,base64:true});
@@ -54,12 +56,12 @@ export function HandwritingStudy(){
   catch(e){if(live.current)setError(e instanceof Error?e.message:'기록을 저장하지 못했어요.');}finally{if(live.current)setBusy(false);}
  };
  return <View style={{gap:16}}>
-  <View style={{gap:6}}><Copy weight="800" size={21}>{pending?'읽은 내용을 확인해 주세요':photo?'이 사진을 제출할까요?':'공부한 노트 한 쪽을 남겨요'}</Copy><Copy muted size={13}>{subject} · 오늘 인정 필기 {today}자</Copy><Copy muted size={13}>{ramp.needsPlan?'사진은 저장할 수 있어요. 시간 보상은 계획부터 시작해 주세요.':access.ready?'실제 공부 시간 충족 · 새 필기를 확인하면 +5분':'사진은 먼저 저장해도 돼요 · 시간 보상까지 '+Math.floor(access.remaining/60)+'분 '+access.remaining%60+'초'}</Copy></View>
+  <View style={{gap:6}}><Copy weight="800" size={primary?21:16}>{pending?'읽은 내용을 확인해 주세요':photo?'이 사진을 제출할까요?':'공부한 노트 한 쪽을 남겨요'}</Copy><Copy muted size={13}>{subject} · 오늘 인정 필기 {today}자</Copy><Copy muted size={13}>{ramp.needsPlan?'사진은 저장할 수 있어요. 시간 보상은 계획부터 시작해 주세요.':access.ready?'실제 공부 시간 충족 · 새 필기를 확인하면 +5분':'사진은 먼저 저장해도 돼요 · 시간 보상까지 '+Math.floor(access.remaining/60)+'분 '+access.remaining%60+'초'}</Copy></View>
 
-  {error?<CardView><Copy>{error}</Copy>{permission&&Platform.OS!=='web'?<Link label="카메라 권한 설정 열기" onPress={()=>void Linking.openSettings()}/>:null}</CardView>:null}
-  {pending&&preview?<CardView><Copy size={21} weight="800">이렇게 읽었어요</Copy><Copy muted size={13}>{pending.analysis.languages.map(l=>({ko:'한글',en:'영어',ja:'일본어',math:'수식'}[l])).join(' · ')} · 새 분량 {preview.units}자{preview.duplicateUnits?` · 중복 제외 ${preview.duplicateUnits}자`:''}</Copy><ScrollView style={{maxHeight:240}} nestedScrollEnabled><Copy>{pending.analysis.lines.join('\n')}</Copy></ScrollView><Copy muted size={12}>틀리게 읽은 부분이 많으면 다시 찍어 주세요. 돈 보상의 글자 수는 공백·문장부호를 뺀 문자와 숫자 기준이에요.</Copy><Action label={!preview.units?'이미 기록한 내용이에요':ramp.needsPlan?'사진 저장 · 계획부터 시작':access.ready?'이번 단계 완료 · +5분 받기':'사진 저장 · '+requiredMinutes+'분 공부 후 +5분'} disabled={busy||!preview.units} onPress={()=>void save()}/><Link label="이 결과 버리고 다시 찍기" disabled={busy} onPress={()=>{void update(s=>({...s,handwritingPending:undefined})).then(()=>setPhoto(null)).catch(e=>setError(e.message))}}/></CardView>:<CardView>
+  {error?<CardView><Copy>{error}</Copy>{permission?<><Action label="설정 열기" onPress={()=>void Linking.openSettings()}/><Link label="다시 시도" disabled={busy} onPress={()=>pick()}/></>:null}</CardView>:null}
+  {pending&&preview?<CardView><Copy muted size={13}>{pending.analysis.languages.map(l=>({ko:'한글',en:'영어',ja:'일본어',math:'수식'}[l])).join(' · ')} · 새 분량 {preview.units}자{preview.duplicateUnits?` · 중복 제외 ${preview.duplicateUnits}자`:''}</Copy><ScrollView style={{maxHeight:240}} nestedScrollEnabled><Copy>{pending.analysis.lines.join('\n')}</Copy></ScrollView><Copy muted size={12}>틀리게 읽은 부분이 많으면 다시 찍어 주세요. 돈 보상의 글자 수는 공백·문장부호를 뺀 문자와 숫자 기준이에요.</Copy><Action label={busy?'저장하고 있어요…':!preview.units?'이미 기록한 내용이에요':ramp.needsPlan?'사진 저장 · 계획부터 시작':access.ready?'이번 단계 완료 · +5분 받기':'사진 저장 · '+requiredMinutes+'분 공부 후 +5분'} disabled={busy||!preview.units} onPress={()=>void save()}/><Link label="이 결과 버리고 다시 찍기" disabled={busy} onPress={()=>{void update(s=>({...s,handwritingPending:undefined})).then(()=>setPhoto(null)).catch(e=>setError(e.message))}}/></CardView>:<CardView>
    {photo?<><Image source={{uri:photo.uri}} accessibilityLabel="선택한 공부 노트" style={{width:'100%',height:260,borderRadius:18}} resizeMode="contain"/><Action label={busy?'손글씨를 읽고 있어요…':'AI로 읽기'} disabled={busy} onPress={()=>void analyze()}/></>:null}
-   {photo?<Link label="다른 노트 찍기" disabled={busy} onPress={()=>void pick(true)}/>:<Action label="노트 사진 찍기" disabled={busy} onPress={()=>void pick(true)}/>}<Link label="앨범에서 노트 선택" disabled={busy} onPress={()=>void pick(false)}/>
+   {photo?<Link label="다른 노트 찍기" disabled={busy} onPress={()=>pick()}/>:permission?null:<Action secondary={!primary} label="노트 사진 찍기" disabled={busy} onPress={()=>pick()}/>}
    <Copy muted size={12}>선택한 사진을 AI 인식을 위해 OpenAI로 전송해요. 앱에는 인식된 글과 적립 내역만 저장해요. 한 쪽씩, 그림자 없이 선명하게 찍어 주세요.</Copy>
   </CardView>}
   <Link label={details?'보상 기준 접기':'보상 기준·사진 안내'} onPress={()=>setDetails(v=>!v)}/>
@@ -67,7 +69,7 @@ export function HandwritingStudy(){
   {!data.money?<CardView><Copy>돈 보상을 켜면 다음에 정산하는 손글씨부터 100자당 500원을 함께 받아요.</Copy><Link label="돈 보상 시작·설정" onPress={()=>nav.navigate('MoneyWallet')}/></CardView>:null}
   {!pending?<Link label="이 과목 공부 마치기 · 기록은 유지" disabled={busy} onPress={()=>{void update(s=>({...stopBookTimer(s),outputDraft:undefined})).catch(e=>setError(e.message))}}/>:null}
   </>:null}
-  <Link label={history?'이전 필기 접기':'이전 필기 기록 보기'} onPress={()=>setHistory(v=>!v)}/>
-  {history?(data.handwritingReceipts??[]).slice(-8).reverse().map(r=><CardView key={r.id}><Copy weight="700">{r.subject} · {r.units}자 · {r.rewardStatus==='pending'?'보상 대기':'+'+r.minutes+'분'}</Copy><Copy muted size={12}>{new Date(r.at).toLocaleString('ko-KR')}</Copy><Copy numberOfLines={3}>{r.lines.join('\n')}</Copy></CardView>):null}
+  {photo||pending?null:<Link label={history?'이전 필기 접기':'이전 필기 기록 보기'} onPress={()=>setHistory(v=>!v)}/>}
+  {history&&!photo&&!pending?(data.handwritingReceipts??[]).slice(-8).reverse().map(r=><CardView key={r.id}><Copy weight="700">{r.subject} · {r.units}자 · {r.rewardStatus==='pending'?'보상 대기':'+'+r.minutes+'분'}</Copy><Copy muted size={12}>{new Date(r.at).toLocaleString('ko-KR')}</Copy><Copy numberOfLines={3}>{r.lines.join('\n')}</Copy></CardView>):null}
  </View>;
 }
