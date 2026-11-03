@@ -56,7 +56,7 @@ export function Action({ label, onPress, variant, secondary = false, disabled = 
   const inactive=disabled||loading;
   const press = usePressMotion(inactive);
   const reduced = useReducedMotion();
-  return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled:inactive,busy:loading }} disabled={inactive} onPress={()=>{tapLight();onPress();}}
+  return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled:inactive,busy:loading }} aria-busy={loading} disabled={inactive} onPress={()=>{tapLight();onPress();}}
     onPressIn={press.pressIn} onPressOut={press.pressOut}
     style={({ pressed }) => [u.action, { minHeight: compact ? control.compact : control.large, backgroundColor: kind.fill,borderColor:kind.edge,borderWidth:1,
       opacity: disabled ? 0.5 : pressed&&!reduced ? 0.85 : 1 }]}>
@@ -82,20 +82,20 @@ export function NavCard({title,subtitle,icon,right,onPress,disabled=false,access
     {right}<Icon name="chevron-forward" size={18}/>
   </Pressable>;
 }
-/** 선택 항목. 여러 개 중 하나(또는 여러 개)를 고른다. fill이면 한 줄을 다 쓰는 항목. */
-export function Choice({label,description,selected,onPress,disabled=false,fill=false,accessibilityLabel}:{label:string;description?:string;selected:boolean;onPress:()=>void;disabled?:boolean;fill?:boolean;accessibilityLabel?:string}){
+/** 선택 항목. 여러 개 중 하나(또는 여러 개)를 고른다. fill이면 한 줄을 다 쓰는 항목. 학습 내용을 고를 때는 labelVariant="lead"나 "body". */
+export function Choice({label,description,selected,onPress,disabled=false,fill=false,accessibilityLabel,labelVariant='caption'}:{label:string;description?:string;selected:boolean;onPress:()=>void;disabled?:boolean;fill?:boolean;accessibilityLabel?:string;labelVariant?:'caption'|'body'|'lead'}){
   const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme);
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} accessibilityState={{selected,disabled}} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={{flexDirection:'row',alignItems:'center',gap:space.xs,minHeight:control.touch,paddingHorizontal:space.sm,paddingVertical:space.xs,borderRadius:radii.chip,borderWidth:1,borderColor:selected?c.primary:c.border,backgroundColor:selected?c.primarySoft:c.card,opacity:disabled?0.5:1,alignSelf:fill?'stretch':'flex-start'}}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} accessibilityState={{selected,disabled}} {...({'aria-pressed':selected} as object)} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={{flexDirection:'row',alignItems:'center',gap:space.xs,minHeight:control.touch,paddingHorizontal:space.sm,paddingVertical:space.xs,borderRadius:radii.chip,borderWidth:1,borderColor:selected?c.primary:c.border,backgroundColor:selected?c.primarySoft:c.card,opacity:disabled?0.5:1,alignSelf:fill?'stretch':'flex-start'}}>
     {selected?<Icon name="checkmark-circle" size={17} color={role.primary.ink}/>:null}
-    <View style={{flexShrink:1,flexGrow:fill?1:0,gap:2}}><Copy variant="caption" weight={selected?'700':'500'} style={selected?{color:role.primary.ink}:undefined}>{label}</Copy>{description?<Copy variant="caption" muted>{description}</Copy>:null}</View>
+    <View style={{flexShrink:1,flexGrow:fill?1:0,gap:2}}><Copy variant={labelVariant} weight={selected?'700':'500'} style={selected?{color:role.primary.ink}:undefined}>{label}</Copy>{description?<Copy variant="caption" muted>{description}</Copy>:null}</View>
   </Pressable>;
 }
 /** 입력창. 이름표는 위에, 설명과 오류는 아래에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. */
-export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number}){
+export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength,minHeight}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number;minHeight?:number}){
   const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),[focused,setFocused]=useState(false);
   return <View style={{gap:space.xs}}>
     {label?<Copy variant="caption" weight="700" muted>{label}</Copy>:null}
-    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:multiline?104:control.compact,textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
+    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
     {error?<Copy variant="caption" style={{color:role.danger.ink}}>{error}</Copy>:helper?<Copy variant="caption" muted>{helper}</Copy>:null}
   </View>;
 }

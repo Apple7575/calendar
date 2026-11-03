@@ -7,8 +7,8 @@
 **검은 바탕의 연두, 또렷한 한 가지 행동, 곁에 있는 친구.** 2026-11-03 사용자 지시: "다크모드 일때는 검은색에 이 녹색으로 가자. 토스 디자인가이드 이런거 참고해서 ui ux올려줘. 우리 캐릭터도 잘 녹여주고."
 
 - **다크:** 배경 `#000000`, 카드 `#161616`, 주요 색 `#C4EA89`(타이머 연두). 집중 흐름도 같은 팔레트를 쓴다.
-- **라이트:** 설정의 테마 선택은 유지한다. 주요 색은 사용자 확인 대기 중이다(진한 녹색 `#3F7A24` 또는 기존 파랑 `#4364EF`). 연두는 흰 배경에서 대비가 1.36:1이라 글자·아이콘 색으로 쓸 수 없다.
-- **연두 위 글자는 검은색:** 대비 15.48:1. 흰 글자는 1.36:1이라 금지. 라이트의 흰 글자/진한 녹색은 5.22:1.
+- **라이트:** 사용자 지시 범위 밖이므로 기존 파랑 `#4364EF`를 유지한다. 진한 녹색 `#3F7A24`은 사용자가 정하면 적용할 선택지다. 설정의 테마 선택은 유지한다. 연두는 흰 배경에서 대비가 1.36:1이라 라이트의 글자·아이콘 색으로 쓸 수 없다.
+- **연두 위 글자는 검은색:** 대비 15.48:1. 흰 글자는 1.36:1이라 금지.
 
 ### 캐릭터
 
@@ -78,12 +78,17 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 <Choice label="수학" selected={subject==='수학'} onPress={()=>setSubject('수학')}/> // 선택 항목
 <Segments value={tab} onChange={setTab} items={items}/>                  // 화면 안 보기 전환
 
+<Choice labelVariant="lead" fill label={표현} selected={picked} onPress={pick}/>   // 학습 내용을 고르는 선택지. 기본은 짧은 칩용 13px
 <Field label="공부 주제" value={v} onChangeText={setV} helper="저장하면 +5분" error={err}/>
+<Field label="메모" multiline minHeight={72} value={v} onChangeText={setV}/>  // 짧은 값은 한 줄 입력이 우선, 필요할 때만 높이 조절
 
 <Notice tone="error" actionLabel="다시 시도" onAction={retry}>사진을 읽지 못했어요. 인터넷 연결을 확인해 주세요.</Notice>
 <EmptyState title="아직 단어장이 없어요" description="컴퓨터에서 준비한 단어장을 받아요." actionLabel="단어장 가져오기" onAction={open}/>
 <LoadingState label="일정 확인 중…"/>
 ```
+
+- 이름표는 입력창 위에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. 예외: 검색창은 접근성 라벨과 플레이스홀더만 쓸 수 있다(사용자의 화면 정리 지시, PM 허용).
+- 웹의 선택 상태: react-native-web 0.21은 `accessibilityState`를 DOM으로 옮기지 않는다. 공통 컴포넌트는 `aria-*`도 함께 준다(`Choice`는 `aria-pressed`, 탭은 `aria-selected`, `Action`은 `aria-busy`). 공통 컴포넌트 밖의 직접 만든 `Pressable`에도 같은 처리가 필요하다.
 
 `PriorityButton`, `PriorityField`, `PrimaryButton`은 예전 이름으로 남겨 두었고 내부는 `Action`·`Field`다. 새 코드는 바로 `Action`·`Field`를 쓴다.
 
