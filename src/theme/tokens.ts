@@ -42,11 +42,13 @@ export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, xxl: 32 } 
 /** 버튼 높이. 한 줄에 놓인 버튼은 같은 높이를 쓴다. */
 export const control = { large: 56, compact: 48, touch: minTouch } as const;
 
-/** 글자 역할. 숫자 대신 역할을 고른다. 설명문은 13보다 작게 쓰지 않는다. */
+/** 글자 역할. 숫자 대신 역할을 고른다. 13은 건너뛰어도 되는 보조 정보에만 쓴다. */
 export const type = {
-  title: { fontSize: 24, lineHeight: 32, fontWeight: "800", letterSpacing: -0.6 },
-  heading: { fontSize: 20, lineHeight: 28, fontWeight: "800", letterSpacing: -0.4 },
+  title: { fontSize: 24, lineHeight: 33, fontWeight: "800", letterSpacing: -0.6 },
+  heading: { fontSize: 20, lineHeight: 29, fontWeight: "800", letterSpacing: -0.4 },
   section: { fontSize: 17, lineHeight: 25, fontWeight: "800", letterSpacing: -0.3 },
+  /** 꼭 읽어야 하는 문장: 문제·상황·해설·안내 */
+  lead: { fontSize: 17, lineHeight: 26, fontWeight: "500", letterSpacing: -0.3 },
   body: { fontSize: 15, lineHeight: 23, fontWeight: "500", letterSpacing: -0.2 },
   label: { fontSize: 15, lineHeight: 23, fontWeight: "700", letterSpacing: -0.2 },
   caption: { fontSize: 13, lineHeight: 20, fontWeight: "500", letterSpacing: -0.1 },
