@@ -59,7 +59,7 @@ export function JapaneseSampleScreen({navigation}:RootScreenProps<'JapaneseSampl
   {retryItem||((stage===0||stage===2)&&!stageComplete)?<>
    {retryItem?<Copy size={22} weight="800">틀린 문제 다시 풀기</Copy>:null}
    <Copy muted>{retryItem?`남은 문제 ${queue.length}개`:`${index+1} / ${concepts.length}`} · {kind==='familiar'?'기본 예문':'처음 보는 상황'}</Copy>
-   <StudyCardSurface revealed={revealed} onReveal={reveal} canReveal={!busy&&(kind==='familiar'||!!selection)}>
+   <StudyCardSurface hug={kind==='novel'} revealed={revealed} onReveal={reveal} canReveal={!busy&&(kind==='familiar'||!!selection)}>
     {kind==='familiar'?<><Copy size={22} weight="700">{concept.example}</Copy><Copy size={18}>{concept.question}</Copy></>:<><Copy size={18}>{concept.situation}</Copy><Copy muted>이 상황에 알맞은 표현을 고르고, 머릿속으로 문장을 만들어 보세요.</Copy></>}
     {revealed?<><Copy muted size={13} weight="700">{kind==='familiar'?'기본 예문 정답':'새 상황 정답 예시'}</Copy><Copy size={21} weight="700">{kind==='familiar'?concept.answer:concept.application}</Copy><Copy>{kind==='familiar'?concept.explanation:concept.criterion}</Copy></>:null}
    </StudyCardSurface>
