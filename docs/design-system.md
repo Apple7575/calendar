@@ -92,6 +92,10 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 `PriorityButton`, `PriorityField`, `PrimaryButton`은 예전 이름으로 남겨 두었고 내부는 `Action`·`Field`다. 새 코드는 바로 `Action`·`Field`를 쓴다.
 
+## 키보드
+
+`Page`의 스크롤 영역은 iOS에서 키보드만큼 여백을 자동으로 받는다. `Field`는 포커스와 줄 추가 때 칸 전체가 키보드 위에 보이도록 화면을 올린다. 그래서 새 입력창은 직접 만든 `TextInput` 대신 `Field`를 쓴다. `KeyboardAvoidingView`로 감싼 화면은 `Page keyboardInsets={false}`로 여백이 겹치지 않게 한다.
+
 ## 상태 표시
 
 - 비활성: 불투명도 0.5. 왜 안 되는지 옆이나 아래에 문장으로 적는다.
