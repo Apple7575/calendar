@@ -4,7 +4,7 @@
 
 ## 체험
 
-http://localhost:8082/?japaneseDemo=1 또는 학습 탭 → **오늘의 일본어 시작**.
+http://localhost:8092/?japaneseDemo=1 (`feature/vocabulary` worktree의 배정 포트) 또는 학습 탭 → **오늘의 일본어 시작**. 통합 화면은 PM의 8082에서 따로 확인한다.
 
 | 순서 | 권장 시간 | 실제 구현 |
 |---|---|---|
