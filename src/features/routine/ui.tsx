@@ -10,6 +10,8 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
 import {tapLight} from '../../lib/haptics';
 import {colorRoles} from '../../theme/roles';
+import {BoriMascot as Mascot} from './BoriMascot';
+import type {AnimalActionId,AnimalCharacterId} from './animalAssets';
 import {control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
 
 /** 오른쪽 링크로 지금 나갈 수 있으면 뒤로 화살표를 겹쳐 두지 않는다. 비활성이면 나가는 길이 없어지므로 화살표를 남긴다. */
@@ -36,7 +38,7 @@ export function Page({ title, right, children, footer, scrollable = true, floati
 /** 정보 카드. 누를 수 없는 묶음에만 쓴다. 눌러서 이동하면 NavCard, 고르는 항목이면 Choice. */
 export function CardView({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors: c } = useTheme();
-  return <View style={[u.card, { backgroundColor: c.card, borderColor: c.border }, style]}>{children}</View>;
+  return <View style={[u.card, { backgroundColor: c.card }, style]}>{children}</View>;
 }
 /** 글자. 새 코드는 variant로 역할을 고른다. size는 가까운 글자 단계로 맞춰진다. */
 export function Copy({ children, muted = false, size, variant, weight,numberOfLines,style }: { children: ReactNode; muted?: boolean; size?: number; variant?:TypeRole; numberOfLines?:number;style?:StyleProp<TextStyle>;weight?: "400" | "500" | "600" | "700" | "800" }) {
@@ -45,19 +47,19 @@ export function Copy({ children, muted = false, size, variant, weight,numberOfLi
   return <Text numberOfLines={numberOfLines} style={[base,{ color: muted ? c.textMuted : c.text },weight?{fontWeight:weight}:null,style]}>{children}</Text>;
 }
 export type ActionVariant="primary"|"secondary"|"danger";
-/** 버튼. primary는 화면(또는 영역)의 다음 행동 하나에만 쓰고, 눌리는 깊이도 primary와 danger에만 준다. */
+/** 버튼. 입체감 없이 납작하게, 채운 색으로 위계를 나눈다. primary는 화면(또는 영역)의 다음 행동 하나에만 쓴다. */
 export function Action({ label, onPress, variant, secondary = false, disabled = false, compact = false, loading = false, icon, accessibilityLabel }: {
   label: string; onPress: () => void; variant?:ActionVariant; secondary?: boolean; disabled?: boolean; compact?: boolean; loading?:boolean; icon?:React.ComponentProps<typeof Ionicons>["name"]; accessibilityLabel?:string;
 }) {
   const theme = useTheme(), role=colorRoles(theme);
   const kind=role[variant??(secondary?"secondary":"primary")];
-  const raised=kind!==role.secondary, inactive=disabled||loading;
+  const inactive=disabled||loading;
   const press = usePressMotion(inactive);
   const reduced = useReducedMotion();
-  return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled:inactive,busy:loading }} disabled={inactive} onPress={()=>{tapLight();onPress();}}
+  return <Animated.View style={{ transform: [{ scale: press.scale }] }}><Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled:inactive,busy:loading }} aria-busy={loading} disabled={inactive} onPress={()=>{tapLight();onPress();}}
     onPressIn={press.pressIn} onPressOut={press.pressOut}
-    style={({ pressed }) => [u.action, { minHeight: compact ? control.compact : control.large, backgroundColor: kind.fill,borderColor:kind.edge,borderWidth:1,borderBottomWidth:raised&&!pressed?3:1,transform:[{translateY:raised&&pressed&&!reduced?2:0}],
-      opacity: disabled ? 0.5 : 1 }]}>
+    style={({ pressed }) => [u.action, { minHeight: compact ? control.compact : control.large, backgroundColor: kind.fill,borderColor:kind.edge,borderWidth:1,
+      opacity: disabled ? 0.5 : pressed&&!reduced ? 0.85 : 1 }]}>
     {loading?<ActivityIndicator size="small" color={kind.on}/>:null}
     <Text style={[compact?type.label:type.section,{ color: kind.on, textAlign: "center",flexShrink:1 }]}>{label}</Text>
     {icon&&!loading?<Ionicons name={icon} size={18} color={kind.on}/>:null}
@@ -74,26 +76,26 @@ export function Link({ label, onPress,disabled=false,muted }: { label: string; o
 /** 이동 가능한 카드. 전체가 눌리고 오른쪽 화살표로 이동을 알린다. */
 export function NavCard({title,subtitle,icon,right,onPress,disabled=false,accessibilityLabel}:{title:string;subtitle?:string;icon?:React.ComponentProps<typeof Ionicons>["name"];right?:ReactNode;onPress:()=>void;disabled?:boolean;accessibilityLabel?:string}){
   const {colors:c}=useTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??title} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({pressed})=>[u.between,{minHeight:control.large,padding:space.md,borderRadius:radii.card,borderWidth:1,borderColor:c.border,backgroundColor:pressed?c.primarySoft:c.card,opacity:disabled?0.5:1}]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??title} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({pressed})=>[u.between,{minHeight:control.large,padding:space.md,borderRadius:radii.card,backgroundColor:pressed?c.primarySoft:c.card,opacity:disabled?0.5:1}]}>
     {icon?<Icon name={icon} size={22} color={c.primary}/>:null}
     <View style={{flex:1,gap:2}}><Copy variant="label">{title}</Copy>{subtitle?<Copy variant="caption" muted>{subtitle}</Copy>:null}</View>
     {right}<Icon name="chevron-forward" size={18}/>
   </Pressable>;
 }
-/** 선택 항목. 여러 개 중 하나(또는 여러 개)를 고른다. fill이면 한 줄을 다 쓰는 항목. */
-export function Choice({label,description,selected,onPress,disabled=false,fill=false,accessibilityLabel}:{label:string;description?:string;selected:boolean;onPress:()=>void;disabled?:boolean;fill?:boolean;accessibilityLabel?:string}){
+/** 선택 항목. 여러 개 중 하나(또는 여러 개)를 고른다. fill이면 한 줄을 다 쓰는 항목. 학습 내용을 고를 때는 labelVariant="lead"나 "body". */
+export function Choice({label,description,selected,onPress,disabled=false,fill=false,accessibilityLabel,labelVariant='caption'}:{label:string;description?:string;selected:boolean;onPress:()=>void;disabled?:boolean;fill?:boolean;accessibilityLabel?:string;labelVariant?:'caption'|'body'|'lead'}){
   const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme);
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} accessibilityState={{selected,disabled}} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={{flexDirection:'row',alignItems:'center',gap:space.xs,minHeight:control.touch,paddingHorizontal:space.sm,paddingVertical:space.xs,borderRadius:radii.chip,borderWidth:1,borderColor:selected?c.primary:c.border,backgroundColor:selected?c.primarySoft:c.card,opacity:disabled?0.5:1,alignSelf:fill?'stretch':'flex-start'}}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} accessibilityState={{selected,disabled}} {...({'aria-pressed':selected} as object)} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={{flexDirection:'row',alignItems:'center',gap:space.xs,minHeight:control.touch,paddingHorizontal:space.sm,paddingVertical:space.xs,borderRadius:radii.chip,borderWidth:1,borderColor:selected?c.primary:c.border,backgroundColor:selected?c.primarySoft:c.card,opacity:disabled?0.5:1,alignSelf:fill?'stretch':'flex-start'}}>
     {selected?<Icon name="checkmark-circle" size={17} color={role.primary.ink}/>:null}
-    <View style={{flexShrink:1,flexGrow:fill?1:0,gap:2}}><Copy variant="caption" weight={selected?'700':'500'} style={selected?{color:role.primary.ink}:undefined}>{label}</Copy>{description?<Copy variant="caption" muted>{description}</Copy>:null}</View>
+    <View style={{flexShrink:1,flexGrow:fill?1:0,gap:2}}><Copy variant={labelVariant} weight={selected?'700':'500'} style={selected?{color:role.primary.ink}:undefined}>{label}</Copy>{description?<Copy variant="caption" muted>{description}</Copy>:null}</View>
   </Pressable>;
 }
 /** 입력창. 이름표는 위에, 설명과 오류는 아래에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. */
-export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number}){
+export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength,minHeight}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number;minHeight?:number}){
   const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),[focused,setFocused]=useState(false);
   return <View style={{gap:space.xs}}>
     {label?<Copy variant="caption" weight="700" muted>{label}</Copy>:null}
-    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:multiline?104:control.compact,textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
+    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
     {error?<Copy variant="caption" style={{color:role.danger.ink}}>{error}</Copy>:helper?<Copy variant="caption" muted>{helper}</Copy>:null}
   </View>;
 }
@@ -108,8 +110,16 @@ export function Notice({tone="info",children,actionLabel,onAction}:{tone?:Notice
   </View>;
 }
 /** 빈 상태. 왜 비어 있는지와 첫 행동을 내용이 나타날 자리에 둔다. */
-export function EmptyState({title,description,actionLabel,onAction}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void}){
-  return <View style={{gap:space.xs,paddingVertical:space.lg}}><Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact secondary label={actionLabel} onPress={onAction}/></View>:null}</View>;
+export function EmptyState({title,description,actionLabel,onAction,character}:{title:string;description?:string;actionLabel?:string;onAction?:()=>void;character?:AnimalCharacterId}){
+  return <View style={{gap:space.xs,paddingVertical:space.lg}}>{character?<View style={{alignItems:'center'}}><Mascot character={character} action="A31" size={120} interactive={false}/></View>:null}<Copy variant="section">{title}</Copy>{description?<Copy variant="body" muted>{description}</Copy>:null}{actionLabel&&onAction?<View style={{paddingTop:space.xs}}><Action compact label={actionLabel} onPress={onAction}/></View>:null}</View>;
+}
+/** 캐릭터가 버튼 뒤에서 내다보는 다음 행동. 왼쪽에 지금 상태를 적고, 그래픽은 화면의 주인공 하나에만 쓴다. */
+export function CharacterAction({children,action,character='C03',pose='A31',small=false}:{children:ReactNode;action:ReactNode;character?:AnimalCharacterId;pose?:AnimalActionId;small?:boolean}){
+  const size=small?150:180,height=small?100:124;
+  return <View>
+    <View style={{height,justifyContent:'center',paddingRight:size*.62}}>{children}<View pointerEvents="box-none" style={{position:'absolute',right:-space.xs,bottom:-size*.2}}><Mascot character={character} action={pose} size={size}/></View></View>
+    <View style={{zIndex:1}}>{action}</View>
+  </View>;
 }
 /** 불러오는 중. 무엇을 기다리는지 함께 적는다. */
 export function LoadingState({label}:{label:string}){
@@ -134,7 +144,7 @@ export function Progress({ value, label }: { value: number; label: string }) {
       transform: [{ translateX: amount.interpolate({ inputRange: [0, 1], outputRange: [-width / 2, 0] }) }, { scaleX: amount }] }} />
   </View>;
 }
-export { BoriMascot as Mascot } from "./BoriMascot";
+export { Mascot };
 export type { MascotMood } from "./boriAssets";
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 function RingSegment({ amount, arc, length, rotation, locked, color }: {
@@ -185,7 +195,7 @@ export const u = StyleSheet.create({
   header: { paddingHorizontal: gutter, paddingTop: space.xs, paddingBottom: space.sm, minHeight: control.touch + space.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.xs },
   title: type.title,
   page: { paddingHorizontal: gutter, gap: space.md, paddingBottom: space.xxl },
-  card: { padding: space.lg, borderRadius: radii.card, borderWidth: 1, gap: space.sm },
+  card: { padding: space.lg, borderRadius: radii.card, gap: space.sm },
   row: { flexDirection: "row", alignItems: "center", gap: space.sm },
   between: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm },
   action: { flexDirection: "row", gap: space.xs, paddingHorizontal: space.lg, paddingVertical: space.sm, borderRadius: radii.control, alignItems: "center", justifyContent: "center" },

@@ -149,16 +149,16 @@ const mint: Theme = {
 
 const routine: Theme = {
   ...mint, id: "routine", name: "친구들의 정원", colors: {
-    ...mint.colors, background: "#F6F8FC", surface: "#F6F8FC", card: "#FFFFFF",
-    text: "#202C46", textMuted: "#64738B", border: "#E3E8F2",
-    primary: "#4364EF", primarySoft: "#EDF1FF", success: "#2F8969",
-    successSoft: "#E7F5ED", inputBg: "#F1F4F9", dotEvent: "#BA7B50",
-    shadow: "#293F78", gradient: ["#E8EEFF", "#FFF0DF"],
+    ...mint.colors, background: "#F8F5EE", surface: "#F8F5EE", card: "#FFFDF9",
+    text: "#29261D", textMuted: "#6A6658", border: "#E9E4D8",
+    primary: "#3E6A2A", primarySoft: "#E9F0D9", success: "#3E6A2A",
+    successSoft: "#E9F0D9", inputBg: "#F2EEE4", dotEvent: "#BA7B50",
+    shadow: "#29261D", gradient: ["#E9F0D9", "#FFF0DF"],
   },
 };
 
 /** 홈·계획 화면의 이름표. 공통 색은 현재 테마에서 받고, 캐릭터 무대의 따뜻한 색만 따로 둔다. */
-export function priorityVisuals(theme:Theme){const c=theme.colors,stage=theme.isDark?{stage:'#302B35',stageLine:'#685366',stageDot:'#504052',stageInk:'#E8C9B6'}:{stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#855D41'},role=colorRoles(theme);return {
+export function priorityVisuals(theme:Theme){const c=theme.colors,stage=theme.isDark?{stage:'#161A10',stageLine:'#3A4530',stageDot:'#27331A',stageInk:'#D7E7B8'}:{stage:'#FFF1E2',stageLine:'#DEC9B5',stageDot:'#F5D7B7',stageInk:'#855D41'},role=colorRoles(theme);return {
  ...stage,brand:c.primary,brandDeep:role.primary.edge,onBrand:role.primary.on,brandSoft:c.primarySoft,brandInk:role.primary.ink,paper:c.card,mutedSurface:c.inputBg,success:role.success.ink,successSoft:c.successSoft,line:c.border,ink:c.text,muted:c.textMuted,
 };}
 
@@ -168,56 +168,30 @@ const dark: Theme = {
   isDark: true,
   statusBar: "light",
   colors: {
-    background: "#101114",
-    surface: "#101114",
-    card: "#1C1E22",
-    border: "#2A2D33",
-    text: "#F2F3F5",
-    textMuted: "#A8AFB8",
-    primary: "#A8BDFF",
-    primarySoft: "#263555",
-    danger: "#FF6B70",
-    success: "#4CC38A",
-    successSoft: "#1F3A31",
-    dotEvent: "#7D8FFF",
-    dotGoogle: "#4CC38A",
-    dotTask: "#F5B04B",
-    dotDiary: "#F07BB4",
-    inputBg: "#1B1E29",
-    white: "#FFFFFF",
-    gradient: ["#4593FC", "#2272EB"],
-    shadow: "#000000",
-  },
-};
-
-/** 집중 공부 흐름 전용 팔레트(큰 타이머 기준). 설정의 테마 목록에는 넣지 않는다. */
-export const focusTheme: Theme = {
-  id: "dark",
-  name: "집중",
-  isDark: true,
-  statusBar: "light",
-  colors: {
-    background: "#111820",
-    surface: "#111820",
-    card: "#1A2430",
-    border: "#2C3946",
-    text: "#F7F6EB",
-    textMuted: "#A2B2BF",
+    background: "#000000",
+    surface: "#000000",
+    card: "#161616",
+    border: "#2C2C2C",
+    text: "#F5F5F2",
+    textMuted: "#A3A3A3",
     primary: "#C4EA89",
-    primarySoft: "#2E3F2A",
+    primarySoft: "#27331A",
     danger: "#FF8A80",
     success: "#C4EA89",
-    successSoft: "#2E3F2A",
+    successSoft: "#27331A",
     dotEvent: "#C4EA89",
     dotGoogle: "#7FD1AE",
     dotTask: "#F5B04B",
     dotDiary: "#F07BB4",
-    inputBg: "#223040",
+    inputBg: "#1E1E1E",
     white: "#FFFFFF",
     gradient: ["#C4EA89", "#9BC265"],
     shadow: "#000000",
   },
 };
+
+/** 집중 공부 흐름은 사용자 테마와 상관없이 다크 팔레트로 그린다. 설정의 테마 목록에는 넣지 않는다. */
+export const focusTheme: Theme = { ...dark, name: "집중" };
 
 export const THEMES: Theme[] = [routine, dark, lavender, classic, peach, mint];
 export const DEFAULT_THEME_ID: ThemeId = "routine";

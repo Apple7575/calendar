@@ -55,7 +55,7 @@ const step=async(name,fn)=>{try{await fn();}catch(e){errors.push(`${name}: ${Str
   await step('home',async()=>{await btn(home,'2분, 이 행동부터 시작').waitFor();await shot(home,'01-home');await home.screenshot({path:`${out}/01-home-full.png`,fullPage:true});});
   await step('study',async()=>{await tab(home,'학습').click();await home.waitForTimeout(500);await shot(home,'02-study-words');await tab(home,'집중').click();await home.waitForTimeout(300);await shot(home,'03-focus-start');});
   await step('plan',async()=>{const p=await open('/?priorityDemo=1');await btn(p,'계획').click();await p.getByRole('textbox',{name:'1번째 과목',exact:true}).waitFor();await p.getByRole('textbox',{name:'1번째 과목',exact:true}).focus();await shot(p,'20-plan-field-focus');});
-  await step('friends',async()=>{await tab(home,'친구들').click();await home.waitForTimeout(800);await shot(home,'04-friends');});
+  await step('goal',async()=>{await tab(home,'목표').click();await home.waitForTimeout(800);await shot(home,'04-goal');});
   await step('records',async()=>{await tab(home,'기록').click();await home.waitForTimeout(500);await shot(home,'05-records');});
   await step('settings',async()=>{await tab(home,'오늘').click();await settings(home).click();await btn(home,'백업·복구').waitFor();await shot(home,'06-settings');await btn(home,'소리·진동·모션·화면').click();await home.waitForTimeout(400);await shot(home,'07-settings-experience');});
   await step('flow',async()=>{
@@ -89,4 +89,6 @@ const step=async(name,fn)=>{try{await fn();}catch(e){errors.push(`${name}: ${Str
  console.log(`screens ${report.length} · overflow ${report.filter(r=>r.overflow).length} · small-target screens ${report.filter(r=>r.small.length).length} · errors ${errors.length}`);
  for(const r of fails.filter(r=>r.width!==360))console.log(`  ${r.screen}@${r.width}${r.overflow?' OVERFLOW':''} small: ${r.small.join(' | ')}`);
  for(const e of errors)console.log('  ERR',e);
+ // 단계 오류와 가로 넘침은 실패로 끝낸다. 작은 터치 영역은 목록으로만 알린다.
+ if(errors.length||report.some(r=>r.overflow))process.exitCode=1;
 })().catch(e=>{console.error(e);process.exit(1);});

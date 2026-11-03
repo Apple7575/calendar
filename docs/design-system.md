@@ -4,9 +4,26 @@
 
 ## 방향
 
-**따뜻한 친구들, 또렷한 한 가지 행동.** 동물과 무대의 따뜻한 색은 유지하고, 나머지는 파랑 하나와 중립색으로 조용하게 둔다. 채워진 파란 버튼을 보면 "지금 이걸 누르면 된다"고 알 수 있게 한다.
+**검은 바탕의 연두, 또렷한 한 가지 행동, 곁에 있는 친구.** 2026-11-03 사용자 지시: "다크모드 일때는 검은색에 이 녹색으로 가자. 토스 디자인가이드 이런거 참고해서 ui ux올려줘. 우리 캐릭터도 잘 녹여주고."
 
-화면마다 먼저 답할 질문: 지금 어떤 상태인가 → 지금 무엇을 하면 되는가 → 누르면 무엇이 일어나는가.
+- **다크:** 배경 `#000000`, 카드 `#161616`, 주요 색 `#C4EA89`(타이머 연두). 집중 흐름도 같은 팔레트를 쓴다.
+- **라이트:** 사용자 지시: "라이트 모드에서 진한 녹색으로 하자. 바탕 흰색도 완전 흰색 말고 살짝 웜톤 흰색 해줘." 바탕 `#F8F5EE`, 카드 `#FFFDF9`, 주요 색 `#3E6A2A`(노란 기운의 숲색). 글자·테두리 회색도 웜톤이다. 설정의 테마 선택은 유지한다. 연두는 밝은 바탕에서 대비가 낮아 라이트의 글자·아이콘 색으로 쓰지 않는다.
+- **연두 위 글자는 검은색:** 대비 15.48:1. 흰 글자는 1.36:1이라 금지.
+
+### 캐릭터
+
+- 화면의 주인공 하나에만 쓴다. 상자에 가두지 않고 다음 행동 가까이에 둔다.
+- `CharacterAction`: 왼쪽에 지금 상태, 오른쪽에 버튼 뒤에서 내다보는 친구. 친구가 핵심 정보를 가리지 않게 한다.
+- `EmptyState character="C03"`: 빈 상태에서 첫 행동을 안내한다.
+- 동물 4종과 실제 Lottie를 유지하고, 새 친밀도나 보상을 만들지 않는다. 다크에서는 밝은 방 배경을 그리지 않는다.
+
+### 토스에서 참고한 것
+
+조작과 위계만 참고한다. 로고, 전용 폰트, 고유 화면은 쓰지 않는다.
+
+- [TDS 타이포그래피](https://tossmini-docs.toss.im/tds-mobile/foundation/typography/): 17은 일반 본문, 15는 작은 본문, 13은 "안 읽어도 됨" 등급이다. 그래서 꼭 읽어야 할 문장은 `lead`(17) 또는 `body`(15)로 쓰고, 13에 넣지 않는다.
+- [TDS 색상](https://tossmini-docs.toss.im/tds-mobile/foundation/colors/): 회색 배경 위 흰 면처럼 면의 단계로 구분한다는 구성을 참고했다. 이 문서는 다크 모드를 다루지 않아 다크 값은 이 앱의 결정이다.
+- [앱인토스 UX 가이드](https://developers-apps-in-toss.toss.im/landing-page/landing-page-en/design/consumer-ux-guide): 해요체, 능동·긍정 문장, 라벨만 봐도 다음 일을 알 수 있는 버튼, 설명을 반복하지 않는 버튼, 항상 있는 나가는 길, 화면당 꼭 필요한 그래픽 하나.
 
 ## 색의 의미
 
@@ -25,12 +42,13 @@
 
 | 글자 역할 | 크기/줄 간격 | 용도 |
 |---|---|---|
-| `title` | 24/32 800 | 화면 제목, 첫 행동 |
-| `heading` | 20/28 800 | 장면 제목 |
+| `title` | 24/33 800 | 화면 제목, 첫 행동 |
+| `heading` | 20/29 800 | 장면 제목 |
 | `section` | 17/25 800 | 묶음 제목, 큰 버튼 |
-| `body` | 15/23 500 | 본문, 문제·해설 |
+| `lead` | 17/26 500 | 꼭 읽어야 하는 문장: 문제·상황·해설·안내 |
+| `body` | 15/23 500 | 일반 본문 |
 | `label` | 15/23 700 | 행 제목, 작은 버튼 |
-| `caption` | 13/20 500 | 보조 설명. 이보다 작게 쓰지 않는다 |
+| `caption` | 13/20 500 | 건너뛰어도 되는 보조 정보. 이보다 작게 쓰지 않는다 |
 
 기존 `Copy size={n}`은 가까운 단계로 자동으로 맞춰진다. 27 이상은 타이머·수치용이라 그대로 둔다. 설명을 줄이려고 글자를 줄이거나 문장을 자르지 않는다.
 
@@ -38,7 +56,8 @@
 - 간격은 `space`(4·8·12·16·20·24·32). 묶음 안 8~12, 카드 안 12~16, 묶음 사이 16~24.
 - 모서리는 `radii`: `chip` 12, `control` 16(버튼·입력창), `card` 20, `stage` 28(학습 카드·캐릭터 무대).
 - 버튼 높이는 `control`: `large` 56, `compact` 48. 눌리는 것은 어느 방향이든 44 이상.
-- 카드는 테두리 1px로 구분하고 그림자를 쓰지 않는다. 떠 있는 것에만 그림자를 쓴다.
+- 면은 배경과 카드의 색 단계로 구분한다. 카드 테두리와 목록 구분선을 쓰지 않는다. 테두리는 보조 버튼과 입력창에만 쓰고, 그림자는 떠 있는 것에만 쓴다.
+- 버튼은 납작하게 둔다. 입체 하단선을 쓰지 않고, 채운 색으로 위계를 나눈다.
 - 한글 제목 줄바꿈은 `koreanTitle`을 쓴다. 공백 없는 일본어 문장에는 쓰지 않는다. 줄이 안 바뀌어 넘친다.
 
 ## 컴포넌트
@@ -59,12 +78,17 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 <Choice label="수학" selected={subject==='수학'} onPress={()=>setSubject('수학')}/> // 선택 항목
 <Segments value={tab} onChange={setTab} items={items}/>                  // 화면 안 보기 전환
 
+<Choice labelVariant="lead" fill label={표현} selected={picked} onPress={pick}/>   // 학습 내용을 고르는 선택지. 기본은 짧은 칩용 13px
 <Field label="공부 주제" value={v} onChangeText={setV} helper="저장하면 +5분" error={err}/>
+<Field label="메모" multiline minHeight={72} value={v} onChangeText={setV}/>  // 짧은 값은 한 줄 입력이 우선, 필요할 때만 높이 조절
 
 <Notice tone="error" actionLabel="다시 시도" onAction={retry}>사진을 읽지 못했어요. 인터넷 연결을 확인해 주세요.</Notice>
 <EmptyState title="아직 단어장이 없어요" description="컴퓨터에서 준비한 단어장을 받아요." actionLabel="단어장 가져오기" onAction={open}/>
 <LoadingState label="일정 확인 중…"/>
 ```
+
+- 이름표는 입력창 위에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. 예외: 검색창은 접근성 라벨과 플레이스홀더만 쓸 수 있다(사용자의 화면 정리 지시, PM 허용).
+- 웹의 선택 상태: react-native-web 0.21은 `accessibilityState`를 DOM으로 옮기지 않는다. 공통 컴포넌트는 `aria-*`도 함께 준다(`Choice`는 `aria-pressed`, 탭은 `aria-selected`, `Action`은 `aria-busy`). 공통 컴포넌트 밖의 직접 만든 `Pressable`에도 같은 처리가 필요하다.
 
 `PriorityButton`, `PriorityField`, `PrimaryButton`은 예전 이름으로 남겨 두었고 내부는 `Action`·`Field`다. 새 코드는 바로 `Action`·`Field`를 쓴다.
 
@@ -116,12 +140,11 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 - `DeckCardsScreen`의 입력창 4개는 `Field`로 바꾼다.
 - `JapaneseSampleScreen`: 선택지와 입력은 `Choice`·`Field`, 문제·상황·해설 문장은 `Copy variant="body"`로 둔다. 문장을 줄이지 않는다. 일본어 문장에 `koreanTitle`을 쓰지 않는다.
 
-### 친구들 (feature/friends-ux, 8093)
+### 목표 탭 (feature/goal-tab, 8093)
 
-- 담당자 회신(2026-11-03): 적용은 이 브랜치가 develop에 병합된 뒤로 미룬다. 사용자가 친구들 탭을 목표 탭으로 바꾸는 안을 검토 중이므로, `BoriHomeScreen` 작업은 탭 유지가 결정된 경우에만 한다. 기준 화면은 develop이 아니라 feature/friends-ux의 구성이다.
-- `AnimalCharacterPicker`는 설정에서도 쓰므로 탭 결정과 무관하게 남는다. 역할 라벨은 `Copy`가 아닌 직접 지정한 10px라 글자 단계가 자동 적용되지 않는다.
-- 라벨 크기는 PM 조율 대상이다. 웹에서 값만 바꿔 잰 결과, 12px은 360·390px에서 모두 한 줄이고 네 칸 타일 높이가 112px이다. 13px은 360px에서 `집중 · 운동`, `저녁 · 일기`가 두 줄이 되어 타일이 110px에서 128px로 커진다. 13px 기준을 지키려면 타일 안쪽 여백이나 문구도 함께 조정해야 하며, 이 조합은 아직 측정하지 않았다.
-- 320px에서 타일이 3+1로 나뉘는 것은 기존 동작이다. 라벨 크기와 무관하게 난다.
+- 친구들 탭은 목표 탭으로 대체됐다. `BoriHomeScreen`은 삭제됐고 검수 대상이 아니다.
+- 병합 후 캐릭터는 `CharacterAction`이나 `EmptyState character`, 꼭 읽을 문장은 `Copy variant="lead"`를 검토한다.
+- `AnimalCharacterPicker` 역할 라벨: PM 보류 해제에 따라 13/20으로 올리고 타일 좌우 여백을 2로 줄였다. 문구는 그대로이고 360·375·390px에서 한 줄, 잘림 없음, 타일 높이 116px이다. 320px에서 타일이 3+1로 나뉘는 것은 기존 동작이다.
 
 ### PM·통합
 
