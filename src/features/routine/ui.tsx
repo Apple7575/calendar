@@ -12,9 +12,9 @@ import {tapLight} from '../../lib/haptics';
 import {colorRoles} from '../../theme/roles';
 import {control,gutter,radii,space,type,TypeRole,typeStep} from '../../theme/tokens';
 
-/** 오른쪽 링크가 화면을 빠져나가는 행동이면 뒤로 화살표를 겹쳐 두지 않는다. 화면마다 나가는 길은 하나다. */
+/** 오른쪽 링크로 지금 나갈 수 있으면 뒤로 화살표를 겹쳐 두지 않는다. 비활성이면 나가는 길이 없어지므로 화살표를 남긴다. */
 const EXIT_LABELS=['닫기','나가기','중단'];
-function isExitAction(right:ReactNode){return React.isValidElement(right)&&right.type===Link&&EXIT_LABELS.includes((right.props as {label?:string}).label??'')}
+function isExitAction(right:ReactNode){return React.isValidElement(right)&&right.type===Link&&EXIT_LABELS.includes((right.props as {label?:string}).label??'')&&!(right.props as {disabled?:boolean}).disabled}
 export function ProfileButton(){
  const {colors:c}=useTheme(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  return <Pressable accessibilityRole="button" accessibilityLabel="프로필·설정" onPress={()=>nav.navigate('SettingsHub')} style={{width:control.touch,height:control.touch,borderRadius:control.touch/2,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'}}><Icon name="person-outline" size={21} color={c.primary}/></Pressable>;

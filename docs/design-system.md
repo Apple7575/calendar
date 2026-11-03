@@ -85,7 +85,16 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 | 저장·다음 | 내용 아래 또는 `Page footer`의 기본 버튼 |
 | 집중 타이머 | 자체 헤더 유지. 가로 배치에서 시계와 버튼을 나누는 구성을 유지 |
 
-`Page`에 `right={<Link label="닫기"…/>}`(닫기·나가기·중단)를 주면 뒤로 화살표는 자동으로 숨겨진다. 화면마다 나가는 길은 하나다.
+`Page`에 `right={<Link label="닫기"…/>}`(닫기·나가기·중단)를 주면 뒤로 화살표는 자동으로 숨겨진다. 화면마다 나가는 길은 하나다. 그 링크가 `disabled`이면 나갈 길이 없어지므로 화살표를 남긴다.
+
+뒤로와 오른쪽 행동의 목적지가 달랐던 화면(다른 화면은 둘 다 `goBack`이라 달라지는 것이 없다):
+
+| 화면 | 오른쪽 행동의 목적지 | 뒤로의 목적지(이전) | 지금 |
+|---|---|---|---|
+| `ConceptGenerationScreen` | 닫기 → 문법·독해·청해 첫 화면, 생성 중 비활성 | 학습 첫 화면 밖으로 | 평소 2단계로 도달, 생성 중에는 `←` 유지 |
+| `ConceptLabBriefPreview` | 닫기 → 같은 첫 화면 | 같은 첫 화면 밖으로 | 2단계로 도달 |
+| `ConceptLabSession` | 중단 → 같은 첫 화면 | 같은 첫 화면 밖으로 | 2단계로 도달 |
+| `BookStudyScreen` | 닫기 → 우선순위 집중 중이면 `PriorityPause`, 아니면 `goBack` | 언제나 `goBack` | 우선순위 집중 중에는 `PriorityPause`를 거친다 |
 
 ## 담당자 전달 사항
 
