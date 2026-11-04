@@ -1,18 +1,19 @@
 import React,{useState} from 'react';
 import {View} from 'react-native';
-import {GOAL_TITLE_LIMIT,GOAL_WHY_LIMIT,PrimaryGoal,savePrimaryGoal} from '../../lib/primaryGoal';
+import {Goal,saveGoal} from '../../lib/routineGoals';
+import {GOAL_TITLE_LIMIT,GOAL_WHY_LIMIT} from '../../lib/primaryGoal';
 import {space} from '../../theme/tokens';
 import {GoalDateInput} from './GoalDateInput';
 import {useRoutine} from './RoutineProvider';
 import {Action,Choice,Copy,Field,Link,Notice} from './ui';
 
-export function GoalForm({goal,today,onDone,canCancel}:{goal?:PrimaryGoal;today:string;onDone:()=>void;canCancel:boolean}){
+export function GoalForm({goal,today,onDone,canCancel}:{goal?:Goal;today:string;onDone:()=>void;canCancel:boolean}){
  const {update}=useRoutine();
  const [title,setTitle]=useState(goal?.title??''),[why,setWhy]=useState(goal?.why??''),[dueDate,setDueDate]=useState(goal?.dueDate??''),[days,setDays]=useState<number|undefined>(goal?.weeklyTargetDays);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  const save=async()=>{
   setBusy(true);setError('');
-  try{await update(current=>savePrimaryGoal(current,{title,why,dueDate,weeklyTargetDays:days??0}));onDone();}
+  try{await update(current=>saveGoal(current,{title,why,dueDate,weeklyTargetDays:days??0},goal?.id));onDone();}
   catch(e){setError(e instanceof Error?e.message:'목표를 저장하지 못했어요. 다시 시도해 주세요.');setBusy(false);}
  };
  return <View style={{gap:space.md}}>
