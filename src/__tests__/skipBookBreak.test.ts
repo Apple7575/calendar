@@ -44,7 +44,7 @@ test('stages stay gradual: a 2-minute stage never becomes a fixed 25 minutes',()
  const next=skipBookBreak(breakAfter(60,1),'first','second',later(60,10));
  expect(bookDisplaySeconds(next.bookTimer!,later(60,10))).toBe(120);
  const met=skipBookBreak(breakAfter(150,1),'first','second',later(150,10));
- expect(bookDisplaySeconds(met.bookTimer!,later(150,10))).toBe(120);
+ expect(bookDisplaySeconds(met.bookTimer!,later(150,10))).toBe(0); // reached but not photographed: the surplus carries (user decision 2026-11-04)
 });
 test('skipping and starting after a natural end give the same countdown',()=>{
  const skipped=skipBookBreak(breakAfter(600),'first','second',later(600,300));

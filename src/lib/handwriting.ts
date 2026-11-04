@@ -1,6 +1,6 @@
 import type {RoutineData} from './routineModel';
 import {getDay,routineDay,withDay} from './routineModel';
-import {FOCUS_STEPS,focusRampAccess,focusRampStatus,validateFocusRamp} from './focusRamp';
+import {FOCUS_STEPS,carryRunPastStage,focusRampAccess,focusRampStatus,validateFocusRamp} from './focusRamp';
 import {bookFocusSeconds} from './bookTimerTime';
 
 export const OUTPUT_POLICY={version:1,units:100,minutes:5,goalUnits:500} as const;
@@ -71,6 +71,7 @@ export function settleHandwritingRewards(data:RoutineData,now=Date.now()):Routin
    const receipt:HandwritingReceipt={...r,rewardStatus:'earned',rewardDay:day,rewardOrder:ordinal++,focusStage:ramp.level,focusBatch:batch,minutes:first?5:0,...(first?{focusSeconds:access.required}:{})};first=false;return receipt;
   });
   next=withDay({...next,handwritingReceipts:rows,focusRamp:{...ramp,level:Math.min(5,ramp.level+1) as 1|2|3|4|5,consumed:{...ramp.consumed,[subject]:(Object.prototype.hasOwnProperty.call(ramp.consumed,subject)?ramp.consumed[subject]:0)+access.required}}},day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+5}}));
+  next=carryRunPastStage(next,subject,access.required,now);
  }
  return next;
 }

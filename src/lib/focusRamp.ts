@@ -29,6 +29,35 @@ export function focusRampAccess(data:RoutineData,subject:string,now=Date.now()){
  const seconds=ramp&&!status.needsPlan?Math.max(0,focusSecondsForSubject(data,subject,now)-own(ramp.baseline,subject)-own(ramp.consumed,subject)):0;
  return {...status,seconds,ready:!status.needsPlan&&seconds>=status.required,remaining:Math.max(0,status.required-seconds),submissions:status.required?Math.floor(seconds/status.required):0};
 }
+const storedSeconds=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0&&n<=86400?n:0;
+/** Real study seconds of the current timer's run, whether it is still running or already recorded. */
+export function focusRunSeconds(data:RoutineData,now=Date.now()){
+ const t=data.bookTimer;if(!t)return 0;
+ return t.phase==='focus'?bookFocusSeconds(t,now):data.bookSessions?.find(s=>s.id===t.id)?.seconds??0;
+}
+/** Time this run counts toward the current stage: surplus carried in plus study since the last payout. */
+export function focusRunCredit(data:RoutineData,now=Date.now()){
+ const t=data.bookTimer;if(!t)return 0;
+ return storedSeconds(t.carrySeconds)+Math.max(0,focusRunSeconds(data,now)-storedSeconds(t.creditMark));
+}
+/**
+ * Surplus a new run starts with. A run that reached its stage hands on all its credit; a run cut short
+ * adds nothing (user decision 2026-11-03) but keeps earlier surplus. Never more than the unspent reward time.
+ */
+export function focusCarryInto(data:RoutineData,subject:string,required:number,now=Date.now()){
+ const t=data.bookTimer;if(!t||t.subject!==subject||t.rewardMode!=='output')return 0;
+ const credit=focusRunCredit(data,now),kept=credit>=required?credit:storedSeconds(t.carrySeconds);
+ return Math.min(kept,focusRampAccess(data,subject,now).seconds);
+}
+/** After a stage is paid, spend it from the run and point the countdown at the next stage. Call with the level already raised. */
+export function carryRunPastStage(data:RoutineData,subject:string,paid:number,now=Date.now()):RoutineData{
+ const t=data.bookTimer;if(!t||t.subject!==subject||t.rewardMode!=='output')return data;
+ const credit=focusRunCredit(data,now);if(credit<paid)return data;
+ const run=focusRunSeconds(data,now),carry=credit-paid,timer={...t,carrySeconds:carry,creditMark:run};
+ if(t.phase!=='focus')return {...data,bookTimer:timer};
+ const left=Math.max(0,focusRampStatus(data,now).required-carry);
+ return {...data,bookTimer:{...timer,remaining:left,endsAt:now+left*1000,targetSeconds:run+left,...(t.running?{focusElapsed:run,focusResumedAt:now}:{})}};
+}
 export function claimFocusPlan(data:RoutineData,id:string,subject:string,text:string,now=Date.now()):RoutineData{
  if(data.focusPlans?.some(p=>p.id===id))return data;
  const clean=text.trim(),topic=subject.trim();if(!id||id.length>100||!topic||topic.length>80||!clean||clean.length>2000)throw new Error('공부할 내용과 계획을 한 줄 적어 주세요. 계획은 2,000자까지예요.');
