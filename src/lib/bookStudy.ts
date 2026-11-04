@@ -10,7 +10,7 @@ import {recordQuitPenalty} from './focusPenalty';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
-export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number};
+export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number;awaitingChoice?:boolean};
 export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const timer=data.bookTimer;if(!timer||!timer.running||now<timer.endsAt)return data;
  // Reaching the target is a cue, not consent to stop studying or start a break.
@@ -45,7 +45,7 @@ export function saveFocusPlan(data:RoutineData,id:string,subject:string,text:str
 /** Preserve only elapsed focus time, including a deliberately stopped partial session. */
 export function stopBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const next=settleBookTimer(data,now),t=next.bookTimer;if(!t)return next;
- const {restEndedAt:_ended,...rest}=t,seconds=bookFocusSeconds(t,now);
+ const {restEndedAt:_ended,awaitingChoice:_waiting,...rest}=t,seconds=bookFocusSeconds(t,now);
  const rows=next.bookSessions??[];
  const completedAt=t.running?now:t.focusResumedAt??now;
  return {...next,bookSessions:seconds>0&&!rows.some(s=>s.id===t.id)?[...rows,{id:t.id,subject:t.subject,startedAt:t.startedAt,completedAt:new Date(completedAt).toISOString(),seconds,note:'',next:'',rewardMode:t.rewardMode}]:rows,bookTimer:{...rest,phase:'idle',remaining:0,running:false}};

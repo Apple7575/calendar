@@ -1,9 +1,10 @@
 import {emptyData,getDay,routineDay,withDay} from '../lib/routineModel';
 import {beginPriorityTask,savePriorityDay} from '../lib/priorityPlan';
-import {claimFocusPlan,focusRampStatus} from '../lib/focusRamp';
+import {claimFocusPlan,focusRampStatus,focusRunCredit,focusSecondsForSubject} from '../lib/focusRamp';
+import {bookDisplaySeconds} from '../lib/bookTimerTime';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
 import {acceptDeclaredFinish,finishFocusRun,pauseBookTimer,resumeBookTimer,saveBookNote,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
-import {canDeclareFinish} from '../lib/focusFlow';
+import {canDeclareFinish,focusFlowStage} from '../lib/focusFlow';
 import {focusLockUntil,focusQuitPenalty,penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {PROPOSED_MONEY_RATES,moneySummary,reconcileMoneyRewards,startMoneyRewards} from '../lib/moneyRewards';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
@@ -17,6 +18,8 @@ const planned=(money=false)=>{const base=money?startMoneyRewards(emptyData(),key
 const running=(money=false)=>startBookTimer(planned(money),'run',subject,at,120,'output');
 const photo=(d:RoutineData,seconds:number,id='p1',chars=50,seed='가')=>{const when=at+seconds*sec;return reconcileMoneyRewards(d,settleHandwritingRewards(acceptHandwriting(d,id,hash(id),subject,analysis(chars,seed),new Date(when)),when),key,new Date(when));};
 const bonus=(d:RoutineData)=>getDay(d,key).bonus?.handwriting??0;
+/** 계속 공부: the next stage at this moment, as the choice screen starts it. */
+const keepGoing=(d:RoutineData,seconds:number,id='next')=>startBookTimer(d,id,subject,at+seconds*sec,focusRampStatus(d,at+seconds*sec).required,'output');
 
 describe('stage table',()=>{
  test('a plan pays nothing until the first stage',()=>{
@@ -49,12 +52,12 @@ describe('stage table',()=>{
  });
  test('five photos, one per stage, pay the whole table once: 30 minutes',()=>{
   let d=running(),clock=0;
-  [120,300,600,900,1500].forEach((seconds,i)=>{clock+=seconds;d=photo(d,clock,'p'+(i+1),10,String.fromCharCode(0xAC00+i*200));});
+  [120,300,600,900,1500].forEach((seconds,i)=>{clock+=seconds;d=keepGoing(photo(d,clock,'p'+(i+1),10,String.fromCharCode(0xAC00+i*200)),clock,'next'+i);});
   expect(bonus(d)).toBe(30);
   expect(()=>validateHandwritingState(d)).not.toThrow();
  });
  test('the plan minute is paid only once per plan',()=>{
-  const first=photo(running(),120,'p1',10),second=photo(first,420,'p2',10,'나');
+  const first=photo(running(),120,'p1',10),second=photo(keepGoing(first,120),420,'p2',10,'나');
   expect(second.handwritingReceipts![1].planMinutes).toBe(0);
   expect(bonus(second)).toBe(4);
  });
@@ -68,7 +71,7 @@ describe('letters are a separate bonus',()=>{
   expect(()=>validateHandwritingState(d)).not.toThrow();
  });
  test('letter remainders carry into the next photo',()=>{
-  const first=photo(running(),120,'p1',60),second=photo(first,420,'p2',60,'나');
+  const first=photo(running(),120,'p1',60),second=photo(keepGoing(first,120),420,'p2',60,'나');
   expect(first.handwritingReceipts![0].letterMinutes).toBe(0);
   expect(second.handwritingReceipts![1].letterMinutes).toBe(5);
  });
@@ -168,11 +171,6 @@ describe('quit penalty',()=>{
  test('a met stage is free',()=>{
   expect(focusQuitPenalty(running(),at+120*sec)).toBeNull();
  });
- test('the minute after a photo is free even though the timer kept going',()=>{
-  const d=photo(running(),120);
-  expect(focusQuitPenalty(d,at+(120+60)*sec)).toBeNull();
-  expect(focusQuitPenalty(d,at+(120+61)*sec)).toMatchObject({minutes:10});
- });
  test('a break does not avoid it',()=>{
   const d=startBookBreak(running(true),at+90*sec);
   expect(focusQuitPenalty(d,at+95*sec)).toMatchObject({minutes:10,won:1000});
@@ -254,10 +252,87 @@ describe('leaving a run unfinished keeps the apps locked',()=>{
  });
 });
 
+describe('after a photo the timer stops and asks',()=>{
+ const later=at+120*sec+3*60*min,next4=new Date(2026,10,2,4).getTime();
+ const paid=(money=true)=>photo(running(money),120);
+ test('the timer stops and waits, and no study time passes while it waits',()=>{
+  const d=paid();
+  expect(d.bookTimer).toMatchObject({phase:'idle',running:false,awaitingChoice:true});
+  expect(d.bookSessions!.find(s=>s.id==='run')!.seconds).toBe(120);
+  expect(focusRunCredit(d,later)).toBe(focusRunCredit(d,at+120*sec));
+  expect(focusSecondsForSubject(d,subject,later)).toBe(120);
+ });
+ test('finishing long after the photo is free and releases the lock',()=>{
+  const d=finishFocusRun(paid(),later);
+  expect(d.focusPenalties??[]).toHaveLength(0);
+  expect(moneySummary(d).balance).toBe(moneySummary(paid()).balance);
+  expect(d.bookTimer!.awaitingChoice).toBeUndefined();
+  expect(focusLockUntil(d.bookTimer,later)).toBe(0);
+ });
+ test('the wait survives leaving the app',()=>{
+  const d=JSON.parse(JSON.stringify(paid()));
+  expect(focusQuitPenalty(d,later)).toBeNull();
+  expect(focusLockUntil(d.bookTimer,later)).toBe(next4);
+ });
+ test('waiting keeps the apps locked until the next 04:00',()=>{
+  expect(focusLockUntil(paid().bookTimer,later)).toBe(next4);
+  expect(focusLockUntil(paid().bookTimer,next4)).toBe(0);
+ });
+ test('a photo after 04:00 holds until the following 04:00',()=>{
+  const start=new Date(2026,10,2,3,59).getTime(),base=startBookTimer(claimFocusPlan(emptyData(),'plan',subject,'기출 1번',start),'run',subject,start,120,'output'),when=start+180*sec;
+  const d=settleHandwritingRewards(acceptHandwriting(base,'p1',hash('p1'),subject,analysis(),new Date(when)),when);
+  expect(focusLockUntil(d.bookTimer,when+min)).toBe(new Date(2026,10,3,4).getTime());
+ });
+ test('going on starts the next stage with the surplus, and the penalty rule returns',()=>{
+  const seven=photo(running(true),420),balance=moneySummary(seven).balance,d=keepGoing(seven,600);
+  expect(d.bookTimer).toMatchObject({phase:'focus',running:true,carrySeconds:120,duration:600});
+  expect(d.bookTimer!.awaitingChoice).toBeUndefined();
+  expect(bookDisplaySeconds(d.bookTimer!,at+600*sec)).toBe(480);
+  expect(focusQuitPenalty(d,at+(600+60)*sec)).toBeNull();
+  const quit=finishFocusRun(d,at+(600+61)*sec);
+  expect(penaltyMinutesOnDay(quit,key)).toBe(10);
+  expect(moneySummary(quit).balance).toBe(balance-1000);
+ });
+ test('going on, then meeting the stage, is free again',()=>{
+  const d=keepGoing(photo(running(),120),130);
+  expect(focusQuitPenalty(d,at+(130+300)*sec)).toBeNull();
+ });
+ test('a declared finish asks the same way',()=>{
+  const when=at+90*sec,d=acceptDeclaredFinish(running(),'p1',hash('p1'),subject,analysis(120),new Date(when));
+  expect(d.bookTimer).toMatchObject({phase:'idle',awaitingChoice:true});
+  expect(focusQuitPenalty(d,later)).toBeNull();
+  expect(focusLockUntil(d.bookTimer,later)).toBe(next4);
+  expect(focusFlowStage(d,false,when)).toBe('study');
+  expect(canDeclareFinish(d,when)).toBe(false);
+ });
+ test('the study page sends a waiting run to the timer, and a stale plan comes first',()=>{
+  const d=paid();
+  expect(focusFlowStage(d,false,at+121*sec)).toBe('study');
+  expect(focusFlowStage(d,false,at+120*sec+2*60*min)).toBe('plan');
+ });
+ test('a photo during a break leaves the break running',()=>{
+  const when=at+130*sec,d=settleHandwritingRewards(acceptHandwriting(startBookBreak(running(),at+125*sec),'p1',hash('p1'),subject,analysis(),new Date(when)),when);
+  expect(d.bookTimer).toMatchObject({phase:'break',running:true});
+  expect(d.bookTimer!.awaitingChoice).toBeUndefined();
+  expect(focusQuitPenalty(d,when+sec)).toBeNull();
+ });
+ test('saved data without the field, or with a broken one, behaves as before',()=>{
+  const live=running(),broken={...live,bookTimer:{...live.bookTimer!,phase:'idle' as const,running:false,awaitingChoice:'yes' as unknown as boolean}};
+  expect(focusLockUntil(broken.bookTimer,at+min)).toBe(0);
+  expect(()=>validateBackup(makeBackup(broken,user),user)).not.toThrow();
+  expect(focusLockUntil(live.bookTimer,at+min)).toBe(next4);
+ });
+ test('a waiting run stays valid through a backup round trip',()=>{
+  const d=paid();
+  expect(validateBackup(JSON.parse(JSON.stringify(makeBackup(d,user))),user).data.bookTimer).toMatchObject({awaitingChoice:true});
+  expect(()=>validateHandwritingState(d)).not.toThrow();
+ });
+});
+
 describe('what reaches the device',()=>{
  const earned=photo(running(),120),native={supportsHandwritingRewards:true,supportsMinuteHandwriting:true};
  test('a new build gets exact minutes and the penalty',()=>{
-  const d=finishFocusRun(earned,at+300*sec);
+  const d=finishFocusRun(keepGoing(earned,120),at+300*sec);
   expect(rewardSyncExtras(d,key,native)).toEqual({handwriting:2,penalty:10});
  });
  test('an older build gets whole 5-minute steps and no penalty, so its sync does not fail',()=>{

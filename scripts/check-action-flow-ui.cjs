@@ -106,10 +106,11 @@ fs.mkdirSync(out, {recursive:true});
   }
   await button(/이번 단계 완료 · \+\d+분 받기/).click();
   await page.getByTestId('earned-reward-page').waitFor();
-  await inViewport('이어서 공부하기');
+  await inViewport('계속 공부');
+  await inViewport('마치기');
   await capture('earned-360');
   const paid = await page.evaluate(() => JSON.parse(localStorage.getItem('routine.v1.web-priority-demo')).handwritingReceipts.length);
-  await button('이어서 공부하기').click();
+  await button('계속 공부').click();
   await page.getByTestId('focus-clock').waitFor();
   assert.equal(await button('필기 사진 제출').count(),0,'The next stage starts without a photo button');
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('routine.v1.web-priority-demo')).handwritingReceipts.length), paid);

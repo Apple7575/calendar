@@ -14,7 +14,7 @@ export const penaltyMinutesOnDay=(data:RoutineData,key:string)=>(Array.isArray(d
  * last payout, once the stage is met, after the two-hour reset, and for a timer already charged.
  */
 export function focusQuitPenalty(data:RoutineData,now=Date.now()){
- const t=data.bookTimer;if(!t||t.rewardMode!=='output')return null;
+ const t=data.bookTimer;if(!t||t.rewardMode!=='output'||t.awaitingChoice===true)return null;
  const required=focusRampStatus(data,now).required;
  if(!required||focusRunCredit(data,now)>=required)return null;
  const mark=typeof t.creditMark==='number'&&t.creditMark>0?t.creditMark:0;
@@ -36,7 +36,7 @@ export const penaltyLabel=(due:{minutes:number;won:number}|null)=>due?'벌점 '+
  * (user decision 2026-11-04). A rest that ran out is not an ending: stopBookTimer is what clears restEndedAt.
  */
 export function focusLockUntil(t:BookTimer|undefined,now=Date.now()){
- if(!t||t.phase==='idle'&&t.restEndedAt===undefined)return 0;
+ if(!t||t.phase==='idle'&&t.restEndedAt===undefined&&t.awaitingChoice!==true)return 0;
  const started=Date.parse(t.startedAt),touched=typeof t.focusResumedAt==='number'&&Number.isFinite(t.focusResumedAt)?t.focusResumedAt:0;
  if(!Number.isFinite(started))return 0;
  const start=new Date(Math.max(started,touched));

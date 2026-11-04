@@ -2,6 +2,7 @@ import type {RoutineData} from './routineModel';
 import {getDay,routineDay,withDay} from './routineModel';
 import {FOCUS_STEPS,carryRunPastStage,FOCUS_STAGE_MINUTES,focusPlanMinutesDue,focusRunCredit,focusRampAccess,focusStagePayout,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
 import {bookFocusSeconds} from './bookTimerTime';
+import {stopBookTimer} from './bookStudy';
 
 export const OUTPUT_POLICY={version:1,units:100,minutes:5,goalUnits:500} as const;
 export type HandwritingAnalysis={lines:string[];languages:('ko'|'en'|'ja'|'math')[];quality:'readable'|'retake';message:string};
@@ -95,7 +96,10 @@ function payStage(data:RoutineData,subject:string,now:number,pay:{stage:number;s
   return {...r,rewardStatus:'earned' as const,rewardDay:day,rewardOrder:ordinal++,focusStage:pay.stage,focusBatch:batch,finish:pay.finish,stageMinutes,planMinutes,letterMinutes,minutes,...(head?{focusSeconds:pay.seconds}:{})};
  });
  const next=withDay({...data,handwritingReceipts:paid,focusRamp:{...ramp,level:pay.level as 1|2|3|4|5,consumed:{...ramp.consumed,[subject]:(Object.prototype.hasOwnProperty.call(ramp.consumed,subject)?ramp.consumed[subject]:0)+pay.seconds}}},day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+total}}));
- return carryRunPastStage(next,subject,pay.seconds,now);
+ const t=next.bookTimer,asks=t?.subject===subject&&t.rewardMode==='output'&&t.phase!=='break';
+ const settled=carryRunPastStage(asks?stopBookTimer(next,now):next,subject,pay.seconds,now);
+ // The run stops here and the user picks 계속 공부 or 마치기 (user decision 2026-11-04). A break just carries on.
+ return asks?{...settled,bookTimer:{...settled.bookTimer!,awaitingChoice:true,focusResumedAt:now}}:settled;
 }
 /** "다 했어요": the current stage at the share actually studied, and the next stage is opened. */
 function payDeclared(data:RoutineData,subject:string,now:number):RoutineData{
