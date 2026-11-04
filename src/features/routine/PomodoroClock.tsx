@@ -27,7 +27,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
  const seconds=Math.abs(left),overtime=phase==='focus'&&left<=0,time=(left<0||restOver?'+':'')+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
  /** A penalty needs a second press, so a stray tap cannot cost money. */
  const quit=()=>{if(quitPenalty&&!confirmQuit){setConfirmQuit(true);return;}setConfirmQuit(false);onFinish?.()};
- const quitLabel=confirmQuit?'한 번 더 누르면 마쳐요 · '+quitPenalty:awaitingChoice?'마치기':(restOver?'이 과목 공부 마치기':'공부 마치기')+(quitPenalty?' · '+quitPenalty:'');
+ const quitLabel=confirmQuit?'한 번 더 누르면 마쳐요\n'+quitPenalty:awaitingChoice?'마치기':(restOver?'이 과목 공부 마치기':'공부 마치기')+(quitPenalty?'\n'+quitPenalty:'');
  const characterSize=landscape?Math.round(area.height*1.6):Math.round(area.width*1.69),characterLeft=landscape?half+(half-characterSize)/2:(area.width-characterSize)/2,characterTop=Math.round(landscape?area.height-PANEL_CLEARANCE-characterSize*CHIN:control.touch+space.xs+size+space.xxs+NOTE_HEIGHT+space.xs-characterSize*CROWN);
  const panelWidth=landscape?Math.min(358,half-gutter):Math.min(358,area.width-gutter*2),panelLeft=landscape?half+(half-panelWidth)/2:(area.width-panelWidth)/2;
  const adjustButton=(label:string,amount:number)=><PanelButton tight key={label} label={label} colors={p} onPress={()=>onAdjust?.(amount)}/>;
