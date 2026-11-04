@@ -3,12 +3,12 @@ import { getDay,routineDay,withDay } from './routineModel';
 import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
-import {claimFocusPlan,focusRampStatus} from './focusRamp';
+import {claimFocusPlan,focusCarryInto,focusRampStatus} from './focusRamp';
 import {startOutputStudy} from './handwriting';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
-export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number};
+export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number};
 export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const timer=data.bookTimer;if(!timer||!timer.running||now<timer.endsAt)return data;
  // Reaching the target is a cue, not consent to stop studying or start a break.
@@ -24,7 +24,8 @@ export function startBookTimer(data:RoutineData,id:string,subject:string,now=Dat
  if((next.bookSessions??[]).some(s=>s.id===id))throw new Error('이미 기록된 공부예요. 새 타이머로 시작해 주세요.');
  if(!['standard','free','output'].includes(rewardMode))throw new Error('공부 보상 모드를 확인해 주세요.');
  if(rewardMode==='free'&&!freeStudyStatus(next,routineDay(new Date(now))).unlocked)throw new Error('오늘 기본 실천을 마친 뒤 자유 공부를 시작해 주세요.');
- return {...next,bookTimer:{id,subject:subject.trim(),startedAt:new Date(now).toISOString(),phase:'focus',endsAt:now+duration*1000,remaining:duration,running:true,duration,rewardMode,focusElapsed:0,focusResumedAt:now,targetSeconds:duration}};
+ const carry=rewardMode==='output'&&next.focusRamp&&focusRampStatus(next,now).required===duration?focusCarryInto(next,subject.trim(),duration,now):0,left=Math.max(0,duration-carry);
+ return {...next,bookTimer:{id,subject:subject.trim(),startedAt:new Date(now).toISOString(),phase:'focus',endsAt:now+left*1000,remaining:left,running:true,duration,rewardMode,focusElapsed:0,focusResumedAt:now,targetSeconds:left,...(carry>0?{carrySeconds:carry}:{})}};
 }
 export function pauseBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const next=settleBookTimer(data,now),t=next.bookTimer;if(!t||!t.running)return next;

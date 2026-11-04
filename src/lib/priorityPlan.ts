@@ -51,7 +51,7 @@ export function beginPriorityTask(data:RoutineData,key:string,id:string,now=Date
  if(focusRampStatus(next,now).needsPlan)next=saveFocusPlan(next,'priority-plan-'+key+'-'+id+'-'+now,task.subject,task.nextAction||task.action,now);
  if(next.handwritingPending&&next.handwritingPending.subject!==task.subject)throw new Error('먼저 이전 공부의 사진을 확인하거나 결과를 버려 주세요.');
  next=startOutputStudy(next.outputDraft?.subject!==task.subject?{...next,outputDraft:undefined}:next,'priority-draft-'+id,task.subject,new Date(now));
- if(!next.bookTimer||next.bookTimer.phase==='idle')next=startBookTimer(next,'priority-timer-'+id+'-'+now,task.subject,now,task.completedAt?focusRampStatus(next,now).required:task.minimum,'output');
+ if(!next.bookTimer||next.bookTimer.phase==='idle')next=startBookTimer(next,'priority-timer-'+id+'-'+now,task.subject,now,focusRampStatus(next,now).required,'output');
  else if(!next.bookTimer.running)next=resumeBookTimer(next,now);
  return next;
 }
