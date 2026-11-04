@@ -95,6 +95,12 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 `PriorityButton`, `PriorityField`, `PrimaryButton`은 예전 이름으로 남겨 두었고 내부는 `Action`·`Field`다. 새 코드는 바로 `Action`·`Field`를 쓴다.
 
+## 타이머
+
+- 집중과 루틴은 `TimerFace` 원형 시계를 함께 쓴다.
+- 멈춤·재생은 아이콘이다. `휴식 시작`처럼 뜻이 복잡한 조작은 글자로 둔다.
+- 시간 초과는 화면 전체를 뒤집는다(사용자 지시). 연두 `#C4EA89` 바탕에 검은 글자이고 대비는 15.48:1이다. 값은 `overtimeTheme`, 판단은 `focusClockInverted`와 루틴의 `left<=0`이다. 표시만 바꾸며 보상과 완료는 그대로다.
+
 ## 키보드
 
 `Page`의 스크롤 영역은 iOS에서 키보드만큼 여백을 자동으로 받는다. `Field`는 포커스와 줄 추가 때 칸 전체가 키보드 위에 보이도록 화면을 올린다. 그래서 새 입력창은 직접 만든 `TextInput` 대신 `Field`를 쓴다. `KeyboardAvoidingView`로 감싼 화면은 `Page keyboardInsets={false}`로 여백이 겹치지 않게 한다.

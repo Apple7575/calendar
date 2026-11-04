@@ -9,7 +9,7 @@ const out='.expo/design-system/routine';fs.mkdirSync(out,{recursive:true});
  try{
   const c=await b.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'}),p=await c.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));
   await p.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle',timeout:280000});
-  const btn=n=>p.getByRole('button',{name:n,exact:true}),time=()=>p.getByTestId('guided-time').textContent();
+  const btn=n=>p.getByRole('button',{name:n,exact:true}),time=()=>p.getByTestId('timer-face-time').textContent();
   const paid=()=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('routine.v1.web-priority-demo'));return Math.max(0,...Object.values(s.days).map(d=>d.paid.morning))});
   const checks=()=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('routine.v1.web-priority-demo'));const d=Object.values(s.days).find(d=>d.guidedTimer||d.morning.some(Boolean));return d?d.morning.filter(Boolean).length:0});
   await btn('아침 루틴 시작·이어하기').click();await p.waitForTimeout(500);await p.screenshot({path:`${out}/start.png`});
@@ -26,7 +26,11 @@ const out='.expo/design-system/routine';fs.mkdirSync(out,{recursive:true});
   await p.screenshot({path:`${out}/skipped.png`});
   await btn('이전 행동으로 돌아가기').click();await p.waitForTimeout(400);assert.equal(await p.getByRole('heading').last().textContent(),first,'잘못 건너뛰어도 돌아감');assert.equal(await checks(),0);
   await btn('타이머 멈추기').waitFor();
+  await p.evaluate(()=>{const k='routine.v1.web-priority-demo',s=JSON.parse(localStorage.getItem(k));for(const d of Object.values(s.days))if(d.guidedTimer){d.guidedTimer.remaining=0;d.guidedTimer.endsAt=Date.now()-65000}localStorage.setItem(k,JSON.stringify(s))});
+  await p.reload({waitUntil:'networkidle'});await p.getByRole('button',{name:/^아침 루틴/}).first().click();await btn('이 행동 마쳤어요').waitFor();await p.waitForTimeout(900);await p.screenshot({path:`${out}/overtime.png`});
+  const ink=await p.evaluate(()=>{const t=document.querySelector('[data-testid=timer-face-time]');const lit=[...document.querySelectorAll('div')].some(e=>getComputedStyle(e).backgroundColor==='rgb(196, 234, 137)'&&e.getBoundingClientRect().width>=380);return {time:t.textContent,color:getComputedStyle(t).color,lit}});
+  assert.equal(ink.color,'rgb(0, 0, 0)','초과 시간은 검은 글자');assert.equal(ink.lit,true,'초과 시간은 연두 바탕');assert.match(ink.time,/^\+/,'초과 시간 표시');
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  console.log('PASS routine flow: 마침→다음 타이머, 멈춤·이어가기, 이전, 건너뛰기, 건너뛰기 복구, 건너뛰기 보상 없음');
+  console.log('PASS routine flow: 마침→다음 타이머, 멈춤·이어가기, 이전, 건너뛰기, 건너뛰기 복구, 건너뛰기 보상 없음, 시간 초과 반전');
  }finally{await b.close()}
 })().catch(e=>{console.error('FAIL',e.message.split('\n')[0]);process.exit(1)});
