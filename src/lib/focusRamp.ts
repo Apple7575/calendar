@@ -2,10 +2,13 @@ import type {RoutineData} from './routineModel';
 import {routineDay,withDay} from './routineModel';
 import {bookFocusSeconds} from './bookTimerTime';
 export const FOCUS_STEPS=[0,120,300,600,900,1500] as const;
+/** Reward table (user decision 2026-11-04): what each stage pays, and the plan's one minute on the first payout. */
+export const FOCUS_STAGE_MINUTES=[0,1,2,4,7,15] as const;
+export const FOCUS_PLAN_MINUTES=1;
 export const FOCUS_RESET_MS=2*60*60*1000;
 export type FocusLevel=1|2|3|4|5;
 export type FocusRamp={version:1;cycleId:string;startedAt:string;lastActivityAt:string;level:FocusLevel;baseline:Record<string,number>;consumed:Record<string,number>};
-export type FocusPlan={id:string;cycleId:string;subject:string;text:string;at:string;day:string;minutes:5};
+export type FocusPlan={id:string;cycleId:string;subject:string;text:string;at:string;day:string;minutes:5|0};
 const own=(map:Record<string,number>,key:string)=>Object.prototype.hasOwnProperty.call(map,key)?map[key]:0;
 export function focusSecondsForSubject(data:RoutineData,subject:string,now=Date.now()){
  let seconds=(data.bookSessions??[]).filter(s=>s.rewardMode==='output'&&s.subject===subject).reduce((n,s)=>n+s.seconds,0);
@@ -61,6 +64,32 @@ export function focusStagesDue(data:RoutineData,subject:string,now=Date.now()){
  while(credit>=seconds&&credit-seconds>=FOCUS_STEPS[level]&&access.seconds-seconds>=FOCUS_STEPS[level]){stages.push(level);seconds+=FOCUS_STEPS[level];level=Math.min(5,level+1);}
  return {stages,seconds,level};
 }
+/**
+ * What one photo pays: unbroken study is matched to the highest stage it reached, and the rest carries on
+ * (user decision 2026-11-04). 7 minutes pays the 5-minute stage, 17 the 15-minute stage, 25 the 25-minute stage.
+ * Only the 25-minute stage repeats, so 50 minutes pays it twice. Interrupted time pays the current stage only.
+ */
+export function focusStagePayout(data:RoutineData,subject:string,now=Date.now()){
+ const access=focusRampAccess(data,subject,now),t=data.bookTimer;
+ if(!access.ready||!access.level)return null;
+ const credit=t?.subject===subject&&t.rewardMode==='output'?focusRunCredit(data,now):0;
+ let stage=access.level;
+ while(stage<5&&credit>=FOCUS_STEPS[stage+1]&&access.seconds>=FOCUS_STEPS[stage+1])stage++;
+ let seconds:number=FOCUS_STEPS[stage],minutes:number=FOCUS_STAGE_MINUTES[stage];
+ if(stage===5)while(credit-seconds>=FOCUS_STEPS[5]&&access.seconds-seconds>=FOCUS_STEPS[5]){seconds+=FOCUS_STEPS[5];minutes+=FOCUS_STAGE_MINUTES[5];}
+ return {stage,seconds,minutes,level:Math.min(5,stage+1) as FocusLevel};
+}
+/** Minutes the next photo would pay for time alone, for labels: what is due now, or what the current stage pays when met. */
+export function focusRewardPreview(data:RoutineData,subject:string,now=Date.now()){
+ const plan=focusPlanMinutesDue(data),status=focusRampStatus(data,now);
+ return {due:(focusStagePayout(data,subject,now)?.minutes??0)+plan,next:status.level?FOCUS_STAGE_MINUTES[status.level]+plan:0};
+}
+/** A plan's minute is paid with its first stage. Plans from before this rule already paid 5 at once. */
+export function focusPlanMinutesDue(data:RoutineData){
+ const cycle=data.focusRamp?.cycleId,plan=data.focusPlans?.find(p=>p.cycleId===cycle);
+ if(!plan||plan.minutes!==0)return 0;
+ return data.handwritingReceipts?.some(r=>r.focusCycle===cycle&&r.rewardStatus==='earned'&&r.focusSeconds!==undefined)?0:FOCUS_PLAN_MINUTES;
+}
 /** After a stage is paid, spend it from the run and point the countdown at the next stage. Call with the level already raised. */
 export function carryRunPastStage(data:RoutineData,subject:string,paid:number,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.subject!==subject||t.rewardMode!=='output')return data;
@@ -77,11 +106,11 @@ export function claimFocusPlan(data:RoutineData,id:string,subject:string,text:st
  const subjects=new Set((data.bookSessions??[]).map(s=>s.subject));if(data.bookTimer)subjects.add(data.bookTimer.subject);subjects.add(topic);
  const at=new Date(now).toISOString(),day=routineDay(new Date(now));
  const ramp:FocusRamp={version:1,cycleId:id,startedAt:at,lastActivityAt:at,level:1,baseline:Object.fromEntries([...subjects].map(s=>[s,focusSecondsForSubject(data,s,now)])),consumed:{}};
- const next={...data,focusRamp:ramp,focusPlans:[...(data.focusPlans??[]),{id,cycleId:id,subject:topic,text:clean,at,day,minutes:5 as const}],outputDraft:{id:'draft-'+id,subject:topic,startedAt:at},handwritingReceipts:data.handwritingReceipts?.map(r=>r.rewardStatus==='pending'?{...r,rewardPolicy:'ramp-v1' as const,focusCycle:id}:r)};
- return withDay(next,day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+5}}));
+ const next={...data,focusRamp:ramp,focusPlans:[...(data.focusPlans??[]),{id,cycleId:id,subject:topic,text:clean,at,day,minutes:0 as const}],outputDraft:{id:'draft-'+id,subject:topic,startedAt:at},handwritingReceipts:data.handwritingReceipts?.map(r=>r.rewardStatus==='pending'?{...r,rewardPolicy:'ramp-v2' as const,focusCycle:id}:r)};
+ return withDay(next,day,d=>d);
 }
 export function validateFocusRamp(data:RoutineData){
  const plans=data.focusPlans,ramp=data.focusRamp,validMap=(map:Record<string,number>)=>!!map&&typeof map==='object'&&!Array.isArray(map)&&Object.entries(map).every(([s,n])=>s.length>0&&s.length<=80&&Number.isSafeInteger(n)&&n>=0);
- if(plans!==undefined&&(!Array.isArray(plans)||plans.length>50000||new Set(plans.map(p=>p?.id)).size!==plans.length||new Set(plans.map(p=>p?.cycleId)).size!==plans.length||plans.some(p=>!p||p.id!==p.cycleId||typeof p.id!=='string'||!p.id||typeof p.subject!=='string'||!p.subject.trim()||p.subject.length>80||typeof p.text!=='string'||!p.text.trim()||p.text.length>2000||p.minutes!==5||!Number.isFinite(Date.parse(p.at))||!/^\d{4}-\d{2}-\d{2}$/.test(p.day)||!data.days[p.day])))throw new Error('집중 공부 계획 기록을 확인해 주세요.');
+ if(plans!==undefined&&(!Array.isArray(plans)||plans.length>50000||new Set(plans.map(p=>p?.id)).size!==plans.length||new Set(plans.map(p=>p?.cycleId)).size!==plans.length||plans.some(p=>!p||p.id!==p.cycleId||typeof p.id!=='string'||!p.id||typeof p.subject!=='string'||!p.subject.trim()||p.subject.length>80||typeof p.text!=='string'||!p.text.trim()||p.text.length>2000||p.minutes!==5&&p.minutes!==0||!Number.isFinite(Date.parse(p.at))||!/^\d{4}-\d{2}-\d{2}$/.test(p.day)||!data.days[p.day])))throw new Error('집중 공부 계획 기록을 확인해 주세요.');
  if(ramp&&(!plans?.some(p=>p.cycleId===ramp.cycleId)||ramp.version!==1||![1,2,3,4,5].includes(ramp.level)||!Number.isFinite(Date.parse(ramp.startedAt))||!Number.isFinite(Date.parse(ramp.lastActivityAt))||!validMap(ramp.baseline)||!validMap(ramp.consumed)))throw new Error('집중 공부 단계 기록을 확인해 주세요.');
 }
