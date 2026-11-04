@@ -45,3 +45,12 @@ test('the rotate button toggles and the choice is kept for the next step',async(
  await act(async()=>{rotate()});await flush();
  expect(mockOrientation.lock).toHaveBeenLastCalledWith(1);
 });
+
+test('focus and routine remember their own direction',async()=>{
+ const tree=await mount(true);
+ await act(async()=>{rotate()});await flush();
+ await act(async()=>{tree.unmount()});await flush();
+ function FocusProbe(){useTimerScreenHold(true,'focus');return null}
+ await act(async()=>{renderer.create(React.createElement(FocusProbe))});await flush();
+ expect(mockOrientation.lock).toHaveBeenLastCalledWith(1);
+});
