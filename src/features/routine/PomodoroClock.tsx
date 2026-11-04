@@ -5,8 +5,8 @@ import {focusTheme} from '../../theme/themes';
 import {Icon} from './ui';
 export type ClockDesign='A'|'B'|'C';
 const palettes={A:{bg:focusTheme.colors.background,text:focusTheme.colors.text,muted:focusTheme.colors.textMuted,accent:focusTheme.colors.primary},B:{bg:'#FFF6E6',text:'#303E32',muted:'#687B68',accent:'#65914C'},C:{bg:'#192754',text:'#F7F9FF',muted:'#B9C8E6',accent:'#A8C4FF'}};
-type Props={design:ClockDesign;left:number;total?:number;running:boolean;phase:string;subject:string;onPause:()=>void;onClose:()=>void;onPhoto?:()=>void;onBreak?:()=>void;onSkipBreak?:()=>void;onLeaveNote?:()=>void;onFinish?:()=>void;onAdjust?:(seconds:number)=>void;restOvertime?:number|null;ready?:boolean;requiredMinutes?:number;needsPlan?:boolean;onRotate?:()=>void;carried?:number};
-export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phase,subject,onPause,onClose,onPhoto,onBreak,onSkipBreak,onLeaveNote,onFinish,onAdjust,restOvertime=null,ready=false,requiredMinutes=25,needsPlan=false,onRotate,carried=0}:Props){
+type Props={design:ClockDesign;left:number;total?:number;running:boolean;phase:string;subject:string;onPause:()=>void;onClose:()=>void;onPhoto?:()=>void;onBreak?:()=>void;onSkipBreak?:()=>void;onLeaveNote?:()=>void;onFinish?:()=>void;onAdjust?:(seconds:number)=>void;restOvertime?:number|null;ready?:boolean;requiredMinutes?:number;needsPlan?:boolean;onRotate?:()=>void;carried?:number;dueStages?:number};
+export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phase,subject,onPause,onClose,onPhoto,onBreak,onSkipBreak,onLeaveNote,onFinish,onAdjust,restOvertime=null,ready=false,requiredMinutes=25,needsPlan=false,onRotate,carried=0,dueStages=0}:Props){
  const idle=phase==='idle',resting=phase==='break',restOver=idle&&restOvertime!==null,left=restOver?-restOvertime!:idle?requiredMinutes*60:rawLeft,total=idle?requiredMinutes*60:rawTotal;
  const pauseLabel=idle?(needsPlan?'계획부터 시작':requiredMinutes+'분 집중 시작'):resting?(running?'휴식 일시정지':'휴식 이어가기'):running?'일시정지':needsPlan?'계획부터 시작':'이어서 공부';
  const [area,setArea]=useState({width:844,height:390}),[revealed,setRevealed]=useState(false),[adjusting,setAdjusting]=useState(false),p=palettes[design],landscape=area.width>area.height;
@@ -44,7 +44,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
     {ready&&resting&&onPhoto?button('필기 사진 제출',onPhoto,false,true):null}
     {!landscape&&phase==='focus'&&onLeaveNote?button('다음 시작 위치 남기기',onLeaveNote,false,true):null}
     {onAdjust&&!idle?<><Pressable accessibilityRole="button" accessibilityLabel="타이머 시간 조정" accessibilityState={{expanded:adjusting}} onPress={()=>setAdjusting(v=>!v)} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:p.muted,fontSize:13,textAlign:'center'}}>시간 조정 {adjusting?'−':'+'}</Text></Pressable>{adjusting?<View style={{gap:8}}><View style={{flexDirection:'row',gap:8,justifyContent:'center'}}>{button('−1분',()=>onAdjust(-60),false,true)}{button('+1분',()=>onAdjust(60),false,true)}{button('−5분',()=>onAdjust(-300),false,true)}{button('+5분',()=>onAdjust(300),false,true)}</View></View>:null}</>:null}
-    <Text style={{color:p.muted,fontSize:12,textAlign:'center'}}>{needsPlan?'계획 한 줄부터 +5분':ready?'이번 단계 충족 · 사진 확인하면 +5분':resting?'쉬는 시간은 공부 시간에 포함되지 않아요':(phase==='focus'&&carried>0?'지난 공부 '+Math.floor(carried/60)+'분 '+carried%60+'초 이어짐 · ':'실제 집중 ')+requiredMinutes+'분 후 필기 사진 · +5분'}</Text>
+    <Text style={{color:p.muted,fontSize:12,textAlign:'center'}}>{needsPlan?'계획 한 줄부터 +5분':ready?(dueStages>1?dueStages+'단계 충족 · 사진 1장이면 +'+dueStages*5+'분':'이번 단계 충족 · 사진 확인하면 +5분'):resting?'쉬는 시간은 공부 시간에 포함되지 않아요':(phase==='focus'&&carried>0?'지난 공부 '+Math.floor(carried/60)+'분 '+carried%60+'초 이어짐 · ':'실제 집중 ')+requiredMinutes+'분 후 필기 사진 · +5분'}</Text>
    </View>
   </View>
  </View>;

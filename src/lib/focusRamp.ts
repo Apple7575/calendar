@@ -49,6 +49,18 @@ export function focusCarryInto(data:RoutineData,subject:string,required:number,n
  const credit=focusRunCredit(data,now),kept=credit>=required?credit:storedSeconds(t.carrySeconds);
  return Math.min(kept,focusRampAccess(data,subject,now).seconds);
 }
+/**
+ * Stages one photo finishes (user decision 2026-11-04): the current stage once its reward time is met, then every
+ * further stage the unbroken run has already passed. Interrupted time pays the first stage only, as before.
+ */
+export function focusStagesDue(data:RoutineData,subject:string,now=Date.now()){
+ const access=focusRampAccess(data,subject,now),t=data.bookTimer;
+ if(!access.ready||!access.level)return {stages:[] as number[],seconds:0,level:access.level};
+ const credit=t?.subject===subject&&t.rewardMode==='output'?focusRunCredit(data,now):0,stages:number[]=[access.level];
+ let seconds=access.required,level=Math.min(5,access.level+1);
+ while(credit>=seconds&&credit-seconds>=FOCUS_STEPS[level]&&access.seconds-seconds>=FOCUS_STEPS[level]){stages.push(level);seconds+=FOCUS_STEPS[level];level=Math.min(5,level+1);}
+ return {stages,seconds,level};
+}
 /** After a stage is paid, spend it from the run and point the countdown at the next stage. Call with the level already raised. */
 export function carryRunPastStage(data:RoutineData,subject:string,paid:number,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.subject!==subject||t.rewardMode!=='output')return data;

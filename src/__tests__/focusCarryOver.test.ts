@@ -1,7 +1,7 @@
 import {emptyData,routineDay} from '../lib/routineModel';
-import {beginPriorityTask,savePriorityDay} from '../lib/priorityPlan';
+import {beginPriorityTask,priorityTaskProgress,savePriorityDay} from '../lib/priorityPlan';
 import {claimFocusPlan,focusRampStatus} from '../lib/focusRamp';
-import {acceptHandwriting,handwritingAccess,settleHandwritingRewards} from '../lib/handwriting';
+import {acceptHandwriting,handwritingAccess,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
 import {skipBookBreak,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {bookDisplaySeconds} from '../lib/bookTimerTime';
 import {canTakeHandwritingPhoto} from '../lib/focusFlow';
@@ -46,9 +46,12 @@ test('a short run keeps the earlier surplus but adds nothing to it',()=>{
  expect(third.bookTimer!.carrySeconds).toBe(90);
  expect(bookDisplaySeconds(third.bookTimer!,rest+63*sec)).toBe(210);
 });
-test('surplus larger than the next stage opens the photo at once',()=>{
+test('a long run, a break, then one photo: every passed stage is paid and the rest carries',()=>{
  const rest=at+500*sec,paid=photo(startBookBreak(firstRun(),rest),rest+sec),next=skipBookBreak(paid,'first','second',rest+2*sec);
- expect(canTakeHandwritingPhoto(next,rest+2*sec)).toBe(true);
+ expect(paid.handwritingReceipts![0].focusStagesPaid).toEqual([1,2]);
+ expect(next.bookTimer!.carrySeconds).toBe(80);
+ expect(bookDisplaySeconds(next.bookTimer!,rest+2*sec)).toBe(520);
+ expect(canTakeHandwritingPhoto(next,rest+2*sec)).toBe(false);
 });
 test('another subject gets no surplus',()=>{
  const rest=at+210*sec,paid=photo(startBookBreak(firstRun(),rest),rest+sec);
@@ -107,11 +110,60 @@ test('a saved timer from before this change loads with no surplus',()=>{
  expect(canTakeHandwritingPhoto({...firstRun(),bookTimer:old},at+119*sec)).toBe(false);
  expect(canTakeHandwritingPhoto({...firstRun(),bookTimer:old},at+120*sec)).toBe(true);
 });
-test('the first press on a home task starts its own small timer, without earlier focus-tab time',()=>{
+test('a finished stage still waits for its photo after a home start',()=>{
  const key=routineDay(new Date(at)),task={id:'t',subject,action:'1번',preparation:'',target:'',minimum:120 as const};
  const studied=stopBookTimer(startBookTimer(claimFocusPlan(savePriorityDay(emptyData(),key,[task],new Date(at)),'plan',subject,'기출 1번',at),'first',subject,at,120,'output'),at+420*sec);
  const home=beginPriorityTask(studied,key,'t',at+480*sec);
- expect(bookDisplaySeconds(home.bookTimer!,at+480*sec)).toBe(120);
- expect(canTakeHandwritingPhoto(home,at+480*sec)).toBe(false);
- expect(canTakeHandwritingPhoto(home,at+600*sec)).toBe(true);
+ expect(canTakeHandwritingPhoto(home,at+480*sec)).toBe(true);
+ expect(priorityTaskProgress(home,home.priorityDays![key].tasks[0],at+480*sec).seconds).toBe(0);
+});
+const straight=(seconds:number)=>photo(firstRun(),at+seconds*sec);
+test('25 straight minutes and one photo finish stages 2, 5 and 10: +15 minutes, 8 minutes carried',()=>{
+ const d=straight(1500),r=d.handwritingReceipts![0];
+ expect(r).toMatchObject({focusStage:1,focusStagesPaid:[1,2,3],focusSeconds:1020,minutes:15,rewardStatus:'earned'});
+ expect(d.focusRamp).toMatchObject({level:4,consumed:{[subject]:1020}});
+ expect(d.days[Object.keys(d.days)[0]].bonus?.handwriting).toBe(20); // plan 5 + 15
+ expect(d.bookTimer!.carrySeconds).toBe(480);
+ expect(bookDisplaySeconds(d.bookTimer!,at+1500*sec)).toBe(420);
+ expect(handwritingAccess(d,subject,at+1500*sec).seconds).toBe(480);
+ expect(()=>validateHandwritingState(d)).not.toThrow();
+});
+test('the time a photo spent is not counted again by the next photo',()=>{
+ const d=straight(1500),when=at+1500*sec;
+ expect(canTakeHandwritingPhoto(d,when)).toBe(false);
+ const later=at+1920*sec,again=settleHandwritingRewards(acceptHandwriting(d,'p2','b'.repeat(64),subject,{...analysis,lines:['타파하거너더러머버서어'.repeat(12)]},new Date(later),'ramp-v1'),later);
+ expect(again.handwritingReceipts![1]).toMatchObject({focusStage:4,focusSeconds:900,minutes:5});
+ expect(again.handwritingReceipts![1].focusStagesPaid).toBeUndefined();
+ expect(again.focusRamp).toMatchObject({level:5,consumed:{[subject]:1920}});
+ expect(again.days[Object.keys(again.days)[0]].bonus?.handwriting).toBe(25);
+ expect(()=>validateHandwritingState(again)).not.toThrow();
+});
+test.each([[120,5],[419,5],[420,10],[1019,10],[1020,15],[1919,15],[1920,20],[3419,20],[3420,25],[4919,25],[4920,30]])('%i seconds straight then one photo pays %i minutes',(seconds,minutes)=>{
+ const d=straight(seconds);
+ expect(d.days[Object.keys(d.days)[0]].bonus?.handwriting).toBe(5+minutes);
+ expect(()=>validateHandwritingState(d)).not.toThrow();
+});
+test('a run cut short never counts toward extra stages',()=>{
+ const short=startBookBreak(firstRun(),at+60*sec),next=skipBookBreak(short,'first','second',at+61*sec);
+ const d=photo(next,at+(61+420)*sec);
+ expect(d.handwritingReceipts![0].focusStagesPaid).toEqual([1,2]);
+ expect(d.handwritingReceipts![0].focusSeconds).toBe(420);
+ expect(d.bookTimer!.carrySeconds).toBe(0);
+});
+test('a corrupt stage list is rejected like any other reward record',()=>{
+ const d=straight(1500),bad={...d,handwritingReceipts:[{...d.handwritingReceipts![0],focusStagesPaid:[1,3]}]};
+ expect(()=>validateHandwritingState(bad)).toThrow();
+});
+test('earlier single-stage receipts stay valid and unchanged',()=>{
+ const d=straight(130),r=d.handwritingReceipts![0];
+ expect(r.focusStagesPaid).toBeUndefined();
+ expect(r).toMatchObject({focusSeconds:120,minutes:5});
+ expect(()=>validateHandwritingState(d)).not.toThrow();
+});
+test('home start uses the current stage time, not the task minimum',()=>{
+ const key=routineDay(new Date(at)),task={id:'t',subject,action:'1번',preparation:'',target:'',minimum:120 as const};
+ const base=savePriorityDay(planned(),key,[task],new Date(at)),high={...base,focusRamp:{...base.focusRamp!,level:5 as const}};
+ const home=beginPriorityTask(high,key,'t',at+sec);
+ expect(bookDisplaySeconds(home.bookTimer!,at+sec)).toBe(1500);
+ expect(home.bookTimer!.targetSeconds).toBe(1500);
 });
