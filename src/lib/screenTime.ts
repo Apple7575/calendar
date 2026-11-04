@@ -17,7 +17,7 @@ export type ScreenTimeStatus = {
   locked: boolean;
   lastEvent: string;
   lastEventAt: number;
-  rewardMode?: boolean;
+  rewardMode?: boolean;supportsPlayLog?:boolean;playLogSince?:number;playLog?:import('./playLog').PlayNativeRow[];
 };
 
 type NativeScreenTime = {
