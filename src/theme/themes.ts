@@ -194,8 +194,8 @@ const dark: Theme = {
 export const focusTheme: Theme = { ...dark, name: "집중" };
 
 export const THEMES: Theme[] = [routine, dark, lavender, classic, peach, mint];
-export const DEFAULT_THEME_ID: ThemeId = "routine";
+export const DEFAULT_THEME_ID: ThemeId = "dark";
 
 export function getTheme(id: string | null | undefined): Theme {
-  return THEMES.find((t) => t.id === id) ?? THEMES[0];
+  return THEMES.find((t) => t.id === id) ?? dark;
 }
