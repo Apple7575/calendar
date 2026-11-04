@@ -193,6 +193,31 @@ const dark: Theme = {
 /** 집중 공부 흐름은 사용자 테마와 상관없이 다크 팔레트로 그린다. 설정의 테마 목록에는 넣지 않는다. */
 export const focusTheme: Theme = { ...dark, name: "집중" };
 
+/** 시간 초과: 검정과 연두를 뒤집어 화면 전체로 알린다. isDark가 false라 채운 버튼 글자는 white(연두)를 쓴다. */
+export const overtimeTheme: Theme = {
+  id: "dark",
+  name: "시간 초과",
+  isDark: false,
+  statusBar: "dark",
+  colors: {
+    ...dark.colors,
+    background: "#C4EA89",
+    surface: "#C4EA89",
+    card: "#D6F2A8",
+    border: "#00000033",
+    text: "#000000",
+    textMuted: "#2B3A17",
+    primary: "#000000",
+    primarySoft: "#AFD870",
+    danger: "#8A1C12",
+    success: "#000000",
+    successSoft: "#AFD870",
+    inputBg: "#AFD870",
+    white: "#C4EA89",
+    shadow: "#000000",
+  },
+};
+
 export const THEMES: Theme[] = [routine, dark, lavender, classic, peach, mint];
 export const DEFAULT_THEME_ID: ThemeId = "dark";
 

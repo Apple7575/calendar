@@ -49,6 +49,17 @@ export function FocusThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** 화면 트리를 다시 만들지 않고 테마만 바꾼다. theme이 없으면 사용자가 고른 테마 그대로다. */
+export function ThemeOverride({ theme, children }: { theme?: Theme; children: ReactNode }) {
+  const current = useContext(ThemeContext);
+  return (
+    <ThemeContext.Provider value={theme ? { theme, setThemeId: current.setThemeId } : current}>
+      {theme ? <StatusBar style={theme.statusBar} /> : null}
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
 export function useTheme(): Theme {
   return useContext(ThemeContext).theme;
 }
