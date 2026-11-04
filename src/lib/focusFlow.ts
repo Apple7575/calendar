@@ -26,10 +26,10 @@ export function canDeclareFinish(data:RoutineData,now=Date.now()){
  const credit=focusRunCredit(data,now);
  return credit>0&&credit<required;
 }
-export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false):FocusFlowStage{
+export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false,declare=false):FocusFlowStage{
  if(data.handwritingPending)return 'review';
  if(hasPhoto)return 'submit';
- if(capture&&canTakeHandwritingPhoto(data,now))return 'capture';
+ if(capture&&(canTakeHandwritingPhoto(data,now)||declare&&canDeclareFinish(data,now)))return 'capture';
  if(focusRampStatus(data,now).needsPlan)return 'plan';
  const timer=data.bookTimer,phase=timer?.phase;
  if(phase==='break'||(timer&&bookRestOvertime(timer,now)!==null))return 'break';

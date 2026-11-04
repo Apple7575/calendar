@@ -35,10 +35,6 @@ fs.mkdirSync(out, {recursive:true});
   await button('2분, 이 행동부터 시작').focus();
   await capture('home-keyboard-focus');
   await page.keyboard.press('Enter');
-  await page.getByTestId('earned-reward-page').waitFor();
-  await inViewport('공부 시작하기');
-  await capture('plan-reward-390');
-  await button('공부 시작하기').click();
   await page.getByTestId('focus-clock').waitFor();
   for (const [width,height] of [[390,844],[844,390],[360,740]]) {
    await page.setViewportSize({width,height});
@@ -84,9 +80,9 @@ fs.mkdirSync(out, {recursive:true});
   assert(errorBox && errorBox.y+errorBox.height<page.viewportSize().height, 'Recognition error must be visible without scrolling');
   assert(await button('AI로 읽기').isEnabled());
   await capture('submit-error-390');
-  assert.equal(await page.getByText('단계 완료마다 +5분 · 필기 100자당 500원',{exact:true}).count(),0);
+  assert.equal(await page.getByText('필기 100자당 5분 · 500원 · 받은 시간 1분당 100원',{exact:true}).count(),0);
   await button('보상 기준·사진 안내').click();
-  await page.getByText('단계 완료마다 +5분 · 필기 100자당 500원',{exact:true}).waitFor();
+  await page.getByText('필기 100자당 5분 · 500원 · 받은 시간 1분당 100원',{exact:true}).waitFor();
   await button('보상 기준·사진 안내').click();
 
   const fixture = async seconds => {
@@ -105,10 +101,10 @@ fs.mkdirSync(out, {recursive:true});
   await fixture(121);
   for (const [width,height] of [[390,844],[360,740]]) {
    await page.setViewportSize({width,height});
-   await inViewport('이번 단계 완료 · +5분 받기');
+   await inViewport(/이번 단계 완료 · \+\d+분 받기/);
    await capture(`submit-ready-${width}`);
   }
-  await button('이번 단계 완료 · +5분 받기').click();
+  await button(/이번 단계 완료 · \+\d+분 받기/).click();
   await page.getByTestId('earned-reward-page').waitFor();
   await inViewport('이어서 공부하기');
   await capture('earned-360');

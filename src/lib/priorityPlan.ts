@@ -40,12 +40,16 @@ export function reconcilePriorityPlans(data:RoutineData,key=routineDay(),now=Dat
  const tasks=plan.tasks.map(t=>{if(t.completedAt)return t;const p=priorityTaskProgress(data,t,now);if(!p.complete||!p.photo)return t;changed=true;return {...t,completedAt:new Date(now).toISOString(),receiptId:p.photo.id};});
  return changed?{...data,priorityDays:{...data.priorityDays,[key]:{...plan,tasks,updatedAt:new Date(now).toISOString()}}}:data;
 }
+/** Whether starting this task would end the run in progress, the same test beginPriorityTask applies. */
+export function beginWouldEndRun(data:RoutineData,task:PriorityTask){
+ const t=data.bookTimer;return !!t&&t.phase!=='idle'&&(!task.startedAt||t.phase!=='focus'||t.subject!==task.subject);
+}
 /** This does not pay a new reward. Existing plan/photo reward rules remain the only ledger. */
 export function beginPriorityTask(data:RoutineData,key:string,id:string,now=Date.now()):RoutineData{
  if(key!==routineDay(new Date(now)))throw new Error('오늘 계획에서 시작해 주세요.');
  const plan=priorityPlan(data,key),task=plan?.tasks.find(t=>t.id===id);if(!plan||!task)throw new Error('시작할 공부를 찾지 못했어요.');
- let next=data;const timer=next.bookTimer;
- if(timer&&timer.phase!=='idle'&&(!task.startedAt||timer.phase!=='focus'||timer.subject!==task.subject))next=finishFocusRun(next,now);
+ let next=data;
+ if(beginWouldEndRun(next,task))next=finishFocusRun(next,now);
  const started=task.startedAt?{...task,deferredAt:undefined}:{...task,startedAt:new Date(now).toISOString(),baseline:focusSecondsForSubject(next,task.subject,now)};
  next={...next,priorityDays:{...next.priorityDays,[key]:{...plan,tasks:plan.tasks.map(t=>t.id===id?started:t)}}};
  if(focusRampStatus(next,now).needsPlan)next=saveFocusPlan(next,'priority-plan-'+key+'-'+id+'-'+now,task.subject,task.nextAction||task.action,now);

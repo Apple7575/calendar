@@ -79,6 +79,11 @@ export function focusStagePayout(data:RoutineData,subject:string,now=Date.now())
  if(stage===5)while(credit-seconds>=FOCUS_STEPS[5]&&access.seconds-seconds>=FOCUS_STEPS[5]){seconds+=FOCUS_STEPS[5];minutes+=FOCUS_STAGE_MINUTES[5];}
  return {stage,seconds,minutes,level:Math.min(5,stage+1) as FocusLevel};
 }
+/** Minutes the next photo would pay for time alone, for labels: what is due now, or what the current stage pays when met. */
+export function focusRewardPreview(data:RoutineData,subject:string,now=Date.now()){
+ const plan=focusPlanMinutesDue(data),status=focusRampStatus(data,now);
+ return {due:(focusStagePayout(data,subject,now)?.minutes??0)+plan,next:status.level?FOCUS_STAGE_MINUTES[status.level]+plan:0};
+}
 /** A plan's minute is paid with its first stage. Plans from before this rule already paid 5 at once. */
 export function focusPlanMinutesDue(data:RoutineData){
  const cycle=data.focusRamp?.cycleId,plan=data.focusPlans?.find(p=>p.cycleId===cycle);
