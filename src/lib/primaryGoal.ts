@@ -2,6 +2,7 @@ import {addDays,parseDateKey,toDateKey,weekStartOf} from './dateUtils';
 import {ddayInfo} from './dday';
 import {priorityPlan,priorityTaskProgress} from './priorityPlan';
 import {isActivityComplete,routineActivities} from './routineActivity';
+import {routineDay} from './routineModel';
 import type {RoutineData} from './routineModel';
 
 export type PrimaryGoal={id:string;title:string;why?:string;dueDate?:string;weeklyTargetDays:number;createdAt:string;updatedAt:string};
@@ -54,6 +55,8 @@ export function goalDueInfo(goal:PrimaryGoal,today:string){
  return {...info,passed:info.days<0};
 }
 
+export const readableGoalDate=(key:string)=>{const date=parseDateKey(key);return `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일`};
+
 /** 2026-11-03 사용자 결정: 단어·집중 공부를 완료했거나 중요한 공부를 끝낸 날만 센다. 아침·운동·저녁 루틴만 한 날은 세지 않는다. */
 export function isGoalStudyDay(data:RoutineData,key:string):boolean{
  if(routineActivities(data,key).some(activity=>(activity.id==='words'||activity.id==='book')&&isActivityComplete(activity)))return true;
@@ -69,6 +72,14 @@ export function goalWeekProgress(data:RoutineData,goal:PrimaryGoal,today:string)
   return {key,label,isToday:key===today,isFuture,counted:!isFuture&&isGoalStudyDay(data,key)};
  });
  return {days,count:days.filter(day=>day.counted).length,target:goal.weeklyTargetDays};
+}
+
+/** 목표를 정한 날(새벽 4시 기준)부터 오늘까지. 목표를 정하기 전에 공부한 날은 세지 않는다. */
+export function goalStudySummary(data:RoutineData,goal:PrimaryGoal,today:string){
+ const startedOn=routineDay(new Date(goal.createdAt));
+ let studiedDays=0;
+ for(let key=startedOn;key<=today;key=addDays(key,1))if(isGoalStudyDay(data,key))studiedDays++;
+ return {startedOn,studiedDays};
 }
 
 export type GoalStep={kind:'plan'}|{kind:'task';subject:string;action:string}|{kind:'done'};

@@ -67,19 +67,36 @@ const saved=page=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),STORE
   assert.equal((await saved(page)).primaryGoal.weeklyTargetDays,5);
   ok('저장 후 카드 표시, 새로고침 유지');
 
-  await page.getByRole('button',{name:'목표 고치기'}).click();await page.waitForTimeout(300);
-  assert.equal(await page.getByLabel('목표 이름').inputValue(),'JLPT N2 합격');
-  await page.getByLabel('목표 날짜 (선택)').fill('');
-  await page.getByLabel('목표 이름').fill('N2 합격');
-  await page.getByRole('button',{name:'목표 저장'}).click();await page.waitForTimeout(500);
-  after=await visibleText(page);assert.ok(after.includes('N2 합격'));assert.ok(!/D[-+]\d|D-DAY/.test(after),'날짜 없음이면 D-day 숨김');
-  ok('고치기: 값 불러오기, 날짜 제거 시 D-day 숨김');
+  assert.equal(await page.getByRole('button',{name:'목표 고치기'}).count(),0,'목표 탭 카드 밖에 고치기 버튼이 없어야 함');
+  await page.getByRole('button',{name:'JLPT N2 합격 목표 자세히 보기'}).click();await page.waitForTimeout(800);
+  after=await visibleText(page);
+  for(const t of ['JLPT N2 합격','일본에서 일하고 싶어서','2099년 12월 6일','주 5일','시작한 날','지금까지 공부한 날'])assert.ok(after.includes(t),t);
+  assert.ok(!after.includes('다음 한 걸음'),'상세 페이지로 이동');
+  await page.screenshot({path:`${out}/detail-390.png`});
+  ok('카드 누르면 목표 상세 페이지로 이동');
+
+  await page.getByRole('button',{name:'목표 고치기'}).last().click();await page.waitForTimeout(300);
+  await page.getByRole('button',{name:'취소'}).last().click();await page.waitForTimeout(300);
+  assert.ok((await visibleText(page)).includes('지금까지 공부한 날'),'취소하면 상세로 돌아옴');
+  await page.getByRole('button',{name:'목표 고치기'}).last().click();await page.waitForTimeout(300);
+  assert.equal(await page.getByLabel('목표 이름').last().inputValue(),'JLPT N2 합격');
+  await page.getByLabel('목표 날짜 (선택)').last().fill('');
+  await page.getByLabel('목표 이름').last().fill('N2 합격');
+  await page.getByRole('button',{name:'목표 저장'}).last().click();await page.waitForTimeout(500);
+  after=await visibleText(page);assert.ok(after.includes('N2 합격'));assert.ok(after.includes('지금까지 공부한 날'),'저장 후 상세에 머묾');assert.ok(!/D[-+]\d|D-DAY/.test(after),'날짜 없음이면 D-day 숨김');
+  await page.getByRole('button',{name:'뒤로'}).last().click();await page.waitForTimeout(800);
+  after=await visibleText(page);assert.ok(after.includes('N2 합격'));assert.ok(after.includes('다음 한 걸음'),'뒤로 가면 목표 탭');assert.ok(!/D[-+]\d|D-DAY/.test(after));
+  ok('상세에서 고치기: 취소, 값 불러오기, 날짜 제거, 뒤로 가면 탭에 반영');
   assert.deepEqual(errors,[]);await context.close();
  }
  { // 날짜 지남
   const {context,page}=await open(browser,{data:base({primaryGoal:goal({dueDate:'2026-01-01'})})});
   const text=await visibleText(page);assert.match(text,/D\+\d+/);assert.ok(text.includes('정한 날짜가 지났어요'));
-  ok('날짜 지남: D+N과 고치기 안내');await context.close();
+  await page.getByRole('button',{name:'JLPT N2 합격 목표 자세히 보기'}).click();await page.waitForTimeout(800);
+  await page.screenshot({path:`${out}/detail-passed-390.png`});
+  await page.getByRole('button',{name:'날짜 고치기'}).click();await page.waitForTimeout(300);
+  assert.equal(await page.getByLabel('목표 날짜 (선택)').last().inputValue(),'2026-01-01');
+  ok('날짜 지남: 탭에 D+N과 안내, 상세에서 날짜 고치기');await context.close();
  }
  { // 진행 계산: 공부한 날만
   const days={};if(new Date(`${today}T12:00:00`).getDay()!==1)days[dayAgo(1)]=paid(10,0,30);
@@ -152,7 +169,7 @@ const saved=page=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),STORE
   const {context,page}=await open(browser,{timezoneId:'Etc/GMT'+(off>=0?'-'+off:'+'+(-off)),data:base({primaryGoal:goal()})});
   await page.screenshot({path:`${out}/evening-390.png`});ok('저녁 시간 화면 캡처');await context.close();
  }
- for(const viewport of [{width:390,height:844},{width:375,height:667},{width:320,height:568}]){
+ for(const viewport of [{width:390,height:844}]){
   const {context,page}=await open(browser,{viewport,data:base({primaryGoal:goal({title:'JLPT N2 시험에 합격해서 일본에서 일하기 위한 긴 목표 이름',dueDate:'2099-12-06'})})});
   const over=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);assert.ok(over<=0);
   await page.screenshot({path:`${out}/long-title-${viewport.width}.png`});

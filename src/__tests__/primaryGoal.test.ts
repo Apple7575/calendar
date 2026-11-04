@@ -1,4 +1,4 @@
-import {goalDueInfo,goalWeekProgress,isGoalStudyDay,nextGoalStep,primaryGoalError,readPrimaryGoal,savePrimaryGoal} from '../lib/primaryGoal';
+import {goalDueInfo,goalStudySummary,goalWeekProgress,isGoalStudyDay,nextGoalStep,primaryGoalError,readPrimaryGoal,savePrimaryGoal} from '../lib/primaryGoal';
 import {emptyData,emptyDay,routineDay} from '../lib/routineModel';
 import type {RoutineData} from '../lib/routineModel';
 import type {PriorityTask} from '../lib/priorityPlan';
@@ -125,6 +125,19 @@ describe('this week',()=>{
   expect(week.target).toBe(3);
   expect(week.days.filter(d=>d.counted).map(d=>d.key)).toEqual(['2026-11-02','2026-11-04']);
  });
+});
+
+describe('since the goal was set',()=>{
+ const goal=savePrimaryGoal(emptyData(),{title:'a',weeklyTargetDays:3},now).primaryGoal!;
+ const studied=(...keys:string[]):RoutineData=>({...emptyData(),days:Object.fromEntries(keys.map(k=>[k,{...emptyDay(),paid:{morning:0,words:20,gym:0}}]))});
+ it('counts study days from the day it was set through today, across weeks',()=>{
+  expect(goalStudySummary(studied('2026-11-03','2026-11-04','2026-11-10','2026-11-20','2026-11-21'),goal,'2026-11-20')).toEqual({startedOn:'2026-11-04',studiedDays:3});
+ });
+ it('uses the 4am day boundary for the start day',()=>{
+  const lateNight=savePrimaryGoal(emptyData(),{title:'a',weeklyTargetDays:3},new Date('2026-11-05T02:00:00+09:00')).primaryGoal!;
+  expect(goalStudySummary(emptyData(),lateNight,'2026-11-05').startedOn).toBe('2026-11-04');
+ });
+ it('returns zero when the start day is after today',()=>expect(goalStudySummary(studied('2026-11-04'),goal,'2026-11-01').studiedDays).toBe(0));
 });
 
 describe('next step',()=>{

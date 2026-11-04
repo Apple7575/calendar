@@ -1,57 +1,32 @@
 import React,{useState} from 'react';
-import {Text,View} from 'react-native';
+import {Pressable,Text,View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
-import {addDays,parseDateKey} from '../../lib/dateUtils';
-import {GOAL_TITLE_LIMIT,GOAL_WHY_LIMIT,PrimaryGoal,goalDueInfo,goalWeekProgress,nextGoalStep,readPrimaryGoal,savePrimaryGoal} from '../../lib/primaryGoal';
+import {addDays} from '../../lib/dateUtils';
+import {PrimaryGoal,goalDueInfo,goalWeekProgress,nextGoalStep,readPrimaryGoal,readableGoalDate} from '../../lib/primaryGoal';
 import {useTheme} from '../../theme/ThemeContext';
 import {colorRoles} from '../../theme/roles';
 import {koreanTitle,space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
-import {GoalDateInput} from './GoalDateInput';
-import {Action,CardView,CharacterPeek,Choice,Copy,EmptyState,Field,Icon,Link,LoadingState,Notice,Page,Progress,u} from './ui';
+import {GoalForm} from './GoalForm';
+import {Action,CardView,CharacterPeek,Copy,EmptyState,Icon,LoadingState,Notice,Page,Progress,u} from './ui';
 
 type Nav=NativeStackNavigationProp<RootStackParamList>;
-const readableDate=(key:string)=>{const date=parseDateKey(key);return `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일`};
 
-function GoalForm({goal,today,onDone,canCancel}:{goal?:PrimaryGoal;today:string;onDone:()=>void;canCancel:boolean}){
- const {update}=useRoutine();
- const [title,setTitle]=useState(goal?.title??''),[why,setWhy]=useState(goal?.why??''),[dueDate,setDueDate]=useState(goal?.dueDate??''),[days,setDays]=useState<number|undefined>(goal?.weeklyTargetDays);
- const [busy,setBusy]=useState(false),[error,setError]=useState('');
- const save=async()=>{
-  setBusy(true);setError('');
-  try{await update(current=>savePrimaryGoal(current,{title,why,dueDate,weeklyTargetDays:days??0}));onDone();}
-  catch(e){setError(e instanceof Error?e.message:'목표를 저장하지 못했어요. 다시 시도해 주세요.');setBusy(false);}
- };
- return <View style={{gap:space.md}}>
-  <Copy variant="heading">{goal?'목표 고치기':'어디로 가고 싶나요?'}</Copy>
-  <Field label="목표 이름" value={title} onChangeText={setTitle} placeholder="예: JLPT N2 합격" maxLength={GOAL_TITLE_LIMIT}/>
-  <Field label="이유 한 줄 (선택)" value={why} onChangeText={setWhy} placeholder="예: 일본에서 일하고 싶어서" maxLength={GOAL_WHY_LIMIT}/>
-  <GoalDateInput value={dueDate} today={today} onChange={setDueDate}/>
-  <View style={{gap:space.xs}}>
-   <Copy variant="caption" weight="700" muted>일주일에 며칠 공부할까요?</Copy>
-   <View style={{flexDirection:'row',flexWrap:'wrap',gap:space.xs}}>{[1,2,3,4,5,6,7].map(n=><View key={n} style={{flexBasis:'22%',flexGrow:1}}><Choice fill label={`${n}일`} accessibilityLabel={`일주일에 ${n}일`} selected={days===n} onPress={()=>setDays(n)}/></View>)}</View>
-  </View>
-  {error?<Notice tone="error">{error}</Notice>:null}
-  <Action label="목표 저장" loading={busy} onPress={()=>void save()}/>
-  {canCancel?<Link muted label="취소" onPress={onDone}/>:null}
- </View>;
-}
-
-function GoalCard({goal,today,onEdit}:{goal:PrimaryGoal;today:string;onEdit:()=>void}){
- const theme=useTheme(),due=goalDueInfo(goal,today);
- return <View testID="goal-summary"><CharacterPeek mood="cheer"/><CardView>
+function GoalCard({goal,today}:{goal:PrimaryGoal;today:string}){
+ const theme=useTheme(),nav=useNavigation<Nav>(),due=goalDueInfo(goal,today);
+ return <View testID="goal-summary"><CharacterPeek mood="cheer"/><Pressable accessibilityRole="button" accessibilityLabel={`${goal.title} 목표 자세히 보기`} onPress={()=>nav.navigate('GoalDetail')} style={({pressed})=>({opacity:pressed?.6:1})}><CardView>
   <View style={[u.between,{gap:space.sm}]}>
    <View style={{flex:1,gap:space.xxs}}>
-    {due?<Copy variant="label" style={{color:colorRoles(theme).primary.ink}}>{`${due.label} · ${readableDate(goal.dueDate!)}`}</Copy>:null}
-    <Text {...koreanTitle.props} accessibilityRole="header" style={[koreanTitle.style,{color:theme.colors.text,fontSize:24,lineHeight:32,fontWeight:'800'}]}>{goal.title}</Text>
+    {due?<Copy variant="label" style={{color:colorRoles(theme).primary.ink}}>{`${due.label} · ${readableGoalDate(goal.dueDate!)}`}</Copy>:null}
+    <Text {...koreanTitle.props} style={[koreanTitle.style,{color:theme.colors.text,fontSize:24,lineHeight:32,fontWeight:'800'}]}>{goal.title}</Text>
     {goal.why?<Copy muted>{goal.why}</Copy>:null}
    </View>
+   <Icon name="chevron-forward" size={18}/>
   </View>
-  {due?.passed?<Notice tone="warning" actionLabel="날짜 고치기" onAction={onEdit}>정한 날짜가 지났어요. 날짜를 고치거나 새 목표를 정해 보세요.</Notice>:null}
-  <Link muted label="목표 고치기" onPress={onEdit}/>
- </CardView></View>;
+  {due?.passed?<Notice tone="warning">정한 날짜가 지났어요. 눌러서 날짜를 고치거나 새 목표를 정해 보세요.</Notice>:null}
+ </CardView></Pressable></View>;
 }
 
 function WeekCard({goal,today}:{goal:PrimaryGoal;today:string}){
@@ -84,7 +59,7 @@ export function GoalHomeScreen(){
   {!ready?error?<Notice tone="error">{`저장된 기록을 불러오지 못해 목표를 표시할 수 없어요. ${error}`}</Notice>:<LoadingState label="목표를 불러오는 중…"/>
   :editing?<GoalForm key={goal?.updatedAt??'new'} goal={goal} today={dayKey} canCancel onDone={()=>setEditing(false)}/>
   :goal?<>
-    <GoalCard goal={goal} today={dayKey} onEdit={()=>setEditing(true)}/>
+    <GoalCard goal={goal} today={dayKey}/>
     <WeekCard goal={goal} today={dayKey}/>
     <NextStepCard today={dayKey}/>
    </>
