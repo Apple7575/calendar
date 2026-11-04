@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { Appearance, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { DEFAULT_THEME_ID, focusTheme, getTheme, Theme, ThemeId } from "./themes";
 
@@ -25,6 +26,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
     return () => { active = false; };
   }, []);
+
+  // 날짜 선택기·알림창 같은 시스템 UI가 휴대폰 설정이 아니라 앱에서 고른 모드를 따르게 한다.
+  const isDark = getTheme(themeId).isDark;
+  useEffect(() => {
+    if (Platform.OS !== "web") Appearance.setColorScheme(isDark ? "dark" : "light");
+  }, [isDark]);
 
   const setThemeId = (id: ThemeId) => {
     setThemeIdState(id);
