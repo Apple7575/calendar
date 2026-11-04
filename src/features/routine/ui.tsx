@@ -136,9 +136,9 @@ export function EmptyState({title,description,actionLabel,onAction,peek=false,ch
   return peek||character?<View><CharacterPeek character={character} mood={mood}/><CardView>{content}</CardView></View>:<View style={{gap:space.xs,paddingVertical:space.lg}}>{content}</View>;
 }
 /** 화면의 주인공 친구. 누르면 반응한다. 배경 없이 크게 그리고 몸 아래쪽이 잘리므로, 같은 View 안에서 바로 다음에 카드를 놓아 카드 뒤에서 내다보게 한다. */
-export function CharacterPeek({character,action,mood,maxSize=characterSize.peekMax,interactive=true}:{character?:AnimalCharacterId;action?:AnimalActionId;mood?:MascotMood;maxSize?:number;interactive?:boolean}){
-  const {width}=useWindowDimensions(),size=Math.min(maxSize,width*characterSize.peekWidthRatio);
-  return <View pointerEvents={interactive?'box-none':'none'} style={{alignItems:'center',height:size*characterSize.peekVisible,overflow:'hidden'}}><View style={{marginTop:-size*characterSize.peekTopCrop}}><Mascot size={size} character={character} action={action} mood={mood}/></View></View>;
+export function CharacterPeek({character,action,mood,maxSize=characterSize.peekMax,interactive=true,fixedSize,fixedHeight,topCrop=characterSize.peekTopCrop}:{character?:AnimalCharacterId;action?:AnimalActionId;mood?:MascotMood;maxSize?:number;interactive?:boolean;fixedSize?:number;fixedHeight?:number;topCrop?:number}){
+  const {width}=useWindowDimensions(),size=fixedSize??Math.min(maxSize,width*characterSize.peekWidthRatio);
+  return <View pointerEvents={interactive?'box-none':'none'} style={{alignItems:'center',height:fixedHeight??size*characterSize.peekVisible,overflow:'hidden'}}><View style={{marginTop:-size*topCrop}}><Mascot size={size} character={character} action={action} mood={mood}/></View></View>;
 }
 /** 불러오는 중. 무엇을 기다리는지 함께 적는다. */
 export function LoadingState({label}:{label:string}){

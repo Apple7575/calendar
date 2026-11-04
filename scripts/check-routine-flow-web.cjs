@@ -26,11 +26,18 @@ const out='.expo/design-system/routine';fs.mkdirSync(out,{recursive:true});
   await p.screenshot({path:`${out}/skipped.png`});
   await btn('이전 행동으로 돌아가기').click();await p.waitForTimeout(400);assert.equal(await p.getByRole('heading').last().textContent(),first,'잘못 건너뛰어도 돌아감');assert.equal(await checks(),0);
   await btn('타이머 멈추기').waitFor();
+  await p.setViewportSize({width:844,height:390});await p.waitForTimeout(400);await p.getByTestId('guided-landscape').waitFor();await p.screenshot({path:`${out}/landscape.png`});
+  const stage=await p.getByTestId('guided-landscape').boundingBox();assert(stage.width>=800,`가로 화면이 폭을 다 써야 해요: ${stage.width}`);
+  const friend=await p.getByTestId('guided-landscape').locator('[data-testid^="animal-"]').boundingBox();assert(friend&&friend.width>=150,`가로 화면 친구가 보여야 해요: ${JSON.stringify(friend)}`);
+  for(const n of ['이 행동 마쳤어요','이전 행동으로 돌아가기','이 행동 건너뛰기','타이머 멈추기','세로로 돌리기','닫기']){const r=await btn(n).boundingBox();assert(r&&r.y>=0&&r.y+r.height<=390&&r.x+r.width<=844&&r.height>=44,`가로 화면 ${n} 전체 노출: ${JSON.stringify(r)}`)}
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await p.setViewportSize({width:390,height:844});await p.waitForTimeout(300);await btn('가로로 돌리기').waitFor();
   await p.evaluate(()=>{const k='routine.v1.web-priority-demo',s=JSON.parse(localStorage.getItem(k));for(const d of Object.values(s.days))if(d.guidedTimer){d.guidedTimer.remaining=0;d.guidedTimer.endsAt=Date.now()-65000}localStorage.setItem(k,JSON.stringify(s))});
   await p.reload({waitUntil:'networkidle'});await p.getByRole('button',{name:/^아침 루틴/}).first().click();await btn('이 행동 마쳤어요').waitFor();await p.waitForTimeout(900);await p.screenshot({path:`${out}/overtime.png`});
+  await p.setViewportSize({width:844,height:390});await p.waitForTimeout(400);await p.screenshot({path:`${out}/landscape-overtime.png`});await p.setViewportSize({width:390,height:844});await p.waitForTimeout(300);
   const ink=await p.evaluate(()=>{const t=document.querySelector('[data-testid=timer-face-time]');const lit=[...document.querySelectorAll('div')].some(e=>getComputedStyle(e).backgroundColor==='rgb(196, 234, 137)'&&e.getBoundingClientRect().width>=380);return {time:t.textContent,color:getComputedStyle(t).color,lit}});
   assert.equal(ink.color,'rgb(0, 0, 0)','초과 시간은 검은 글자');assert.equal(ink.lit,true,'초과 시간은 연두 바탕');assert.match(ink.time,/^\+/,'초과 시간 표시');
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  console.log('PASS routine flow: 마침→다음 타이머, 멈춤·이어가기, 이전, 건너뛰기, 건너뛰기 복구, 건너뛰기 보상 없음, 시간 초과 반전');
+  console.log('PASS routine flow: 마침→다음 타이머, 멈춤·이어가기, 이전, 건너뛰기, 건너뛰기 복구, 건너뛰기 보상 없음, 시간 초과 반전, 가로 화면 조작 노출');
  }finally{await b.close()}
 })().catch(e=>{console.error('FAIL',e.message.split('\n')[0]);process.exit(1)});

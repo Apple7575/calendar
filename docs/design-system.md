@@ -99,6 +99,7 @@ import {Action,Choice,CardView,Copy,EmptyState,Field,Link,LoadingState,NavCard,N
 
 - 집중과 루틴은 `TimerFace` 원형 시계를 함께 쓴다.
 - 멈춤·재생은 아이콘이다. `휴식 시작`처럼 뜻이 복잡한 조작은 글자로 둔다.
+- 루틴 타이머는 사용하는 동안 화면을 켜 두고 가로로 연다(`useTimerScreenHold`). 돌리기 아이콘으로 세로와 바꾸고, 고른 방향은 앱을 끄기 전까지 이어진다. 가로에서는 큰 친구, 시계, 조작이 나란히 놓인다.
 - 시간 초과는 화면 전체를 뒤집는다(사용자 지시). 연두 `#C4EA89` 바탕에 검은 글자이고 대비는 15.48:1이다. 값은 `overtimeTheme`, 판단은 `focusClockInverted`와 루틴의 `left<=0`이다. 표시만 바꾸며 보상과 완료는 그대로다.
 
 ## 키보드
