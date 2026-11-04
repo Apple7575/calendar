@@ -1,11 +1,11 @@
 import type {RoutineData} from './routineModel';
 import {getDay,routineDay,withDay} from './routineModel';
-import {FOCUS_STEPS,focusRampAccess,focusRampStatus,validateFocusRamp} from './focusRamp';
+import {FOCUS_STEPS,carryRunPastStage,focusRampAccess,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
 import {bookFocusSeconds} from './bookTimerTime';
 
 export const OUTPUT_POLICY={version:1,units:100,minutes:5,goalUnits:500} as const;
 export type HandwritingAnalysis={lines:string[];languages:('ko'|'en'|'ja'|'math')[];quality:'readable'|'retake';message:string};
-export type HandwritingReceipt={id:string;imageHash:string;subject:string;at:string;day:string;lines:string[];languages:HandwritingAnalysis['languages'];units:number;duplicateUnits:number;minutes:number;policyVersion:1;focusSeconds?:number;rewardPolicy?:'ramp-v1';focusCycle?:string;focusStage?:number;focusBatch?:string;rewardStatus?:'pending'|'earned';rewardDay?:string;rewardOrder?:number};
+export type HandwritingReceipt={id:string;imageHash:string;subject:string;at:string;day:string;lines:string[];languages:HandwritingAnalysis['languages'];units:number;duplicateUnits:number;minutes:number;policyVersion:1;focusSeconds?:number;rewardPolicy?:'ramp-v1';focusCycle?:string;focusStage?:number;focusStagesPaid?:number[];focusBatch?:string;rewardStatus?:'pending'|'earned';rewardDay?:string;rewardOrder?:number};
 export type OutputDraft={id:string;subject:string;startedAt:string};
 export const normalizeHandwriting=(text:string)=>Array.from(text.normalize('NFKC').toLowerCase()).filter(c=>/[\p{L}\p{N}]/u.test(c)).join('');
 /** Pauses and breaks never count. Unused study credit survives leaving the screen. */
@@ -60,17 +60,18 @@ export function settleHandwritingRewards(data:RoutineData,now=Date.now()):Routin
  }
  const rampSubjects=[...new Set((next.handwritingReceipts??[]).filter(r=>r.rewardStatus==='pending'&&r.rewardPolicy==='ramp-v1').map(r=>r.subject))];
  for(const subject of rampSubjects){
-  const access=focusRampAccess(next,subject,now),ramp=next.focusRamp;
-  if(!ramp||!access.ready)continue;
+  const due=focusStagesDue(next,subject,now),ramp=next.focusRamp;
+  if(!ramp||!due.stages.length)continue;
   const pending=next.handwritingReceipts!.filter(r=>r.subject===subject&&r.rewardStatus==='pending'&&r.rewardPolicy==='ramp-v1'&&r.focusCycle===ramp.cycleId);
   if(!pending.length)continue;
   let first=true,ordinal=next.handwritingReceipts!.reduce((n,r,i)=>Math.max(n,r.rewardOrder??i),-1)+1;
   const batch=pending[0].id,day=routineDay(new Date(now));
   const rows=next.handwritingReceipts!.map(r=>{
    if(!pending.some(p=>p.id===r.id))return r;
-   const receipt:HandwritingReceipt={...r,rewardStatus:'earned',rewardDay:day,rewardOrder:ordinal++,focusStage:ramp.level,focusBatch:batch,minutes:first?5:0,...(first?{focusSeconds:access.required}:{})};first=false;return receipt;
+   const receipt:HandwritingReceipt={...r,rewardStatus:'earned',rewardDay:day,rewardOrder:ordinal++,focusStage:ramp.level,focusBatch:batch,minutes:first?5*due.stages.length:0,...(first?{focusSeconds:due.seconds,...(due.stages.length>1?{focusStagesPaid:due.stages}:{})}:{})};first=false;return receipt;
   });
-  next=withDay({...next,handwritingReceipts:rows,focusRamp:{...ramp,level:Math.min(5,ramp.level+1) as 1|2|3|4|5,consumed:{...ramp.consumed,[subject]:(Object.prototype.hasOwnProperty.call(ramp.consumed,subject)?ramp.consumed[subject]:0)+access.required}}},day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+5}}));
+  next=withDay({...next,handwritingReceipts:rows,focusRamp:{...ramp,level:due.level as 1|2|3|4|5,consumed:{...ramp.consumed,[subject]:(Object.prototype.hasOwnProperty.call(ramp.consumed,subject)?ramp.consumed[subject]:0)+due.seconds}}},day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+5*due.stages.length}}));
+  next=carryRunPastStage(next,subject,due.seconds,now);
  }
  return next;
 }
@@ -89,12 +90,19 @@ export function acceptHandwriting(data:RoutineData,id:string,hash:string,subject
  const day=routineDay(now),receipt:HandwritingReceipt={id,imageHash:hash,subject:subject.trim(),at:now.toISOString(),day,lines:[...analysis.lines],languages:[...analysis.languages],units:p.units,duplicateUnits:p.duplicateUnits,minutes:0,policyVersion:1,rewardStatus:'pending',...(policy==='ramp-v1'?{rewardPolicy:'ramp-v1',focusCycle:focusRampStatus(data,now.getTime()).needsPlan?'awaiting-plan':data.focusRamp!.cycleId}:{})};
  return settleHandwritingRewards(withDay({...data,handwritingPending:undefined,handwritingReceipts:[...(data.handwritingReceipts??[]),receipt]},day,d=>d),now.getTime());
 }
+/** A receipt pays one stage, or the consecutive list one photo finished. */
+function validPaidStages(r:HandwritingReceipt){
+ const list=r.focusStagesPaid;
+ if(list===undefined)return r.minutes===(r.focusSeconds?5:0)&&(r.focusSeconds===undefined||r.focusSeconds===FOCUS_STEPS[r.focusStage!]);
+ if(!Array.isArray(list)||list.length<2||list.length>200||!r.focusSeconds||list[0]!==r.focusStage||list.some((s,i)=>!Number.isInteger(s)||s<1||s>5||i>0&&s!==Math.min(5,list[i-1]+1)))return false;
+ return r.minutes===5*list.length&&r.focusSeconds===list.reduce((n,s)=>n+FOCUS_STEPS[s],0);
+}
 export function validateHandwritingState(data:RoutineData){
  const rows=data.handwritingReceipts;
  validateFocusRamp(data);
- if(rows?.some(r=>r.focusSeconds!==undefined&&(![120,300,600,900,1500].includes(r.focusSeconds)||r.rewardPolicy!=='ramp-v1'&&r.focusSeconds!==1500)))throw new Error('손글씨 집중 시간 기록을 확인해 주세요.');
+ if(rows?.some(r=>r.focusSeconds!==undefined&&(r.focusStagesPaid===undefined&&![120,300,600,900,1500].includes(r.focusSeconds)||r.rewardPolicy!=='ramp-v1'&&r.focusSeconds!==1500)))throw new Error('손글씨 집중 시간 기록을 확인해 주세요.');
  if(rows!==undefined&&(!Array.isArray(rows)||rows.length>50000||new Set(rows.map(r=>r?.id)).size!==rows.length||new Set(rows.map(r=>r?.imageHash)).size!==rows.length||rows.some(r=>!r||typeof r.id!=='string'||typeof r.subject!=='string'||!r.subject.trim()||r.subject.length>80||!/^[a-f0-9]{64}$/.test(r.imageHash)||!Number.isFinite(Date.parse(r.at))||!/^\d{4}-\d{2}-\d{2}$/.test(r.day)||r.policyVersion!==1||![r.units,r.duplicateUnits,r.minutes].every(n=>Number.isSafeInteger(n)&&n>=0)||r.units<1||r.units+r.duplicateUnits>16000||r.minutes%5!==0)))throw new Error('손글씨 공부 기록 형식을 확인해 주세요.');
- if(rows){let carry=0;const ordered=rows.map((r,i)=>({r,order:r.rewardOrder??i})).sort((a,b)=>a.order-b.order);for(const {r} of ordered){validateHandwritingAnalysis({...r,quality:'readable',message:''});const length=Array.from(normalizeHandwriting(r.lines.join(''))).length;if(length!==r.units+r.duplicateUnits||r.rewardStatus!==undefined&&!['pending','earned'].includes(r.rewardStatus)||r.rewardOrder!==undefined&&(!Number.isSafeInteger(r.rewardOrder)||r.rewardOrder<0)||r.rewardDay!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(r.rewardDay))throw new Error('손글씨 적립 내역을 확인해 주세요.');if(r.rewardStatus==='pending'){if(r.minutes!==0||r.focusSeconds!==undefined||r.rewardDay!==undefined)throw new Error('대기 중인 보상을 확인해 주세요.');continue;}if(r.rewardPolicy==='ramp-v1'){if(!r.focusCycle||!data.focusPlans?.some(p=>p.cycleId===r.focusCycle)||!r.focusBatch||!r.focusStage||r.focusStage<1||r.focusStage>5||!Number.isInteger(r.focusStage)||r.minutes!==(r.focusSeconds?5:0)||r.focusSeconds!==undefined&&r.focusSeconds!==FOCUS_STEPS[r.focusStage])throw new Error('집중 단계 적립 내역을 확인해 주세요.');}else if(r.minutes!==Math.floor((carry+r.units)/100)*5)throw new Error('손글씨 적립 내역을 확인해 주세요.');carry=(carry+r.units)%100;}}
+ if(rows){let carry=0;const ordered=rows.map((r,i)=>({r,order:r.rewardOrder??i})).sort((a,b)=>a.order-b.order);for(const {r} of ordered){validateHandwritingAnalysis({...r,quality:'readable',message:''});const length=Array.from(normalizeHandwriting(r.lines.join(''))).length;if(length!==r.units+r.duplicateUnits||r.rewardStatus!==undefined&&!['pending','earned'].includes(r.rewardStatus)||r.rewardOrder!==undefined&&(!Number.isSafeInteger(r.rewardOrder)||r.rewardOrder<0)||r.rewardDay!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(r.rewardDay))throw new Error('손글씨 적립 내역을 확인해 주세요.');if(r.rewardStatus==='pending'){if(r.minutes!==0||r.focusSeconds!==undefined||r.rewardDay!==undefined)throw new Error('대기 중인 보상을 확인해 주세요.');continue;}if(r.rewardPolicy==='ramp-v1'){if(!r.focusCycle||!data.focusPlans?.some(p=>p.cycleId===r.focusCycle)||!r.focusBatch||!r.focusStage||r.focusStage<1||r.focusStage>5||!Number.isInteger(r.focusStage)||!validPaidStages(r))throw new Error('집중 단계 적립 내역을 확인해 주세요.');}else if(r.minutes!==Math.floor((carry+r.units)/100)*5)throw new Error('손글씨 적립 내역을 확인해 주세요.');carry=(carry+r.units)%100;}}
  if(data.outputDraft&&(!data.outputDraft.id||!data.outputDraft.subject?.trim()||data.outputDraft.subject.length>80||!Number.isFinite(Date.parse(data.outputDraft.startedAt))))throw new Error('진행 중인 손글씨 공부를 확인해 주세요.');
  if(data.handwritingPending){const p=data.handwritingPending;if(!p.id||!p.subject?.trim()||p.subject.length>80||!/^[a-f0-9]{64}$/.test(p.imageHash))throw new Error('대기 중인 공부 사진을 확인해 주세요.');validateHandwritingAnalysis(p.analysis);}
  const daily=new Map<string,number>();for(const plan of data.focusPlans??[])daily.set(plan.day,(daily.get(plan.day)??0)+5);for(const r of rows??[])daily.set(r.rewardDay??r.day,(daily.get(r.rewardDay??r.day)??0)+r.minutes);
@@ -104,6 +112,6 @@ export function validateHandwritingState(data:RoutineData){
  for(const r of rows??[])if(r.rewardPolicy==='ramp-v1'&&r.rewardStatus==='earned'){const group=batches.get(r.focusBatch!)??[];group.push(r);batches.set(r.focusBatch!,group);}
  for(const [id,group]of batches){const first=group.find(r=>r.id===id);if(!first?.focusSeconds||group.filter(r=>r.focusSeconds!==undefined).length!==1||group.some(r=>r.focusCycle!==first.focusCycle||r.focusStage!==first.focusStage||r.subject!==first.subject||r.rewardDay!==first.rewardDay))throw new Error('집중 단계 보상 묶음을 확인해 주세요.');}
  if(data.focusRamp){const current=(rows??[]).filter(r=>r.rewardPolicy==='ramp-v1'&&r.rewardStatus==='earned'&&r.focusCycle===data.focusRamp!.cycleId&&r.focusSeconds!==undefined),used:Record<string,number>=Object.fromEntries([...new Set(current.map(r=>r.subject))].map(subject=>[subject,current.filter(r=>r.subject===subject).reduce((n,r)=>n+r.focusSeconds!,0)]));
-  if(data.focusRamp.level!==Math.min(5,current.length+1)||Object.keys({...used,...data.focusRamp.consumed}).some(subject=>(used[subject]??0)!==(data.focusRamp!.consumed[subject]??0)))throw new Error('집중 단계 진행과 사용 시간을 확인해 주세요.');
+  if(data.focusRamp.level!==Math.min(5,current.reduce((n,r)=>n+(r.focusStagesPaid?.length??1),0)+1)||Object.keys({...used,...data.focusRamp.consumed}).some(subject=>(used[subject]??0)!==(data.focusRamp!.consumed[subject]??0)))throw new Error('집중 단계 진행과 사용 시간을 확인해 주세요.');
  }
 }

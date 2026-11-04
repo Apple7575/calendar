@@ -1,6 +1,7 @@
 import {priorityDemoData} from './src/features/routine/priorityDemo.web';
 import {PriorityPauseScreen} from './src/features/routine/PriorityPauseScreen';
 import {PriorityPlanScreen} from './src/features/routine/PriorityPlanScreen';
+import {GoalDetailScreen} from './src/features/routine/GoalDetailScreen';
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -66,11 +67,12 @@ function Preview() {
       <View style={{ paddingVertical: 9, paddingHorizontal: 16, backgroundColor: c.primarySoft }}><Text style={{ color: c.text, fontSize: 12, textAlign: "center" }}>{priorityDemo?'중요한 공부 실험 · 예시 데이터 · 앱 차단 미지원':'웹 미리보기 · 이 브라우저에만 기록 저장 · 앱 차단 미지원'}</Text>{priorityDemo?<Text accessibilityRole="button" onPress={()=>{localStorage.removeItem('routine.v1.web-priority-demo');window.location.reload()}} style={{textAlign:'center',fontSize:12,color:c.primary,paddingTop:5}}>예시 초기화</Text>:null}
       </View>
       <RoutineProvider key={japaneseDemo?'japanese-demo':conceptDemo?'concept-demo':priorityDemo?'priority-demo':n2Demo?'n2-demo':session?.user.id??'preview'} userId={japaneseDemo?'web-japanese-demo':conceptDemo?'web-concept-demo':priorityDemo?'web-priority-demo':n2Demo?'web-n2-demo':session?`web-preview:${session.user.id}`:demo?'web-study-demo':'web-preview'} cloudUserId={priorityDemo||n2Demo||conceptDemo||japaneseDemo?undefined:session?.user.id} initialData={demoData}>
-        <NavigationContainer onStateChange={()=>setWide(navigation.getCurrentRoute()?.name==='FocusTimer')} ref={navigation} onReady={()=>{if(japaneseDemo)navigation.navigate('JapaneseSample');else if(conceptDemo)navigation.navigate('ConceptLab');else if(demo||n2Demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
+        <NavigationContainer onStateChange={()=>setWide(['FocusTimer','GuidedRoutine'].includes(navigation.getCurrentRoute()?.name??''))} ref={navigation} onReady={()=>{if(japaneseDemo)navigation.navigate('JapaneseSample');else if(conceptDemo)navigation.navigate('ConceptLab');else if(demo||n2Demo)navigation.navigate('RoutineStudySession',{level:'full'})}}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
           <Stack.Screen name="PriorityPlan" component={PriorityPlanScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="GoalDetail" component={GoalDetailScreen}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
             <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen}/>
             <Stack.Screen name="TimeWallet" component={TimeWalletScreen}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen}/>

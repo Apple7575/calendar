@@ -23,6 +23,7 @@ export type RootStackParamList = {
   SettingsHub:undefined;
   PriorityPlan:{day?:string}|undefined;
   PriorityPause:undefined;
+  GoalDetail:{goalId:string;open?:'links'};
   ExperienceSettings:undefined;
   TimeWallet:undefined;
   MoneyWallet:undefined;
