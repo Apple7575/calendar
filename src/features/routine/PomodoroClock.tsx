@@ -31,7 +31,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
       <Circle cx={size/2} cy={size/2} r={radius} stroke={p.accent} strokeWidth={5} fill="none" strokeLinecap="round" strokeDasharray={[circumference,circumference]} strokeDashoffset={circumference*(1-progress)} rotation={-90} originX={size/2} originY={size/2}/>
      </Svg>
      <Text accessibilityRole="timer" accessibilityLabel={(restOver?'휴식 후 지난 시간 ':overtime?'추가 공부 시간 ':'남은 시간 ')+Math.floor(seconds/60)+'분 '+seconds%60+'초'} style={{color:p.text,fontSize:size*(left<0||restOver?.24:.29),fontWeight:design==='A'?'300':'800',fontVariant:['tabular-nums'],letterSpacing:-2}}>{time}</Text>
-     <Text style={{color:p.muted,fontSize:13}}>{restOver?'버튼을 누르면 집중을 시작해요':idle?'시작하면 공부 시간이 쌓여요':!running?(resting?'휴식 일시정지':'일시정지 중'):resting?'편하게 쉬어도 좋아요':overtime?'목표 달성 · 공부 시간은 계속 쌓여요':'지금은 이 순간에 집중'}</Text>
+     <Text style={{color:p.muted,fontSize:13}}>{restOver?'버튼을 누르면 집중을 시작해요':idle?'시작하면 공부 시간이 쌓여요':!running?(resting?'휴식 일시정지':'일시정지 중'):resting?'편하게 쉬어도 좋아요':overtime?'목표 달성 · 공부 시간은 계속 쌓여요':'내가 선택한 공부'}</Text>
     </View>
    </View>
    <View style={{width:landscape?238:'100%',maxWidth:360,gap:landscape?8:12}}>
