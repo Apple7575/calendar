@@ -19,6 +19,13 @@ export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
  if(!t||t.subject!==subject)return false;
  return focusRunCredit(data,now)>=required;
 }
+/** "다 했어요" opens once some of this stage has been studied and the stage is not yet met. */
+export function canDeclareFinish(data:RoutineData,now=Date.now()){
+ const subject=data.outputDraft?.subject,t=data.bookTimer,required=focusRampStatus(data,now).required;
+ if(!subject||!required||data.handwritingPending||t?.subject!==subject||t.rewardMode!=='output')return false;
+ const credit=focusRunCredit(data,now);
+ return credit>0&&credit<required;
+}
 export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false):FocusFlowStage{
  if(data.handwritingPending)return 'review';
  if(hasPhoto)return 'submit';

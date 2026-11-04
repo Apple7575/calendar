@@ -36,6 +36,30 @@ export function saveMoneyRates(data:RoutineData,rates:MoneyRates):RoutineData{
 }
 /** One atomic ledger update with the domain action. Day rates and paid units survive undo/regrade. */
 export function reconcileMoneyRewards(before:RoutineData,after:RoutineData,key:string,now=new Date()):RoutineData{
+ return reconcileFixedRewards(before,reconcileRateRewards(before,after,key,now),key,now);
+}
+/**
+ * Rewards at a fixed rate (user decisions 2026-11-04): 100 won per stage or free-study minute, 3,000 won for the order
+ * bonus. They are plain entries because a new rate key or source would make older wallets fail validation and block loading.
+ */
+const FIXED={perMinute:100,order:3000} as const;
+function reconcileFixedRewards(before:RoutineData,after:RoutineData,key:string,now:Date):RoutineData{
+ const wallet=after.money;if(!wallet)return after;
+ const entries=[...wallet.entries],at=now.toISOString(),a=getDay(before,key).bonus,b=getDay(after,key).bonus,earlier=new Set((before.handwritingReceipts??[]).filter(r=>r.rewardStatus==='earned').map(r=>r.id));
+ for(const r of after.handwritingReceipts??[]){
+  if(r.rewardPolicy!=='ramp-v2'||r.rewardStatus!=='earned'||earlier.has(r.id))continue;
+  const minutes=(r.stageMinutes??0)+(r.planMinutes??0),id='focus:'+r.id;
+  if(minutes>0&&!entries.some(e=>e.id===id))entries.push({id,kind:'reward',amount:minutes*FIXED.perMinute,at,day:r.rewardDay??key,source:'output',note:'집중 단계 보상'});
+ }
+ const free=(b?.freeStudy??0)-(a?.freeStudy??0),freeId=`free:${key}:${b?.freeStudy??0}`;
+ if(free>0&&!entries.some(e=>e.id===freeId))entries.push({id:freeId,kind:'reward',amount:free*FIXED.perMinute,at,day:key,note:'자유 공부 보상'});
+ if((a?.order??0)!==(b?.order??0)){
+  const prefix=`order:${key}`,held=entries.filter(e=>e.id.startsWith(prefix)).reduce((n,e)=>n+e.amount,0),change=((b?.order??0)>0?FIXED.order:0)-held;
+  if(change)entries.push({id:`${prefix}:${entries.length+1}`,kind:change>0?'reward':'adjustment',amount:change,at,day:key,note:change>0?'하루 순서 보너스':'하루 순서 보너스 취소·정정'});
+ }
+ return entries.length===wallet.entries.length?after:{...after,money:{...wallet,entries}};
+}
+function reconcileRateRewards(before:RoutineData,after:RoutineData,key:string,now:Date):RoutineData{
  const wallet=after.money;if(!wallet)return after;
  const day=wallet.days[key]??checkpoint(before,key,wallet.rates),nextBasis=basis(after,key),nextSources={...day.sources},entries=[...wallet.entries];let changed=!wallet.days[key];
  for(const source of sources){const previous=day.sources[source],current=nextBasis[source];if(current===previous.basis)continue;

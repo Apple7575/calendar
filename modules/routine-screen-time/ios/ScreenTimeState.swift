@@ -21,6 +21,8 @@ struct ScreenTimeState: Codable {
   var usingRewards: Bool? = nil
   var focusUntil: Double? = nil
   var paid: [String: Int]? = nil
+  var penalty: Int? = nil
+  var debtIn: Int? = nil
   var lastEvent = "아직 테스트하지 않았어요."
   var lastEventAt: Double = Date().timeIntervalSince1970
 }
@@ -61,6 +63,12 @@ enum ScreenTimeStorage {
       state = ScreenTimeState()
     }
     if state.day != dayKey() {
+      // What the day could not cover moves to the next day, up to 60 minutes. Skipped days roll over once.
+      if state.rewardMode == true {
+        let total = (state.paid ?? [:]).values.reduce(0, +)
+        state.debtIn = min(60, max(0, (state.penalty ?? 0) + (state.debtIn ?? 0) + state.consumed - total))
+        state.penalty = nil
+      }
       state.day = dayKey()
       state.session = state.rewardMode == true ? "\(productionActivity).\(state.day)" : nil
       state.granted = 0
@@ -78,6 +86,10 @@ enum ScreenTimeStorage {
     let result = try body(&state)
     try JSONEncoder().encode(state).write(to: url, options: .atomic)
     return result
+  }
+
+  static func netGranted(_ state: ScreenTimeState) -> Int {
+    max(0, (state.paid ?? [:]).values.reduce(0, +) - (state.penalty ?? 0) - (state.debtIn ?? 0))
   }
 
   static func mark(_ state: inout ScreenTimeState, _ message: String) {
@@ -170,6 +182,9 @@ enum ScreenTimeStorage {
       "supportsOrderBonus": true,
       "supportsFreeStudyRewards": true,
       "supportsHandwritingRewards": true,
+      "supportsMinuteHandwriting": true,
+      "penaltyMinutes": state.penalty ?? 0,
+      "debtMinutes": state.debtIn ?? 0,
       "supportsProgressiveWordRewards": true,
       "sleepLocked": sleepLocked(state),
       "usingRewards": state.usingRewards == true,

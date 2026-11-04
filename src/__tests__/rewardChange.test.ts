@@ -4,10 +4,10 @@ import {acceptHandwriting} from '../lib/handwriting';
 import {startMoneyRewards,PROPOSED_MONEY_RATES,reconcileMoneyRewards} from '../lib/moneyRewards';
 import {rewardChange} from '../lib/rewardChange';
 const now=new Date(2026,10,1,8).getTime(),key=routineDay(new Date(now));
-test('plan receipt reports actual 5 minutes and no cash; redisplay cannot award anything',()=>{
+test('a plan pays nothing by itself, so there is no reward to report; redisplay cannot award anything',()=>{
  const before=startMoneyRewards(emptyData(),key,'wallet',PROPOSED_MONEY_RATES,new Date(now));
  const after=saveFocusPlan(before,'plan','공부','문제 하나',now);
- expect(rewardChange(before,after,key)).toEqual({minutes:5,cash:0,cashEnabled:true});
+ expect(rewardChange(before,after,key)).toEqual({minutes:0,cash:0,cashEnabled:true});
  expect(rewardChange(after,saveFocusPlan(after,'plan','공부','문제 하나',now),key)).toEqual({minutes:0,cash:0,cashEnabled:true});
 });
 test('photo receipt separates this payment from earlier time and cash totals',()=>{

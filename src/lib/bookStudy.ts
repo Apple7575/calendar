@@ -4,7 +4,9 @@ import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
 import {claimFocusPlan,focusCarryInto,focusRampStatus} from './focusRamp';
-import {startOutputStudy} from './handwriting';
+import {acceptHandwriting,startOutputStudy} from './handwriting';
+import type {HandwritingAnalysis} from './handwriting';
+import {recordQuitPenalty} from './focusPenalty';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
@@ -47,6 +49,14 @@ export function stopBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const rows=next.bookSessions??[];
  const completedAt=t.running?now:t.focusResumedAt??now;
  return {...next,bookSessions:seconds>0&&!rows.some(s=>s.id===t.id)?[...rows,{id:t.id,subject:t.subject,startedAt:t.startedAt,completedAt:new Date(completedAt).toISOString(),seconds,note:'',next:'',rewardMode:t.rewardMode}]:rows,bookTimer:{...rest,phase:'idle',remaining:0,running:false}};
+}
+/** The user ending a run: charged if the stage is unmet (user decision 2026-11-04). Timer bookkeeping keeps using stopBookTimer. */
+export function finishFocusRun(data:RoutineData,now=Date.now()):RoutineData{
+ return stopBookTimer(recordQuitPenalty(settleBookTimer(data,now),now),now);
+}
+/** "다 했어요": study ends here and a photo with at least 100 new letters settles it. No penalty applies. */
+export function acceptDeclaredFinish(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now=new Date()):RoutineData{
+ return acceptHandwriting(stopBookTimer(data,now.getTime()),id,hash,subject,analysis,now,'ramp-v2',true);
 }
 /** Only an explicit user action starts a break; preserve all real focus time first. */
 export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{

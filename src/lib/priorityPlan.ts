@@ -1,7 +1,7 @@
 import type {RoutineData} from './routineModel';
 import {routineDay} from './routineModel';
 import {focusSecondsForSubject,focusRampStatus} from './focusRamp';
-import {saveFocusPlan,startBookTimer,stopBookTimer,resumeBookTimer} from './bookStudy';
+import {finishFocusRun,saveFocusPlan,startBookTimer,resumeBookTimer} from './bookStudy';
 import {startOutputStudy} from './handwriting';
 
 export type PriorityTask={id:string;subject:string;action:string;preparation:string;target:string;minimum:120|300;startedAt?:string;baseline?:number;completedAt?:string;receiptId?:string;nextAction?:string;deferredAt?:string};
@@ -45,7 +45,7 @@ export function beginPriorityTask(data:RoutineData,key:string,id:string,now=Date
  if(key!==routineDay(new Date(now)))throw new Error('오늘 계획에서 시작해 주세요.');
  const plan=priorityPlan(data,key),task=plan?.tasks.find(t=>t.id===id);if(!plan||!task)throw new Error('시작할 공부를 찾지 못했어요.');
  let next=data;const timer=next.bookTimer;
- if(timer&&timer.phase!=='idle'&&(!task.startedAt||timer.phase!=='focus'||timer.subject!==task.subject))next=stopBookTimer(next,now);
+ if(timer&&timer.phase!=='idle'&&(!task.startedAt||timer.phase!=='focus'||timer.subject!==task.subject))next=finishFocusRun(next,now);
  const started=task.startedAt?{...task,deferredAt:undefined}:{...task,startedAt:new Date(now).toISOString(),baseline:focusSecondsForSubject(next,task.subject,now)};
  next={...next,priorityDays:{...next.priorityDays,[key]:{...plan,tasks:plan.tasks.map(t=>t.id===id?started:t)}}};
  if(focusRampStatus(next,now).needsPlan)next=saveFocusPlan(next,'priority-plan-'+key+'-'+id+'-'+now,task.subject,task.nextAction||task.action,now);

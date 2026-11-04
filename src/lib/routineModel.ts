@@ -62,7 +62,7 @@ export type Day = {
 export type RoutineData = {
   primaryGoal?:import('./primaryGoal').PrimaryGoal;goals?:import('./routineGoals').Goal[];
   priorityPolicy?:import('./priorityPlan').PriorityPolicy;priorityDays?:Record<string,import('./priorityPlan').PriorityDay>;
-  focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];
+  focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];focusPenalties?:import('./focusPenalty').FocusPenalty[];
   money?:import('./moneyRewards').MoneyWallet;
   version: 1; decks: Deck[]; words: Word[]; days: Record<string, Day>; newLimit: number; morningSteps?: MorningStep[];
   boriStage?: import("./boriGrowth").BoriGrowthStage;
@@ -73,7 +73,7 @@ export type RoutineData = {
   freeStudyPolicy?:{unlockAfter:import('./freeStudy').FreeStudyUnlock};
   handwritingReceipts?:import('./handwriting').HandwritingReceipt[];
   outputDraft?:import('./handwriting').OutputDraft;
-  handwritingPending?:{id:string;imageHash:string;subject:string;analysis:import('./handwriting').HandwritingAnalysis};
+  handwritingPending?:{id:string;imageHash:string;subject:string;analysis:import('./handwriting').HandwritingAnalysis;declared?:boolean};
   reviewHistory?:import('./studyHistory').ReviewEvent[];studyUndo?:import('./studyHistory').StudyUndo;pendingStudyAdjustment?:import('./studyHistory').StudyAdjustment;
 };
 export const scheduler = fsrs({ request_retention: 0.9, enable_fuzz: false });

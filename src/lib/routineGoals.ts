@@ -126,14 +126,14 @@ export function goalLinkOptions(data:RoutineData,id:string){
 
 /**
  * 목표의 공부한 날. 목표를 정한 날 이후의 기록만 보며, 기록을 읽기만 한다.
- * 전체 기준(isGoalStudyDay)과 달리 단계 방식에서 보상을 받은 영수증(ramp-v1, earned)도 센다.
+ * 전체 기준(isGoalStudyDay)과 달리 단계 방식에서 보상을 받은 영수증(ramp-v1·v2, earned)도 센다.
  */
 export function isGoalLinkedStudyDay(data:RoutineData,goal:Goal,key:string):boolean{
  if(key<routineDay(new Date(goal.createdAt)))return false;
  const {subjects}=goal.links;
  if(priorityPlan(data,key)?.tasks.some(task=>!!task.completedAt&&subjects.includes(task.subject)))return true;
  if((data.bookSessions??[]).some(session=>subjects.includes(session.subject)&&session.rewardMode!=='output'&&!!session.note.trim()&&routineDay(new Date(session.completedAt))===key))return true;
- if((data.handwritingReceipts??[]).some(receipt=>subjects.includes(receipt.subject)&&receipt.rewardPolicy==='ramp-v1'&&receipt.rewardStatus==='earned'&&(receipt.rewardDay??receipt.day)===key))return true;
+ if((data.handwritingReceipts??[]).some(receipt=>subjects.includes(receipt.subject)&&(receipt.rewardPolicy==='ramp-v1'||receipt.rewardPolicy==='ramp-v2')&&receipt.rewardStatus==='earned'&&(receipt.rewardDay??receipt.day)===key))return true;
  if(subjects.some(subject=>outputUnitsOnDay(data,key,subject)>=OUTPUT_POLICY.goalUnits))return true;
  if(!data.days[key]?.plan)return false;
  return liveDeckIds(data,goal).some(id=>{const progress=studyDeckProgress(data,key,id);return progress.min||progress.full});
