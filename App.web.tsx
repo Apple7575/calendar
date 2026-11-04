@@ -1,6 +1,7 @@
 import {priorityDemoData} from './src/features/routine/priorityDemo.web';
 import {PriorityPauseScreen} from './src/features/routine/PriorityPauseScreen';
 import {PriorityPlanScreen} from './src/features/routine/PriorityPlanScreen';
+import {GoalDetailScreen} from './src/features/routine/GoalDetailScreen';
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -71,6 +72,7 @@ function Preview() {
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
           <Stack.Screen name="PriorityPlan" component={PriorityPlanScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="GoalDetail" component={GoalDetailScreen}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
             <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen}/>
             <Stack.Screen name="TimeWallet" component={TimeWalletScreen}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen}/>
