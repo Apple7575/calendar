@@ -1,14 +1,23 @@
 import {emptyData,getDay,routineDay} from '../lib/routineModel';
-import {claimFocusPlan,focusRampStatus,FOCUS_RESET_MS,focusRampAccess} from '../lib/focusRamp';
-import {startBookBreak,saveFocusPlan,startBookTimer,settleBookTimer,stopBookTimer,pauseBookTimer,resumeBookTimer,adjustBookTimer} from '../lib/bookStudy';
+import {claimFocusPlan as claimPlan,focusRampStatus,FOCUS_RESET_MS,focusRampAccess} from '../lib/focusRamp';
+import {startBookBreak,saveFocusPlan as savePlan,startBookTimer,settleBookTimer,stopBookTimer,pauseBookTimer,resumeBookTimer,adjustBookTimer} from '../lib/bookStudy';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState,startOutputStudy} from '../lib/handwriting';
 import {PROPOSED_MONEY_RATES,startMoneyRewards,reconcileMoneyRewards,moneySummary} from '../lib/moneyRewards';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
 jest.mock('../lib/supabase',()=>({supabase:{}}));
 const base=new Date(2026,10,1,8).getTime(),key=routineDay(new Date(base)),subject='수능';
+/** These suites pin the build-42 reward path, which pending and saved records still use: a plan worth 5 and ramp-v1 photos. */
+const asBuild42=<T extends ReturnType<typeof emptyData>>(before:T,after:T):T=>{
+ const plan=after.focusPlans?.[after.focusPlans.length-1];
+ if(after===before||!plan||before.focusPlans?.some(p=>p.id===plan.id))return after;
+ const key42=plan.day,day=after.days[key42];
+ return {...after,focusPlans:after.focusPlans!.map(p=>p.id===plan.id?{...p,minutes:5 as const}:p),handwritingReceipts:after.handwritingReceipts?.map(r=>r.rewardPolicy==='ramp-v2'&&r.rewardStatus==='pending'?{...r,rewardPolicy:'ramp-v1' as const}:r),days:{...after.days,[key42]:{...day,bonus:{...day.bonus,handwriting:(day.bonus?.handwriting??0)+5}}}};
+};
+const saveFocusPlan:typeof savePlan=(d,...rest)=>asBuild42(d,savePlan(d,...rest));
+const claimFocusPlan:typeof claimPlan=(d,...rest)=>asBuild42(d,claimPlan(d,...rest));
 const planned=()=>saveFocusPlan(emptyData(),'plan',subject,'기출 한 문제 읽기',base);
 const photo=(data:ReturnType<typeof emptyData>,id:string,now:number,topic=subject,text='가'.repeat(100))=>acceptHandwriting(data,id,id.charCodeAt(0).toString(16).padStart(64,'0'),topic,{lines:[text],languages:['ko'],quality:'readable',message:''},new Date(now),'ramp-v1');
-test('plan grants 5 minutes with no study, is idempotent, and duplicate plans cannot farm rewards',()=>{
+test('a build-42 plan keeps its 5 minutes, is idempotent, and duplicate plans cannot farm rewards',()=>{
  const d=planned();expect(getDay(d,key).bonus?.handwriting).toBe(5);expect(focusRampStatus(d,base).required).toBe(120);expect(saveFocusPlan(d,'plan',subject,'same',base)).toBe(d);expect(()=>claimFocusPlan(d,'other',subject,'another',base+1000)).toThrow('이미');expect(d.bookSessions).toBeUndefined();validateHandwritingState(d);
 });
 test('2, 5, 10, 15, 25 minute steps grant exactly 5 each and stay at 25',()=>{

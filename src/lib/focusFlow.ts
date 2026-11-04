@@ -19,18 +19,33 @@ export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
  if(!t||t.subject!==subject)return false;
  return focusRunCredit(data,now)>=required;
 }
-export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false):FocusFlowStage{
+/** "다 했어요" opens once some of this stage has been studied and the stage is not yet met. */
+export function canDeclareFinish(data:RoutineData,now=Date.now()){
+ const subject=data.outputDraft?.subject,t=data.bookTimer,required=focusRampStatus(data,now).required;
+ if(!subject||!required||data.handwritingPending||t?.subject!==subject||t.rewardMode!=='output'||t.awaitingChoice===true)return false;
+ const credit=focusRunCredit(data,now);
+ return credit>0&&credit<required;
+}
+export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false,declare=false):FocusFlowStage{
  if(data.handwritingPending)return 'review';
  if(hasPhoto)return 'submit';
- if(capture&&canTakeHandwritingPhoto(data,now))return 'capture';
+ if(capture&&(canTakeHandwritingPhoto(data,now)||declare&&canDeclareFinish(data,now)))return 'capture';
  if(focusRampStatus(data,now).needsPlan)return 'plan';
  const timer=data.bookTimer,phase=timer?.phase;
+ if(timer?.awaitingChoice===true)return 'study';
  if(phase==='break'||(timer&&bookRestOvertime(timer,now)!==null))return 'break';
  if(phase==='focus')return 'study';
  return canTakeHandwritingPhoto(data,now)?'capture':'start';
 }
 
-/** 집중 시계가 시간 초과 화면으로 뒤집히는 때: 목표 시간을 넘긴 집중, 끝난 뒤 시간이 흐르는 휴식. */
-export function focusClockInverted(phase:string,left:number,restOvertime:number|null){
- return (phase==='focus'&&left<=0)||(phase==='idle'&&restOvertime!==null);
+/** 집중 공부가 목표를 넘은 순간 연두로 뒤집히는 시간(초). */
+export const FOCUS_OVERTIME_FLASH_SECONDS=4;
+/**
+ * 시계가 연두로 뒤집히는 때. 휴식이 끝난 뒤에는 계속, 집중 공부는 목표를 넘은 직후 잠깐만 뒤집는다.
+ * 저장 없이 목표를 넘긴 시간으로만 판단하므로, 앱을 다시 켜도 이미 지난 시점이면 다시 번쩍이지 않는다.
+ * flashDone: 같은 타이머에서 시간을 조정해 목표를 다시 넘어도 한 번만 뒤집기 위한 값.
+ */
+export function focusClockInverted(phase:string,left:number,restOvertime:number|null,flashDone=false){
+ if(phase==='idle')return restOvertime!==null;
+ return phase==='focus'&&!flashDone&&left<=0&&left>-FOCUS_OVERTIME_FLASH_SECONDS;
 }

@@ -19,6 +19,7 @@ import { migrateN3Deck, mergeStudyDeck } from "../../lib/n3Deck";
 import {advanceHabitOrder,initializeHabitOrder} from '../../lib/habitOrder';
 import {wordDailyCap} from '../../lib/studyRewards';
 import {reconcileMoneyRewards} from '../../lib/moneyRewards';
+import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -175,19 +176,19 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   const priority=priorityGate(data,dayKey,now.getTime());
   useEffect(()=>{if(ready&&native?.supportsPriorityGate)void syncPriorityGate(dayKey,data.priorityPolicy?.enabled?data.priorityPolicy.from:'',priority.complete).then(refreshNative).catch(e=>setError(e.message));},[ready,native?.supportsPriorityGate,native?.enabled,native?.rewardMode,dayKey,data.priorityPolicy?.enabled,data.priorityPolicy?.from,priority.complete,refreshNative]);
   const t=data.bookTimer;
-  const focusUntil=t&&t.phase!=='idle'?(t.running?t.endsAt+(t.phase==='focus'?300000:0):Date.now()+86400000):0;
+  const focusUntil=focusLockUntil(t);
   useEffect(()=>{
     if(ready&&native?.policyVersion&&native.policyVersion>=2)void syncFocusWindow(focusUntil).then(refreshNative).catch(e=>setError(e.message));
-  },[ready,native?.policyVersion,t?.phase,t?.endsAt,t?.running,refreshNative]);
+  },[ready,native?.policyVersion,focusUntil,refreshNative]);
   useEffect(() => {
     let active = true;
       if (ready && !adjustment && native?.enabled && native.rewardMode) {
-      syncRoutineRewards(dayKey,native.policyVersion&&native.policyVersion>=2?{...paid,book:bonus?.book??0,extra:bonus?.words??0,quick:bonus?.quick??0,wordDailyCap:wordDailyCap(data,dayKey),...(native.supportsOrderBonus?{order:bonus?.order??0}:{}),...(native.supportsFreeStudyRewards?{freeStudy:bonus?.freeStudy??0}:{}),...(native.supportsHandwritingRewards?{handwriting:bonus?.handwriting??0}:{})}:paid).then(() => refreshNative()).catch(e => {
+      syncRoutineRewards(dayKey,native.policyVersion&&native.policyVersion>=2?{...paid,book:bonus?.book??0,extra:bonus?.words??0,quick:bonus?.quick??0,wordDailyCap:wordDailyCap(data,dayKey),...(native.supportsOrderBonus?{order:bonus?.order??0}:{}),...(native.supportsFreeStudyRewards?{freeStudy:bonus?.freeStudy??0}:{}),...rewardSyncExtras(data,dayKey,native)}:paid).then(() => refreshNative()).catch(e => {
         if (active && alive.current) setError(e instanceof Error ? e.message : "이용 시간 연결에 실패했어요.");
       });
     }
     return () => { active = false; };
-    }, [ready, adjustment,dayKey, paid.morning, paid.words, paid.gym,bonus?.book,bonus?.words,bonus?.quick,bonus?.order,bonus?.freeStudy,bonus?.handwriting,wordDailyCap(data,dayKey),native?.supportsOrderBonus,native?.supportsFreeStudyRewards,native?.supportsHandwritingRewards,native?.policyVersion, native?.enabled, native?.rewardMode, refreshNative]);
+    }, [ready, adjustment,dayKey, paid.morning, paid.words, paid.gym,bonus?.book,bonus?.words,bonus?.quick,bonus?.order,bonus?.freeStudy,bonus?.handwriting,penaltyMinutesOnDay(data,dayKey),native?.supportsMinuteHandwriting,wordDailyCap(data,dayKey),native?.supportsOrderBonus,native?.supportsFreeStudyRewards,native?.supportsHandwritingRewards,native?.policyVersion, native?.enabled, native?.rewardMode, refreshNative]);
   return <Context.Provider value={{accountId:userId, data, ready, error, native, refreshNative, dayKey, now, update,undoStudy,retryStudyAdjustment:()=>setAdjustmentAttempt(n=>n+1), syncingDecks, deckError, syncDecks,backupState,backupNow,restoreBackup }}>{children}</Context.Provider>;
 }
 export function useRoutine() {

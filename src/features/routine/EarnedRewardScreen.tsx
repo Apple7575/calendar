@@ -6,6 +6,9 @@ import {RootScreenProps} from '../../navigation/types';
 import {useRoutine} from './RoutineProvider';
 import {getDay} from '../../lib/routineModel';
 import {timeWallet} from '../../lib/timeWallet';
+import {finishFocusRun,startBookTimer} from '../../lib/bookStudy';
+import {focusRampStatus} from '../../lib/focusRamp';
+import * as Crypto from 'expo-crypto';
 import {Action,Mascot,Icon} from './ui';
 import {FocusThemeProvider} from '../../theme/ThemeContext';
 import {RewardResultTiles} from './RewardResultTiles';
@@ -18,7 +21,7 @@ export function EarnedRewardScreen(props:RootScreenProps<'EarnedReward'>){
  return <FocusThemeProvider><EarnedRewardPage {...props}/></FocusThemeProvider>;
 }
 function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
- const p=route.params,{data,dayKey,native}=useRoutine(),{height,width}=useWindowDimensions();
+ const p=route.params,{data,dayKey,native,update}=useRoutine(),[busy,setBusy]=React.useState(false),[error,setError]=React.useState(''),{height,width}=useWindowDimensions();
  const receipt=p.kind==='handwriting'?data.handwritingReceipts?.find(r=>r.id===p.id):undefined;
  const batch=receipt?.focusBatch?data.handwritingReceipts?.find(r=>r.id===receipt.focusBatch):receipt;
  const pending=receipt?receipt.rewardStatus==='pending':!!p.pending,minutes=batch?.minutes??p.minutes;
@@ -26,7 +29,12 @@ function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
  const wallet=timeWallet(getDay(data,dayKey),dayKey,native),small=height<800;
  const close=()=>p.continueTo?navigation.replace(p.continueTo):navigation.canGoBack()?navigation.goBack():navigation.navigate('Main',{screen:'Study'});
  const nextLabel=p.continueTo==='FocusTimer'?'공부 시작하기':p.kind==='handwriting'?'이어서 공부하기':'다음 공부 준비하기';
- const continueStudy=()=>p.kind==='handwriting'&&data.bookTimer?.phase==='focus'?navigation.popTo('FocusTimer'):close();
+ const asking=data.bookTimer?.awaitingChoice===true&&!pending;
+ const continueStudy=()=>p.kind==='handwriting'&&(data.bookTimer?.phase==='focus'||asking)?navigation.popTo('FocusTimer'):close();
+ /** Leaving by the close button keeps the choice open: the timer screen asks again, with no penalty and no time passing. */
+ const choose=(fn:Parameters<typeof update>[0],next:()=>void)=>{if(busy)return;setBusy(true);setError('');void update(fn).then(next).catch(e=>setError(e instanceof Error?e.message:'다시 시도해 주세요.')).finally(()=>setBusy(false))};
+ const keepGoing=()=>choose(s=>s.bookTimer?.awaitingChoice===true?startBookTimer(s,Crypto.randomUUID(),s.bookTimer.subject,Date.now(),focusRampStatus(s).required,'output'):s,()=>navigation.popTo('FocusTimer'));
+ const finish=()=>choose(s=>({...finishFocusRun(s),outputDraft:undefined}),()=>navigation.popTo('Main',{screen:'Study'}));
  useStudyFeedback(!pending?{kind:'complete',id:p.id}:null);
  return <View testID="earned-reward-page" style={{flex:1,backgroundColor:focusTheme.colors.background}}>
   <StatusBar style="light"/><AnimalSharedLayer id="celebration_effects" animated/>
@@ -40,7 +48,7 @@ function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
     <Text style={{color:'#BFD0D8',fontSize:13,lineHeight:20,textAlign:'center'}}>{pending?'사진과 인식 결과는 저장했어요. 공부를 이어가 주세요.':!getDay(data,dayKey).paid.morning?'적립 완료 · 아침 루틴을 마치면 사용할 수 있어요.':wallet.reason}</Text>
     {p.kind==='plan'?<Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>계획은 시간 보상만 받아요.</Text>:null}
    </ScrollView>
-   <View style={{width:'100%',maxWidth:540,alignSelf:'center',padding:20,gap:10}}><Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>{pending?'기록 저장 완료 · 보상은 시간 충족 후 적립돼요':'보상 적립 완료'}</Text><Action label={nextLabel} onPress={continueStudy}/></View>
+   <View style={{width:'100%',maxWidth:540,alignSelf:'center',padding:20,gap:10}}><Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>{pending?'기록 저장 완료 · 보상은 시간 충족 후 적립돼요':'보상 적립 완료'}</Text>{asking?<>{error?<Text style={{color:'#FFFFFF',fontSize:13,textAlign:'center'}}>{error}</Text>:null}<Action label="계속 공부" disabled={busy} onPress={keepGoing}/><Action secondary label="마치기" disabled={busy} onPress={finish}/></>:<Action label={nextLabel} onPress={continueStudy}/>}</View>
   </SafeAreaView>
  </View>;
 }

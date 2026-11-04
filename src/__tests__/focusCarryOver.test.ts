@@ -1,6 +1,6 @@
 import {emptyData,routineDay} from '../lib/routineModel';
 import {beginPriorityTask,priorityTaskProgress,savePriorityDay} from '../lib/priorityPlan';
-import {claimFocusPlan,focusRampStatus} from '../lib/focusRamp';
+import {claimFocusPlan as claimPlan,focusRampStatus} from '../lib/focusRamp';
 import {acceptHandwriting,handwritingAccess,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
 import {skipBookBreak,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {bookDisplaySeconds} from '../lib/bookTimerTime';
@@ -9,6 +9,14 @@ import {makeBackup,validateBackup} from '../lib/routineBackup';
 import {validateStudyState} from '../lib/studyHistory';
 jest.mock('../lib/supabase',()=>({supabase:{}}));
 const at=new Date(2026,10,1,9).getTime(),subject='수능',sec=1000,user='00000000-0000-4000-8000-000000000000';
+/** These suites pin the build-42 reward path, which pending and saved records still use: a plan worth 5 and ramp-v1 photos. */
+const asBuild42=<T extends ReturnType<typeof emptyData>>(before:T,after:T):T=>{
+ const plan=after.focusPlans?.[after.focusPlans.length-1];
+ if(after===before||!plan||before.focusPlans?.some(p=>p.id===plan.id))return after;
+ const key42=plan.day,day=after.days[key42];
+ return {...after,focusPlans:after.focusPlans!.map(p=>p.id===plan.id?{...p,minutes:5 as const}:p),handwritingReceipts:after.handwritingReceipts?.map(r=>r.rewardPolicy==='ramp-v2'&&r.rewardStatus==='pending'?{...r,rewardPolicy:'ramp-v1' as const}:r),days:{...after.days,[key42]:{...day,bonus:{...day.bonus,handwriting:(day.bonus?.handwriting??0)+5}}}};
+};
+const claimFocusPlan:typeof claimPlan=(d,...rest)=>asBuild42(d,claimPlan(d,...rest));
 const planned=()=>claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at);
 const firstRun=()=>startBookTimer(planned(),'first',subject,at,120,'output');
 const analysis={lines:['가나다라마바사아자차'.repeat(12)],languages:['ko' as const],quality:'readable' as const,message:''};

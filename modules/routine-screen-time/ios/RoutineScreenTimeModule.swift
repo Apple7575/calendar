@@ -143,11 +143,15 @@ private enum ScreenTimeService {
       guard freeStudy >= 0, freeStudy % 5 == 0 else { throw ScreenTimeStorage.failure("자유 공부 보상 값이 올바르지 않아요.") }
       ledger["freeStudy"] = max(ledger["freeStudy"] ?? 0, freeStudy)
         let handwriting = paid["handwriting"] ?? 0
-        guard handwriting >= 0, handwriting % 5 == 0 else { throw ScreenTimeStorage.failure("손글씨 공부 보상 값을 확인해 주세요.") }
+        guard handwriting >= 0 else { throw ScreenTimeStorage.failure("손글씨 공부 보상 값을 확인해 주세요.") }
         ledger["handwriting"] = max(ledger["handwriting"] ?? 0, handwriting)
+      let penalty = paid["penalty"] ?? 0
+      guard penalty >= 0 else { throw ScreenTimeStorage.failure("벌점 값을 확인해 주세요.") }
+      // Kept apart from the reward ledger, which is the sum of earned minutes.
+      state.penalty = max(state.penalty ?? 0, penalty)
       let wasMorningComplete = state.morningComplete
       state.paid = ledger
-      state.granted = ledger.values.reduce(0, +)
+      state.granted = ScreenTimeStorage.netGranted(state)
       state.morningComplete = (ledger["morning"] ?? 0) > 0
       // Both a small (5) and full (10) morning finish open the reward gate.
       // Only the first completion starts use; later syncs preserve a user's pause.
@@ -190,7 +194,7 @@ private enum ScreenTimeService {
         ledger[key] = next
       }
       state.paid = ledger
-      state.granted = ledger.values.reduce(0, +)
+      state.granted = ScreenTimeStorage.netGranted(state)
       if state.consumed >= state.granted { state.usingRewards = false }
       ScreenTimeStorage.mark(&state, "마지막 채점 취소 · 학습 보상 복원")
       ScreenTimeStorage.apply(state)

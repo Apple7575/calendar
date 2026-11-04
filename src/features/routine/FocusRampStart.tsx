@@ -7,7 +7,7 @@ import {RootStackParamList} from '../../navigation/types';
 import {SUBJECTS,skipBookBreak,startBookTimer,saveFocusPlan,StudyRewardMode} from '../../lib/bookStudy';
 import {bookDisplaySeconds} from '../../lib/bookTimerTime';
 import {startOutputStudy} from '../../lib/handwriting';
-import {FOCUS_STEPS,focusRampStatus} from '../../lib/focusRamp';
+import {FOCUS_STAGE_MINUTES,FOCUS_STEPS,focusPlanMinutesDue,focusRampStatus} from '../../lib/focusRamp';
 import {focusSubject,habitOrderPolicy} from '../../lib/habitOrder';
 import {useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
@@ -41,8 +41,8 @@ export function FocusStart({initialSubject,compact=false,secondary=false}:{initi
     <Field label="공부 주제" value={subject} onChangeText={setSubject} maxLength={80} placeholder="공부 주제"/>
     <View style={{flexDirection:'row',gap:6,flexWrap:'wrap'}}>{subjects.map(s=><Choice key={s} label={s} selected={subject===s} onPress={()=>setSubject(s)}/>)}</View>
     <Field label="오늘 공부 계획" multiline value={plan} onChangeText={setPlan} maxLength={2000} placeholder="예: 기출 1번을 읽고 풀이의 첫 줄 써보기"/>
-    <Action label="계획 저장 · +5분 받기" disabled={!ready||busy||!subject.trim()||!plan.trim()} onPress={()=>void submit()}/>
-    <Copy muted size={13}>공부 시간 없이 계획만 저장해도 +5분. 다음은 2분 공부예요.{status.expired?'':' 집중 공부를 2시간 쉬면 계획부터 다시 시작해요.'}{data.outputDraft?'':' 필기 돈 보상은 100자당 500원이에요.'}</Copy>
+    <Action label="계획 저장" disabled={!ready||busy||!subject.trim()||!plan.trim()} onPress={()=>void submit()}/>
+    <Copy muted size={13}>다음은 2분 공부예요. 사진을 확인하면 계획 1분과 단계 1분을 함께 받아요.{status.expired?'':' 집중 공부를 2시간 쉬면 계획부터 다시 시작해요.'}{data.outputDraft?'':' 필기 돈 보상은 100자당 500원이에요.'}</Copy>
    </>:resting?<>
     <Action label="쉬는 시간 건너뛰고 공부하기" disabled={!ready||busy} onPress={()=>void start()}/>
     <Link label="큰 타이머 보기" onPress={openTimer}/>
@@ -50,7 +50,7 @@ export function FocusStart({initialSubject,compact=false,secondary=false}:{initi
    </>:<>
     {active?<Action label="큰 타이머 열기" onPress={openTimer}/>:<Action label={minutes+'분 집중 시작'} disabled={!ready||busy||!subject.trim()} onPress={()=>void start()}/>}
     <View accessibilityLabel={'집중 단계 '+status.level+'/5, 이번 단계 '+minutes+'분'} style={{flexDirection:'row',gap:6}}>{STAGE_MINUTES.map((m,i)=><View key={m} style={{flex:1,gap:5}}><View style={{height:5,borderRadius:3,backgroundColor:i<status.level?c.primary:c.border}}/><Copy size={12} muted={i!==status.level-1} weight={i===status.level-1?'700':'500'}>{m}분</Copy></View>)}</View>
-    <Copy muted size={13}>{minutes}분 실제 공부 후 새 필기 사진을 확인하면 +5분. 집중 공부를 2시간 쉬면 계획부터 다시 시작해요.{data.outputDraft?'':' 필기 돈 보상은 100자당 500원이에요.'}</Copy>
+    <Copy muted size={13}>{minutes}분 실제 공부 후 새 필기 사진을 확인하면 +{(FOCUS_STAGE_MINUTES[status.level]??0)+focusPlanMinutesDue(data)}분. 집중 공부를 2시간 쉬면 계획부터 다시 시작해요.{data.outputDraft?'':' 필기 돈 보상은 100자당 500원이에요.'}</Copy>
    </>}
    {error?<Notice tone="error">{error}</Notice>:null}
   </CardView>

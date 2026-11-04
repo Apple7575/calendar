@@ -6,6 +6,7 @@ import {RootStackParamList} from '../../navigation/types';
 import {getDay} from '../../lib/routineModel';
 import {timeWallet} from '../../lib/timeWallet';
 import {runScreenTimeAction,syncRoutineRewards} from '../../lib/screenTime';
+import {rewardSyncExtras} from '../../lib/focusPenalty';
 import {useTheme} from '../../theme/ThemeContext';
 import {wordDailyCap} from '../../lib/studyRewards';
 import {priorityGate} from '../../lib/priorityPlan';
@@ -42,7 +43,7 @@ export function RewardUseToggle({onConnect,compact=false,inline=false,toolbar=fa
   }
   inFlight.current=true;setBusy(true);setError('');
   try{
-   if(value)await syncRoutineRewards(dayKey,{...day.paid,book:day.bonus?.book??0,extra:day.bonus?.words??0,quick:day.bonus?.quick??0,wordDailyCap:wordDailyCap(data,dayKey),...(native?.supportsOrderBonus?{order:day.bonus?.order??0}:{}),...(native?.supportsFreeStudyRewards?{freeStudy:day.bonus?.freeStudy??0}:{}),...(native?.supportsHandwritingRewards?{handwriting:day.bonus?.handwriting??0}:{})});
+   if(value)await syncRoutineRewards(dayKey,{...day.paid,book:day.bonus?.book??0,extra:day.bonus?.words??0,quick:day.bonus?.quick??0,wordDailyCap:wordDailyCap(data,dayKey),...(native?.supportsOrderBonus?{order:day.bonus?.order??0}:{}),...(native?.supportsFreeStudyRewards?{freeStudy:day.bonus?.freeStudy??0}:{}),...rewardSyncExtras(data,dayKey,native)});
    await runScreenTimeAction(value?'startRewardUse':'pauseRewardUse');
   }catch(e){explain('시간 사용을 변경하지 못했어요',e instanceof Error?e.message:'기기 상태를 확인하고 다시 시도해 주세요.','상태 다시 확인',()=>void refreshNative());}
   finally{await refreshNative();inFlight.current=false;setBusy(false);}
