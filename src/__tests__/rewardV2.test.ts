@@ -2,7 +2,7 @@ import {emptyData,getDay,routineDay,withDay} from '../lib/routineModel';
 import {beginPriorityTask,savePriorityDay} from '../lib/priorityPlan';
 import {claimFocusPlan,focusRampStatus} from '../lib/focusRamp';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
-import {acceptDeclaredFinish,finishFocusRun,saveBookNote,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
+import {acceptDeclaredFinish,finishFocusRun,pauseBookTimer,resumeBookTimer,saveBookNote,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {canDeclareFinish} from '../lib/focusFlow';
 import {focusLockUntil,focusQuitPenalty,penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {PROPOSED_MONEY_RATES,moneySummary,reconcileMoneyRewards,startMoneyRewards} from '../lib/moneyRewards';
@@ -228,6 +228,26 @@ describe('leaving a run unfinished keeps the apps locked',()=>{
  test('a run started between midnight and 04:00 ends the same night',()=>{
   const late=new Date(2026,10,2,1).getTime(),timer={...running().bookTimer!,startedAt:new Date(late).toISOString()};
   expect(focusLockUntil(timer,late+min)).toBe(next4);
+ });
+ describe('a run that crosses 04:00',()=>{
+  const start=new Date(2026,10,2,3).getTime(),four=new Date(2026,10,2,4).getTime(),nextFour=new Date(2026,10,3,4).getTime();
+  const paused=()=>pauseBookTimer(startBookTimer(claimFocusPlan(emptyData(),'plan',subject,'기출 1번',start),'run',subject,start,120,'output'),start+50*min);
+  test('resumed after 04:00 and studying: locked until the next 04:00',()=>{
+   const d=resumeBookTimer(paused(),four+10*min);
+   expect(d.bookTimer!.running).toBe(true);
+   expect(focusLockUntil(d.bookTimer,four+11*min)).toBe(nextFour);
+  });
+  test('never touched again: released at 04:00',()=>{
+   expect(focusLockUntil(paused().bookTimer,four-sec)).toBe(four);
+   expect(focusLockUntil(paused().bookTimer,four)).toBe(0);
+  });
+  test('resumed after 04:00 and then forgotten: released at the following 04:00',()=>{
+   const d=resumeBookTimer(paused(),four+10*min);
+   expect(focusLockUntil(d.bookTimer,nextFour)).toBe(0);
+  });
+  test('a broken saved resume time falls back to the start',()=>{
+   expect(focusLockUntil({...paused().bookTimer!,focusResumedAt:'soon' as unknown as number},four-sec)).toBe(four);
+  });
  });
  test('no timer, no lock',()=>{
   expect(focusLockUntil(undefined,at)).toBe(0);

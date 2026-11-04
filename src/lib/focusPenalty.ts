@@ -32,12 +32,14 @@ export function recordQuitPenalty(data:RoutineData,now=Date.now()):RoutineData{
 }
 export const penaltyLabel=(due:{minutes:number;won:number}|null)=>due?'벌점 '+[due.minutes?due.minutes+'분':'',due.won?due.won.toLocaleString('ko-KR')+'원':''].filter(Boolean).join('·'):'';
 /**
- * A started run keeps the apps locked until it is ended in the app, or until the first 04:00 after it started
+ * A started run keeps the apps locked until it is ended in the app, or until the first 04:00 after it was last started, resumed or paused
  * (user decision 2026-11-04). A rest that ran out is not an ending: stopBookTimer is what clears restEndedAt.
  */
 export function focusLockUntil(t:BookTimer|undefined,now=Date.now()){
  if(!t||t.phase==='idle'&&t.restEndedAt===undefined)return 0;
- const start=new Date(t.startedAt);if(!Number.isFinite(start.getTime()))return 0;
+ const started=Date.parse(t.startedAt),touched=typeof t.focusResumedAt==='number'&&Number.isFinite(t.focusResumedAt)?t.focusResumedAt:0;
+ if(!Number.isFinite(started))return 0;
+ const start=new Date(Math.max(started,touched));
  const until=new Date(start);until.setHours(4,0,0,0);if(start.getHours()>=4)until.setDate(until.getDate()+1);
  return until.getTime()>now?until.getTime():0;
 }
