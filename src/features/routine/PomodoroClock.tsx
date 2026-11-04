@@ -31,7 +31,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
   </View>
   <View style={{flex:1,flexDirection:landscape?'row':'column',gap:landscape?28:18,alignItems:'center',justifyContent:'center'}}>
    <View style={{flex:landscape?1:undefined,alignItems:'center',justifyContent:'center'}}>
-    <TimerFace size={size} progress={progress} time={time} weight={design==='A'?'300':'800'} fontRatio={left<0||restOver?.24:.29} colors={overtime&&!inverted?{...p,text:p.accent}:p} accessibilityLabel={(restOver?'휴식 후 지난 시간 ':overtime?'추가 공부 시간 ':'남은 시간 ')+Math.floor(seconds/60)+'분 '+seconds%60+'초'} caption={restOver?'버튼을 누르면 집중을 시작해요':idle?'시작하면 공부 시간이 쌓여요':!running?(resting?'휴식 일시정지':'일시정지 중'):resting?'편하게 쉬어도 좋아요':overtime?'목표 달성 · 공부 시간은 계속 쌓여요':'지금은 이 순간에 집중'}/>
+    <TimerFace size={size} progress={progress} time={time} weight={design==='A'?'300':'800'} fontRatio={left<0||restOver?.24:.29} colors={overtime&&!inverted?{...p,text:p.accent}:p} accessibilityLabel={(restOver?'휴식 후 지난 시간 ':overtime?'추가 공부 시간 ':'남은 시간 ')+Math.floor(seconds/60)+'분 '+seconds%60+'초'} caption={restOver?'버튼을 누르면 집중을 시작해요':idle?'시작하면 공부 시간이 쌓여요':!running?(resting?'휴식 일시정지':'일시정지 중'):resting?'편하게 쉬어도 좋아요':overtime?'목표 달성 · 공부 시간은 계속 쌓여요':'내가 선택한 공부'}/>
    </View>
    <View style={{width:landscape?238:'100%',maxWidth:360,gap:landscape?8:12}}>
     {design==='C'?<Text style={{color:p.accent,fontSize:16,fontWeight:'800'}}>{revealed?subject:'지금 할 행동에 집중해요'}</Text>:null}
