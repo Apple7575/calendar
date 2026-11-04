@@ -7,11 +7,11 @@
     "scheme": "calendarapp",
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFCF3"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,

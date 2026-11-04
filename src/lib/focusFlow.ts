@@ -29,3 +29,8 @@ export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),
  if(phase==='focus')return 'study';
  return canTakeHandwritingPhoto(data,now)?'capture':'start';
 }
+
+/** 집중 시계가 시간 초과 화면으로 뒤집히는 때: 목표 시간을 넘긴 집중, 끝난 뒤 시간이 흐르는 휴식. */
+export function focusClockInverted(phase:string,left:number,restOvertime:number|null){
+ return (phase==='focus'&&left<=0)||(phase==='idle'&&restOvertime!==null);
+}

@@ -73,10 +73,10 @@ export function Action({ label, onPress, variant, secondary = false, disabled = 
   </Pressable></Animated.View>;
 }
 /** 아이콘 버튼. 재생·멈춤처럼 아이콘이 더 빠른 조작에 쓴다. 글자가 필요하면 caption을 함께 준다. 라벨은 스크린리더가 읽는다. */
-export function IconAction({icon,label,onPress,caption,large=false,disabled=false}:{icon:React.ComponentProps<typeof Ionicons>["name"];label:string;onPress:()=>void;caption?:string;large?:boolean;disabled?:boolean}){
-  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),box=large?control.large+space.md:control.touch;
+export function IconAction({icon,label,onPress,caption,large=false,disabled=false,boxSize}:{icon:React.ComponentProps<typeof Ionicons>["name"];label:string;onPress:()=>void;caption?:string;large?:boolean;disabled?:boolean;boxSize?:number}){
+  const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),box=boxSize??(large?control.large+space.md:control.touch);
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={({pressed})=>({alignItems:'center',gap:space.xxs,minWidth:control.touch,opacity:disabled?0.35:pressed?0.7:1})}>
-    <View style={{width:box,height:box,borderRadius:box/2,alignItems:'center',justifyContent:'center',backgroundColor:large?c.primarySoft:c.inputBg}}><Ionicons name={icon} size={large?30:20} color={large?role.primary.ink:c.text}/></View>
+    <View style={{width:box,height:box,borderRadius:box/2,alignItems:'center',justifyContent:'center',backgroundColor:large?c.primarySoft:c.inputBg}}><Ionicons name={icon} size={large?box*.42:20} color={large?role.primary.ink:c.text}/></View>
     {caption?<Copy variant="caption" muted>{caption}</Copy>:null}
   </Pressable>;
 }
@@ -116,7 +116,7 @@ export function Field({label,accessibilityLabel,value,onChangeText,placeholder,h
   useEffect(()=>{if(!focused)return;reveal();const shown=Keyboard.addListener('keyboardDidShow',event=>reveal(event.endCoordinates.screenY));return()=>shown.remove()},[focused,reveal]);
   return <View ref={box} style={{gap:space.xs}}>
     {label?<Copy variant="caption" weight="700" muted>{label}</Copy>:null}
-    <TextInput accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} onContentSizeChange={()=>{if(focused)reveal()}} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
+    <TextInput keyboardAppearance={theme.isDark?'dark':'light'} accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} onContentSizeChange={()=>{if(focused)reveal()}} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
     {error?<Copy variant="caption" style={{color:role.danger.ink}}>{error}</Copy>:helper?<Copy variant="caption" muted>{helper}</Copy>:null}
   </View>;
 }
@@ -136,9 +136,9 @@ export function EmptyState({title,description,actionLabel,onAction,peek=false,ch
   return peek||character?<View><CharacterPeek character={character} mood={mood}/><CardView>{content}</CardView></View>:<View style={{gap:space.xs,paddingVertical:space.lg}}>{content}</View>;
 }
 /** 화면의 주인공 친구. 누르면 반응한다. 배경 없이 크게 그리고 몸 아래쪽이 잘리므로, 같은 View 안에서 바로 다음에 카드를 놓아 카드 뒤에서 내다보게 한다. */
-export function CharacterPeek({character,action,mood,maxSize=characterSize.peekMax,interactive=true}:{character?:AnimalCharacterId;action?:AnimalActionId;mood?:MascotMood;maxSize?:number;interactive?:boolean}){
-  const {width}=useWindowDimensions(),size=Math.min(maxSize,width*characterSize.peekWidthRatio);
-  return <View pointerEvents={interactive?'box-none':'none'} style={{alignItems:'center',height:size*characterSize.peekVisible,overflow:'hidden'}}><View style={{marginTop:-size*characterSize.peekTopCrop}}><Mascot size={size} character={character} action={action} mood={mood}/></View></View>;
+export function CharacterPeek({character,action,mood,maxSize=characterSize.peekMax,interactive=true,fixedSize,fixedHeight,topCrop=characterSize.peekTopCrop}:{character?:AnimalCharacterId;action?:AnimalActionId;mood?:MascotMood;maxSize?:number;interactive?:boolean;fixedSize?:number;fixedHeight?:number;topCrop?:number}){
+  const {width}=useWindowDimensions(),size=fixedSize??Math.min(maxSize,width*characterSize.peekWidthRatio);
+  return <View pointerEvents={interactive?'box-none':'none'} style={{alignItems:'center',height:fixedHeight??size*characterSize.peekVisible,overflow:'hidden'}}><View style={{marginTop:-size*topCrop}}><Mascot size={size} character={character} action={action} mood={mood}/></View></View>;
 }
 /** 불러오는 중. 무엇을 기다리는지 함께 적는다. */
 export function LoadingState({label}:{label:string}){
