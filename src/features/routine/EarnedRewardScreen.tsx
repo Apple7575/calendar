@@ -42,8 +42,8 @@ function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
    <Pressable accessibilityRole="button" accessibilityLabel="축하 화면 닫기" onPress={continueStudy} hitSlop={8} style={{margin:12,width:44,height:44,alignItems:'center',justifyContent:'center'}}><Icon name="close" color="#CEE1E8" size={27}/></Pressable>
    <ScrollView contentContainerStyle={{flexGrow:1,alignItems:'center',justifyContent:'center',paddingHorizontal:22,paddingBottom:20,gap:small?12:20}}>
     <Mascot character="C03" action={pending?'A21':p.kind==='plan'?'A24':'A26'} size={Math.min(width-44,small?160:220)}/>
-    <Text accessibilityRole="header" style={{fontSize:small?27:32,fontWeight:'900',color:focusTheme.colors.primary,textAlign:'center'}}>{pending?'필기를 저장했어요!':p.kind==='speaking'?'말로 설명했어요!':p.kind==='plan'?'시작할 준비 완료!':'한 단계 해냈어요!'}</Text>
-    <View style={{width:'100%',maxWidth:500}}><RewardResultTiles minutes={minutes} cash={cash} cashEnabled={p.cashEnabled} pending={pending} quantity={p.quantity+(p.kind==='plan'?'개':'자')} quantityLabel={p.kind==='speaking'?'인정 글자':p.kind==='plan'?'저장한 계획':'인정 필기'}/></View>
+    <Text accessibilityRole="header" style={{fontSize:small?27:32,fontWeight:'900',color:focusTheme.colors.primary,textAlign:'center'}}>{pending?'필기를 저장했어요!':p.kind==='content'?'업로드 인증 완료!':p.kind==='speaking'?'말로 설명했어요!':p.kind==='plan'?'시작할 준비 완료!':'한 단계 해냈어요!'}</Text>
+    <View style={{width:'100%',maxWidth:500}}><RewardResultTiles minutes={minutes} cash={cash} cashEnabled={p.cashEnabled} pending={pending} quantity={p.quantity+(p.kind==='plan'||p.kind==='content'?'개':'자')} quantityLabel={p.kind==='content'?'인증한 영상':p.kind==='speaking'?'인정 글자':p.kind==='plan'?'저장한 계획':'인정 필기'}/></View>
     <Text style={{color:'#FFFFFF',fontSize:18,fontWeight:'700'}}>지금 사용 가능 {wallet.available}분</Text>
     <Text style={{color:'#BFD0D8',fontSize:13,lineHeight:20,textAlign:'center'}}>{pending?'사진과 인식 결과는 저장했어요. 공부를 이어가 주세요.':!getDay(data,dayKey).paid.morning?'적립 완료 · 아침 루틴을 마치면 사용할 수 있어요.':wallet.reason}</Text>
     {p.kind==='plan'?<Text style={{color:'#BFD0D8',fontSize:12,textAlign:'center'}}>계획은 시간 보상만 받아요.</Text>:null}

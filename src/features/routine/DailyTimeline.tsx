@@ -13,6 +13,8 @@ import {control,space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
 import {CardView,Copy,Icon,Link,Page} from './ui';
 import {SpeakingDayRecords} from './SpeakingDayRecords';
+import {ContentDayRecords} from './ContentDayRecords';
+import {EmergencyDayRecords} from './EmergencyDayRecords';
 
 const clock=(n:number)=>new Date(n).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
 const dateLabel=(key:string)=>Number(key.slice(5,7))+'월 '+Number(key.slice(8,10))+'일';
@@ -34,7 +36,7 @@ const playValue=(t:Timeline)=>t.totals.playSeconds===null?'기록 없음':durati
 function Row({item,full=false}:{item:TimelineItem;full?:boolean}){
  const {colors:c}=useTheme();
  const time=item.kind==='deck'?clock(item.start):clock(item.start)+'~'+('live' in item&&item.live?'':clock(item.end));
- const title=item.kind==='study'?item.subject:item.kind==='deck'?item.deckName:'노는 시간';
+ const title=item.kind==='study'?item.subject:item.kind==='deck'?item.deckName:item.emergency?'긴급 해제':'노는 시간';
  const detail=item.kind==='study'?'공부 · '+durationLabel(item.seconds)+(item.live?' · 진행 중':''):item.kind==='deck'?'단어장 · '+item.cards+'장 · '+durationLabel(item.seconds):durationLabel(item.seconds)+(item.live?' · 켜져 있음':'');
  const icon=item.kind==='study'?'book-outline':item.kind==='deck'?'albums-outline':'game-controller-outline';
  return <View accessible accessibilityLabel={time+' '+title+' '+detail} style={{flexDirection:'row',gap:space.sm,alignItems:'flex-start'}}>
@@ -76,6 +78,8 @@ export function DailyTimelineScreen({route,navigation}:RootScreenProps<'DailyTim
   </CardView>
   {t.items.length?<CardView>{t.items.map(item=><Row key={item.id} item={item} full/>)}</CardView>:<CardView><Copy muted>이날 시각이 남은 기록이 없어요.</Copy></CardView>}
   <SpeakingDayRecords data={data} day={selected}/>
+  <ContentDayRecords data={data} day={selected}/>
+  <EmergencyDayRecords data={data} day={selected}/>
   {t.totals.untimedResponses?<Copy variant="caption" muted>{'단어 응답 '+t.totals.untimedResponses+'회는 시각 기록이 없어 목록에 넣지 못했어요.'}</Copy>:null}
  </Page>;
 }

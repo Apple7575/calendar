@@ -9,6 +9,16 @@ import DeviceActivity
 struct PlayInterval: Codable {
   var s: Double
   var e: Double? = nil
+  var emergency: Bool? = nil
+}
+
+/// What an emergency unlock really did, so the app can charge for it even if it died right after asking.
+struct EmergencyEntry: Codable {
+  var id: String
+  var at: Double
+  var until: Double
+  var minutes: Int
+  var penalty: Int
 }
 
 @available(iOS 16.0, *)
@@ -26,6 +36,8 @@ struct ScreenTimeState: Codable {
   var rewardMode: Bool? = nil
   var usingRewards: Bool? = nil
   var focusUntil: Double? = nil
+  var emergencyUntil: Double? = nil
+  var emergencyLog: [EmergencyEntry]? = nil
   var paid: [String: Int]? = nil
   var penalty: Int? = nil
   var debtIn: Int? = nil
@@ -42,6 +54,8 @@ enum ScreenTimeStorage {
   static let dailyActivity = "routine.daily"
   static let productionActivity = "routine.production.v2"
   static let sleepActivity = "routine.sleep"
+  static let emergencyActivity = "routine.emergency"
+  static let emergencyLogLimit = 20
   static let store = ManagedSettingsStore(named: .init("routine.screen-time"))
   /// Kept small because the extension reads this file on every callback. The app copies rows out on each status.
   static let playLogLimit = 200
@@ -121,16 +135,19 @@ enum ScreenTimeStorage {
   static func recordPlay(_ state: inout ScreenTimeState, now: Date = Date()) {
     let time = now.timeIntervalSince1970
     let connected = state.enabled && state.rewardMode == true
-    let open = connected && state.usingRewards == true && !locked(state)
+    let emergency = connected && emergencyOpen(state, at: time)
+    let open = connected && (state.usingRewards == true || emergency) && !locked(state)
     var log = state.playLog ?? []
     if let last = log.last, last.e == nil {
       if !open {
         // The sleep lock can be noticed late. Use cannot run past it, whenever this write happens.
-        let end = min(time, playCutoff(after: last.s))
+        var end = min(time, playCutoff(after: last.s))
+        // An emergency unlock ends at its own time, whenever this write happens.
+        if last.emergency == true, let until = state.emergencyUntil { end = min(end, until) }
         if end > last.s { log[log.count - 1].e = end } else { log.removeLast() }
       }
     } else if open {
-      log.append(PlayInterval(s: time))
+      log.append(PlayInterval(s: time, emergency: emergency ? true : nil))
     }
     // A day without a connection is unknown, not zero, so the record restarts on reconnecting.
     var since = connected ? (state.playLogSince ?? time) : nil
@@ -203,8 +220,19 @@ enum ScreenTimeStorage {
     let minute = (components.hour ?? 0) * 60 + (components.minute ?? 0)
     return minute >= 21 * 60 || minute < 4 * 60 + 30
   }
+  /// Judged by the clock on every read, so nothing has to fire for it to end. An end further off than the unlock's own
+  /// length means the clock was moved, and counts as over.
+  static func emergencyOpen(_ state: ScreenTimeState, at time: Double = Date().timeIntervalSince1970) -> Bool {
+    guard state.rewardMode == true, let until = state.emergencyUntil else { return false }
+    let now = time
+    let allowed = Double((state.emergencyLog?.last?.minutes ?? 15) * 60 + 120)
+    return until > now && until - now <= allowed
+  }
   static func locked(_ state: ScreenTimeState) -> Bool {
     guard state.enabled else { return false }
+    // Study keeps its lock whatever else is true. An emergency unlock passes every other condition.
+    if state.rewardMode == true && (state.focusUntil ?? 0) > Date().timeIntervalSince1970 { return true }
+    if emergencyOpen(state) { return false }
     return !state.morningComplete || (priorityRequired(state) && state.priorityComplete != true) || state.consumed >= state.granted || sleepLocked(state)
       || (state.rewardMode == true && (state.usingRewards != true || (state.focusUntil ?? 0) > Date().timeIntervalSince1970))
   }
@@ -246,14 +274,21 @@ enum ScreenTimeStorage {
       "supportsHandwritingRewards": true,
       "supportsMinuteHandwriting": true,
       "supportsSpeakingRewards": true,
+      "supportsContentRewards": true,
+      "supportsEmergencyUnlock": true,
+      "emergencyUntil": emergencyOpen(state) ? (state.emergencyUntil ?? 0) * 1000 : 0,
+      "emergencyLog": (state.emergencyLog ?? []).map { row -> [String: Any] in
+        ["id": row.id, "at": row.at * 1000, "until": row.until * 1000, "minutes": row.minutes, "penalty": row.penalty]
+      },
       "penaltyMinutes": state.penalty ?? 0,
       "debtMinutes": state.debtIn ?? 0,
       "supportsPlayLog": true,
       "consumedByDay": state.consumedByDay ?? [:],
       "playLogSince": (state.playLogSince ?? 0) * 1000,
-      "playLog": (state.playLog ?? []).map { row -> [String: Double] in
-        var item = ["start": row.s * 1000]
+      "playLog": (state.playLog ?? []).map { row -> [String: Any] in
+        var item: [String: Any] = ["start": row.s * 1000]
         if let end = row.e { item["end"] = end * 1000 }
+        if row.emergency == true { item["emergency"] = true }
         return item
       },
       "supportsProgressiveWordRewards": true,

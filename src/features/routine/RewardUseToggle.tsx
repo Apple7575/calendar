@@ -33,7 +33,7 @@ export function useRewardUse(onConnect?:()=>void){
    if(!wallet.morning){explain('아침 루틴을 먼저 마쳐 주세요',`남은 ${wallet.balance}분은 보관 중이에요. 아침 전체 또는 작은 목표를 마치면 사용할 수 있어요.`,'아침 루틴 열기',()=>navigation.navigate('GuidedRoutine',{slot:'morning'}));return;}
    if(gate.required&&!native?.supportsPriorityGate){explain('새 아이폰 빌드가 필요해요','이 설치본은 첫 공부 잠금을 지원하지 않아요. 계획과 실천 기록은 저장돼요. 새 빌드 설치 후 기기 잠금이 적용돼요.');return;}
    if(gate.blocked){explain('중요한 공부부터 작게 시작해요',gate.reason+' 다른 공부로 모은 시간은 그대로 보관돼요.','오늘의 첫 공부',()=>navigation.navigate('Main',{screen:'Today'}));return;}
-   if(native?.sleepLocked){explain('취침 준비 시간이에요',`남은 ${wallet.balance}분은 보관 중이에요. 취침 잠금이 끝난 뒤 시간 사용을 켤 수 있어요.`);return;}
+   if(native?.sleepLocked){explain('취침 준비 시간이에요',`남은 ${wallet.balance}분은 보관 중이에요. 취침 잠금이 끝난 뒤 시간 사용을 켤 수 있어요. 꼭 써야 하면 벌점을 받고 긴급 해제할 수 있어요.`,'긴급 해제',()=>navigation.navigate('EmergencyUnlock'));return;}
    if(focus){
     const t=data.bookTimer,active=t&&t.phase!=='idle';
     const detail=active?`집중 공부 타이머가 ${t.running?'진행 중':'일시정지 상태'}이에요. 목표 시간을 채워 휴식을 시작하거나 타이머를 종료하면 시간 사용을 켤 수 있어요.`:'기기에 집중 잠금이 남아 있어요. 공부 타이머와 기기 상태를 확인해 주세요.';

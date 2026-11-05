@@ -1,3 +1,4 @@
+import {emergencyUnlocksOn} from './emergencyUnlock';
 import {earned,getDay,routineDay,type RoutineData} from './routineModel';
 import {bookFocusSeconds} from './bookTimerTime';
 import {playDayState,readPlayLog,type PlayDayState} from './playLog';
@@ -7,7 +8,7 @@ import type {ScreenTimeStatus} from './screenTime';
 export type TimelineItem=
  |{kind:'study';id:string;subject:string;start:number;end:number;seconds:number;live?:boolean}
  |{kind:'deck';id:string;deckName:string;start:number;end:number;cards:number;seconds:number}
- |{kind:'play';id:string;start:number;end:number;seconds:number;live?:boolean};
+ |{kind:'play';id:string;start:number;end:number;seconds:number;live?:boolean;emergency?:boolean};
 export type DailyTimeline={
  items:TimelineItem[];play:PlayDayState;
  totals:{studySeconds:number;playSeconds:number|null;consumedMinutes:number|null;earnedMinutes:number;penaltyMinutes:number;penaltyWon:number;untimedResponses:number};
@@ -55,11 +56,11 @@ function deckRows(data:RoutineData,key:string):TimelineItem[]{
 }
 
 function playRows(data:RoutineData,key:string,status:ScreenTimeStatus|null|undefined,now:number):TimelineItem[]{
- const byStart=new Map<number,{start:number;end?:number}>(readPlayLog(data).rows.map(r=>[r.start,r]));
+ const byStart=new Map<number,{start:number;end?:number;emergency?:boolean}>(readPlayLog(data).rows.map(r=>[r.start,r]));
  if(status?.supportsPlayLog&&Array.isArray(status.playLog))for(const r of status.playLog)if(r&&Number.isFinite(r.start)&&(r.end===undefined||Number.isFinite(r.end)&&r.end>r.start))byStart.set(r.start,r);
  return [...byStart.values()].filter(r=>routineDay(new Date(r.start))===key).map(r=>{
   const end=r.end??Math.max(r.start,now);
-  return {kind:'play' as const,id:'play:'+r.start,start:r.start,end,seconds:Math.round((end-r.start)/1000),...(r.end===undefined?{live:true}:{})};
+  return {kind:'play' as const,id:'play:'+r.start,start:r.start,end,seconds:Math.round((end-r.start)/1000),...(r.end===undefined?{live:true}:{}),...(r.emergency===true?{emergency:true}:{})};
  });
 }
 
@@ -75,15 +76,15 @@ export function dailyTimeline(data:RoutineData,key:string,status:ScreenTimeStatu
  const day=getDay(data,key),study=studyRows(data,key,now),decks=deckRows(data,key),plays=playRows(data,key,status,now);
  const items=[...study,...decks,...plays].sort((a,b)=>a.start-b.start);
  const answered=decks.reduce((n,r)=>n+r.seconds,0),untimed=!decks.length&&day.responses>0;
- const penalties=(Array.isArray(data.focusPenalties)?data.focusPenalties:[]).filter(p=>p?.day===key);
+ const penalties=(Array.isArray(data.focusPenalties)?data.focusPenalties:[]).filter(p=>p?.day===key),emergency=emergencyUnlocksOn(data,key);
  const play=playDayState(data,key,now,status),playSeconds=plays.reduce((n,r)=>n+r.seconds,0);
  return {items,play,totals:{
   studySeconds:study.reduce((n,r)=>n+r.seconds,0)+(untimed?(Number.isFinite(day.studySeconds)?day.studySeconds:0):answered),
   playSeconds:plays.length||play.state!=='none'?playSeconds:null,
   consumedMinutes:consumedOn(data,key,status),
   earnedMinutes:earned(day),
-  penaltyMinutes:penalties.reduce((n,p)=>n+(Number.isFinite(p.minutes)?p.minutes:0),0),
-  penaltyWon:penalties.reduce((n,p)=>n+(Number.isFinite(p.won)?p.won:0),0),
+  penaltyMinutes:[...penalties,...emergency].reduce((n,p)=>n+(Number.isFinite(p.minutes)?p.minutes:0),0),
+  penaltyWon:[...penalties,...emergency].reduce((n,p)=>n+(Number.isFinite(p.won)?p.won:0),0),
   untimedResponses:untimed?day.responses:0,
  }};
 }

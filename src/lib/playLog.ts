@@ -2,8 +2,8 @@ import type {RoutineData} from './routineModel';
 import type {ScreenTimeStatus} from './screenTime';
 
 /** One stretch with the apps unlocked for reward use. Epoch milliseconds. A row with no end is still open. */
-export type PlayRow={start:number;end:number};
-export type PlayNativeRow={start:number;end?:number};
+export type PlayRow={start:number;end:number;emergency?:boolean};
+export type PlayNativeRow={start:number;end?:number;emergency?:boolean};
 /** Stretches the phone was recording. A day outside these is unknown, which is not the same as zero. */
 export type PlayCoverage={from:number;to:number};
 export type PlayLog={rows:PlayRow[];coverage:PlayCoverage[];nativeSince?:number;floor?:number;consumed?:Record<string,number>};
@@ -37,7 +37,7 @@ export function mergePlayLog(data:RoutineData,status:ScreenTimeStatus|null|undef
  for(const row of Array.isArray(status.playLog)?status.playLog:[]){
   if(!row||row.end===undefined||!validRow(row as PlayRow))continue;
   const old=byStart.get(row.start);
-  if(!old||old.end!==row.end){byStart.set(row.start,{start:row.start,end:row.end});changed=true;}
+  if(!old||old.end!==row.end){byStart.set(row.start,{start:row.start,end:row.end,...(row.emergency===true?{emergency:true}:{})});changed=true;}
  }
  const coverage=[...log.coverage];let nativeSince=log.nativeSince;
  if(recording(status)){

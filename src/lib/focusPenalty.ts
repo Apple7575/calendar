@@ -1,5 +1,5 @@
 import type {RoutineData} from './routineModel';
-import {routineDay,speakingBonus} from './routineModel';
+import {contentBonus,routineDay,speakingBonus} from './routineModel';
 import {focusRampStatus,focusRunCredit,focusRunSeconds} from './focusRamp';
 import {moneySummary} from './moneyRewards';
 import type {BookTimer} from './bookStudy';
@@ -8,7 +8,10 @@ export type FocusPenalty={id:string;timerId:string;at:string;day:string;minutes:
 export const QUIT_PENALTY={minutes:10,won:1000,freeSeconds:60,debtMinutes:60,debtWon:6000} as const;
 /** Saved values are never trusted: a broken row counts as nothing and never blocks loading. */
 const validRow=(p:FocusPenalty|null|undefined):p is FocusPenalty=>!!p&&typeof p.id==='string'&&typeof p.day==='string'&&Number.isSafeInteger(p.minutes)&&p.minutes>=0&&p.minutes<=QUIT_PENALTY.minutes;
-export const penaltyMinutesOnDay=(data:RoutineData,key:string)=>(Array.isArray(data.focusPenalties)?data.focusPenalties:[]).filter(validRow).filter(p=>p.day===key).reduce((n,p)=>n+p.minutes,0);
+const quitMinutesOnDay=(data:RoutineData,key:string)=>(Array.isArray(data.focusPenalties)?data.focusPenalties:[]).filter(validRow).filter(p=>p.day===key).reduce((n,p)=>n+p.minutes,0);
+const emergencyMinutesOnDay=(data:RoutineData,key:string)=>(Array.isArray(data.emergencyUnlocks)?data.emergencyUnlocks:[]).filter(u=>!!u&&u.day===key&&Number.isSafeInteger(u.minutes)&&u.minutes>=0).reduce((n,u)=>n+u.minutes,0);
+/** Everything charged that day. A quit's own daily cap counts quits only, so an emergency unlock cannot make quitting free. */
+export const penaltyMinutesOnDay=(data:RoutineData,key:string)=>quitMinutesOnDay(data,key)+emergencyMinutesOnDay(data,key);
 /**
  * What ending this run would cost (user decision 2026-11-04). Free within a minute of real study since the
  * last payout, once the stage is met, after the two-hour reset, and for a timer already charged.
@@ -20,7 +23,7 @@ export function focusQuitPenalty(data:RoutineData,now=Date.now()){
  const mark=typeof t.creditMark==='number'&&t.creditMark>0?t.creditMark:0;
  if(focusRunSeconds(data,now)-mark<=QUIT_PENALTY.freeSeconds)return null;
  const id='penalty:'+t.id;if((Array.isArray(data.focusPenalties)?data.focusPenalties:[]).some(p=>p?.id===id)||data.money?.entries.some(e=>e.id===id))return null;
- const minutes=Math.min(QUIT_PENALTY.minutes,Math.max(0,QUIT_PENALTY.debtMinutes-penaltyMinutesOnDay(data,routineDay(new Date(now)))));
+ const minutes=Math.min(QUIT_PENALTY.minutes,Math.max(0,QUIT_PENALTY.debtMinutes-quitMinutesOnDay(data,routineDay(new Date(now)))));
  const won=data.money?Math.min(QUIT_PENALTY.won,Math.max(0,moneySummary(data).balance+QUIT_PENALTY.debtWon)):0;
  return minutes||won?{id,minutes,won}:null;
 }
@@ -45,9 +48,9 @@ export function focusLockUntil(t:BookTimer|undefined,now=Date.now()){
  return until.getTime()>now?until.getTime():0;
 }
 /** The fields only a matching build understands. An older build rejects minutes off the 5-minute step and would fail its whole sync. */
-export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean}|null|undefined):{handwriting?:number;penalty?:number;speaking?:number}{
+export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean;supportsContentRewards?:boolean}|null|undefined):{handwriting?:number;penalty?:number;speaking?:number;content?:number}{
  if(!native?.supportsHandwritingRewards)return {};
- const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5}:{};
+ const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5}:{},content=native.supportsContentRewards?{content:contentBonus(data.days[key])}:{};
  const value=data.days[key]?.bonus?.handwriting??0;
- return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking}:{handwriting:value-value%5};
+ return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking,...content}:{handwriting:value-value%5};
 }

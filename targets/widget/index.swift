@@ -375,5 +375,6 @@ struct ExportedWidgets: WidgetBundle {
   var body: some Widget {
     TodayWidget()
     MonthWidget()
+    StreakWidget()
   }
 }
