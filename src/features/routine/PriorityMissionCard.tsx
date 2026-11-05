@@ -24,5 +24,5 @@ export function PriorityMissionCard(){
 export function PriorityContinuationCard(){
  const {data,dayKey}=useRoutine(),task=activePriorityTask(data,dayKey),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  if(!task?.startedAt||data.bookTimer?.phase!=='focus')return null;
- return <Link label="다음 시작 위치 남기기" onPress={()=>nav.navigate('PriorityPause')}/>;
+ return <Link label="멈추고 메모" onPress={()=>nav.navigate('PriorityPause')}/>;
 }

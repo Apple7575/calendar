@@ -40,6 +40,7 @@ export type RootStackParamList = {
   RoutineReward: { unit: Unit; level: Level; added: number };
   RoutineHistory: undefined;
   StudyHistory: {deckId?:string;wordId?:string}|undefined;
+  DailyTimeline: {date?:string}|undefined;
   StudyForecast:{deckId?:string}|undefined;
   RoutineScreenTime: undefined;
   RoutineSetup: {slot?:'morning'|'evening'}|undefined;

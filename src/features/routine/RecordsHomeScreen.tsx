@@ -1,4 +1,5 @@
 import {PriorityHistoryCard} from './PriorityHistoryCard';
+import {DailyTimelineCard} from './DailyTimeline';
 ﻿import React,{useCallback,useRef,useState} from 'react';
 import {Image,Pressable,View} from 'react-native';
 import {useFocusEffect,useNavigation,useRoute} from '@react-navigation/native';
@@ -23,7 +24,7 @@ export function RecordsHomeScreen(){
  const params=route.params as {section?:'calendar'|'diary'|'stats'}|undefined,[section,setSection]=useState<'calendar'|'diary'|'stats'>(params?.section??'calendar');
  React.useEffect(()=>{if(params?.section)setSection(params.section)},[params?.section]);
  const [stats,setStats]=useState<'all'|'words'|'book'>('all'),sessions=(data.bookSessions??[]).filter(s=>s.savedAt);
- return <Page title="우리의 기록" right={<SettingsButton/>}><Segments value={section} onChange={setSection} items={[{id:'calendar',label:'달력'},{id:'diary',label:'일기'},{id:'stats',label:'통계'}]}/>
+ return <Page title="우리의 기록" right={<SettingsButton/>}><DailyTimelineCard/><Segments value={section} onChange={setSection} items={[{id:'calendar',label:'달력'},{id:'diary',label:'일기'},{id:'stats',label:'통계'}]}/>
  {section==='calendar'?<RoutineCalendarScreen embedded/>:section==='diary'?<DiaryShelf/>:<View style={{gap:18}}><Segments value={stats} onChange={setStats} items={[{id:'all',label:'전체 실천'},{id:'words',label:'단어'},{id:'book',label:'집중'}]}/>{stats==='all'?<><PriorityHistoryCard/><RoutineHistoryScreen embedded/></>:stats==='words'?<CardView><Copy size={23} weight="800">실제 기억의 발자국</Copy><Copy>누적 응답 {data.reviewHistory?.filter(e=>!e.voidedAt).length??0}회</Copy><MenuRow title="덱·카드별 학습 통계" subtitle="응답 · 완료 · 복습 · 취소 이력" onPress={()=>nav.navigate('StudyHistory')}/><Copy muted size={12}>세부 응답 이력 기능 추가 이전의 과거 일별 기록도 전체 실천에서 확인할 수 있어요.</Copy></CardView>:<><HandwritingLog/><CardView><Copy size={24} weight="800">집중 {Math.round(sessions.reduce((sum,s)=>sum+s.seconds,0)/60)}분</Copy><Copy muted>한 줄 기록을 남긴 {sessions.length}세트</Copy></CardView>{[...sessions].reverse().slice(0,30).map(s=><CardView key={s.id}><Copy weight="700">{s.subject} · {Math.round(s.seconds/60)}분</Copy><Copy muted size={12}>{new Date(s.completedAt).toLocaleString('ko-KR')}</Copy><Copy>{s.note}</Copy>{s.next?<Copy muted size={12}>다음: {s.next}</Copy>:null}</CardView>)}</>}</View>}
  </Page>;
 }
