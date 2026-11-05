@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {View,useWindowDimensions} from 'react-native';
 import * as Crypto from 'expo-crypto';
-import {useNavigation} from '@react-navigation/native';
+import {useIsFocused,useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
 import {SUBJECTS,skipBookBreak,startBookTimer,saveFocusPlan,StudyRewardMode} from '../../lib/bookStudy';
@@ -13,6 +13,8 @@ import {useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,CharacterPeek,Choice,Copy,Field,Link,Notice} from './ui';
 import {rewardChange} from '../../lib/rewardChange';
+import {loadFocusQuestions,takeFocusQuestion} from '../../lib/focusQuestions';
+import {MascotBubble} from './MascotBubble';
 const STAGE_MINUTES=FOCUS_STEPS.slice(1).map(s=>s/60);
 /** The art fills only the middle of its canvas, so the canvas is oversized and cropped by the panel overlapping its feet. */
 const HERO_MAX=480;
@@ -23,6 +25,9 @@ export function FocusStart({initialSubject,compact=false,secondary=false}:{initi
  const status=focusRampStatus(data,clock),minutes=status.required/60,timer=data.bookTimer,active=timer?.phase==='focus',resting=timer?.phase==='break'?timer:undefined;
  const breakLeft=resting?bookDisplaySeconds(resting,Math.max(clock,Date.now())):0,breakClock=String(Math.floor(breakLeft/60)).padStart(2,'0')+':'+String(breakLeft%60).padStart(2,'0');
  const openTimer=()=>{if(compact)nav.replace('FocusTimer');else nav.navigate('FocusTimer')};
+ const focused=useIsFocused(),[question,setQuestion]=useState<{day:string;text:string}|null>(null),asksPlan=focused&&ready&&!secondary&&status.needsPlan;
+ /** Only when the plan form is on screen, so a tab left open behind another screen cannot use up the day's question. */
+ useEffect(()=>{if(!asksPlan||question?.day===dayKey)return;let live=true;void loadFocusQuestions().then(()=>{if(!live)return;const text=takeFocusQuestion('plan',dayKey);if(text)setQuestion({day:dayKey,text})});return()=>{live=false}},[asksPlan,dayKey,question?.day]);
  useEffect(()=>{if(!status.needsPlan&&data.outputDraft)setSubject(data.outputDraft.subject)},[status.needsPlan,data.outputDraft?.id,data.outputDraft?.subject]);
  const subjects=[...new Set([...SUBJECTS,...habitOrderPolicy(data).sequence.map(focusSubject).filter((s):s is string=>!!s)])];
  const submit=async()=>{if(busy)return;setBusy(true);setError('');try{const id=Crypto.randomUUID();let result:ReturnType<typeof rewardChange>|undefined;await update(s=>{const next=saveFocusPlan(s,id,subject,plan);result=rewardChange(s,next,dayKey);return next});setPlan('');if(result&&result.minutes>0)nav.navigate('EarnedReward',{id,kind:'plan',quantity:1,...result});}catch(e){setError(e instanceof Error?e.message:'계획을 저장하지 못했어요.')}finally{setBusy(false)}};
@@ -30,6 +35,7 @@ export function FocusStart({initialSubject,compact=false,secondary=false}:{initi
  if(secondary)return <View style={{gap:8}}><Action secondary label={'이어서 '+minutes+'분 더 공부하기'} disabled={!ready||busy} onPress={()=>void start()}/>{error?<Notice tone="error">{error}</Notice>:null}</View>;
  const title=status.needsPlan?'오늘 공부할 계획 한 줄':resting?(resting.running?'쉬는 중':'휴식 일시정지')+' · '+breakClock:active?'공부 진행 중':minutes+'분만 해볼까요?';
  return <View>
+  {status.needsPlan&&question?.day===dayKey&&question.text?<View style={{paddingHorizontal:4}}><MascotBubble text={question.text} background={c.text} color={c.background} onClose={()=>setQuestion({day:dayKey,text:''})}/></View>:null}
   <CharacterPeek interactive={false} action="A31" maxSize={status.needsPlan?undefined:HERO_MAX}/>
   <CardView>
    <View style={{gap:4}}><Copy size={25} weight="800">{title}</Copy>
