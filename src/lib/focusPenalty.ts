@@ -1,5 +1,5 @@
 import type {RoutineData} from './routineModel';
-import {routineDay,speakingBonus} from './routineModel';
+import {contentBonus,routineDay,speakingBonus} from './routineModel';
 import {focusRampStatus,focusRunCredit,focusRunSeconds} from './focusRamp';
 import {moneySummary} from './moneyRewards';
 import type {BookTimer} from './bookStudy';
@@ -45,9 +45,9 @@ export function focusLockUntil(t:BookTimer|undefined,now=Date.now()){
  return until.getTime()>now?until.getTime():0;
 }
 /** The fields only a matching build understands. An older build rejects minutes off the 5-minute step and would fail its whole sync. */
-export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean}|null|undefined):{handwriting?:number;penalty?:number;speaking?:number}{
+export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean;supportsContentRewards?:boolean}|null|undefined):{handwriting?:number;penalty?:number;speaking?:number;content?:number}{
  if(!native?.supportsHandwritingRewards)return {};
- const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5}:{};
+ const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5}:{},content=native.supportsContentRewards?{content:contentBonus(data.days[key])}:{};
  const value=data.days[key]?.bonus?.handwriting??0;
- return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking}:{handwriting:value-value%5};
+ return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking,...content}:{handwriting:value-value%5};
 }

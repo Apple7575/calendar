@@ -197,7 +197,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
       });
     }
     return () => { active = false; };
-    }, [ready, adjustment,dayKey, paid.morning, paid.words, paid.gym,bonus?.book,bonus?.words,bonus?.quick,bonus?.order,bonus?.freeStudy,bonus?.handwriting,bonus?.speaking,penaltyMinutesOnDay(data,dayKey),native?.supportsMinuteHandwriting,native?.supportsSpeakingRewards,wordDailyCap(data,dayKey),native?.supportsOrderBonus,native?.supportsFreeStudyRewards,native?.supportsHandwritingRewards,native?.policyVersion, native?.enabled, native?.rewardMode, refreshNative]);
+    }, [ready, adjustment,dayKey, paid.morning, paid.words, paid.gym,bonus?.book,bonus?.words,bonus?.quick,bonus?.order,bonus?.freeStudy,bonus?.handwriting,bonus?.speaking,bonus?.content,penaltyMinutesOnDay(data,dayKey),native?.supportsMinuteHandwriting,native?.supportsSpeakingRewards,native?.supportsContentRewards,wordDailyCap(data,dayKey),native?.supportsOrderBonus,native?.supportsFreeStudyRewards,native?.supportsHandwritingRewards,native?.policyVersion, native?.enabled, native?.rewardMode, refreshNative]);
   return <Context.Provider value={{accountId:userId, data, ready, error, native, refreshNative, dayKey, now, update,undoStudy,retryStudyAdjustment:()=>setAdjustmentAttempt(n=>n+1), syncingDecks, deckError, syncDecks,backupState,backupNow,restoreBackup }}>{children}</Context.Provider>;
 }
 export function useRoutine() {

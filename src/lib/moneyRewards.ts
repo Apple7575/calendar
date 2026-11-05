@@ -1,6 +1,7 @@
 import type {HandwritingReceipt} from './handwriting';
 import {FOCUS_MONEY_MINUTES,FOCUS_STEPS} from './focusRamp';
 import {SPEAKING_POLICY,speakingRecords} from './speaking';
+import {contentUploads} from './content';
 import type {RoutineData} from './routineModel';
 import {getDay} from './routineModel';
 import {eveningSteps} from './dailyPlan';
@@ -60,6 +61,11 @@ function reconcileFixedRewards(before:RoutineData,after:RoutineData,key:string,n
  for(const r of speakingRecords(after)){
   const id='speaking:'+r.id,minutes=r.status==='settled'&&Number.isSafeInteger(r.minutes)?r.minutes!:0;
   if(minutes>0&&!settled.has(r.id)&&!entries.some(e=>e.id===id))entries.push({id,kind:'reward',amount:minutes*SPEAKING_POLICY.wonPerMinute,at,day:r.rewardDay??key,note:'말하기 보상'});
+ }
+ const uploaded=new Set(contentUploads(before).map(u=>u.id));
+ for(const u of contentUploads(after)){
+  const id='content:'+u.id;
+  if(u.rewarded&&Number.isSafeInteger(u.won)&&u.won>0&&!uploaded.has(u.id)&&!entries.some(e=>e.id===id))entries.push({id,kind:'reward',amount:u.won,at,day:u.day,note:'콘텐츠 업로드 보상'});
  }
  const free=(b?.freeStudy??0)-(a?.freeStudy??0),freeId=`free:${key}:${b?.freeStudy??0}`;
  if(free>0&&!entries.some(e=>e.id===freeId))entries.push({id:freeId,kind:'reward',amount:free*FIXED.perMinute,at,day:key,note:'자유 공부 보상'});
