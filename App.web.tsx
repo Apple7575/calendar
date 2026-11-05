@@ -27,6 +27,7 @@ import { useSession } from "./src/hooks/useSession";
 import { GuidedRoutineScreen } from "./src/features/routine/GuidedRoutineScreen";
 import { BookStudyScreen } from "./src/features/routine/BookStudyScreen";
 import {SpeakingSessionScreen} from './src/features/routine/SpeakingSessionScreen';
+import {EmergencyUnlockScreen} from './src/features/routine/EmergencyUnlockScreen';
 import { BackupScreen } from "./src/features/routine/BackupScreen";
 import { SavedStudyScreen } from "./src/features/routine/SavedStudyScreen";
 import n3Deck from './assets/decks/n3-vocabulary.json';
@@ -95,6 +96,7 @@ function Preview() {
             <Stack.Screen name="FocusTimer" component={FocusTimerScreen} options={{headerShown:false}}/>
             <Stack.Screen name="BookStudy" component={BookStudyScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SpeakingSession" component={SpeakingSessionScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="EmergencyUnlock" component={EmergencyUnlockScreen} options={{headerShown:false}}/>
             <Stack.Screen name="RoutineBackup" component={BackupScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SavedStudy" component={SavedStudyScreen} />
             <Stack.Screen name="DeckCards" component={DeckCardsScreen} options={{headerShown:false}}/>

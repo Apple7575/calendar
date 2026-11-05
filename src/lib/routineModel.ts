@@ -49,7 +49,7 @@ export type Day = {
   complete: string[]; responses: number; studySeconds: number;
   lastStudyWordId?: string;
   additional?:AdditionalPlan;additionalByDeck?:Record<string,AdditionalPlan>;
-  bonus?:{words?:number;book?:number;quick?:number;order?:number;freeStudy?:number;handwriting?:number;speaking?:number};
+  bonus?:{words?:number;book?:number;quick?:number;order?:number;freeStudy?:number;handwriting?:number;speaking?:number;content?:number};
   rewardedFreeSessionIds?:string[];
   orderProgress?:import('./habitOrder').HabitOrderProgress;
   evening?:boolean[];eveningPlan?:MorningStep[];guidedTimer?:import('./dailyPlan').GuidedTimer;
@@ -65,6 +65,8 @@ export type RoutineData = {
   priorityPolicy?:import('./priorityPlan').PriorityPolicy;priorityDays?:Record<string,import('./priorityPlan').PriorityDay>;
   focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];focusPenalties?:import('./focusPenalty').FocusPenalty[];
   speakingRecords?:import('./speaking').SpeakingRecord[];speakingConsentAt?:string;
+  emergencyUnlocks?:import('./emergencyUnlock').EmergencyUnlock[];emergencyPending?:import('./emergencyUnlock').EmergencyPending;
+  contentUploads?:import('./content').ContentUpload[];contentSeenLinks?:string[];contentIdeas?:import('./content').ContentIdea[];
   money?:import('./moneyRewards').MoneyWallet;playLog?:import('./playLog').PlayLog;
   version: 1; decks: Deck[]; words: Word[]; days: Record<string, Day>; newLimit: number; morningSteps?: MorningStep[];
   boriStage?: import("./boriGrowth").BoriGrowthStage;
@@ -120,7 +122,9 @@ export function earn(data: RoutineData, key: string, unit: Unit, level: Level): 
 }
 /** Saved values are never trusted: a broken value counts as nothing and never blocks loading. */
 export const speakingBonus=(day:Day|undefined)=>{const v=day?.bonus?.speaking;return typeof v==='number'&&Number.isSafeInteger(v)&&v>0?v:0};
-export function earned(day: Day): number { return speakingBonus(day) + day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
+/** Only sums of the two platforms' rewards are real. Anything else counts as nothing, and the device would refuse it. */
+export const contentBonus=(day:Day|undefined)=>{const v=day?.bonus?.content;return v===60||v===120||v===180?v:0};
+export function earned(day: Day): number { return contentBonus(day) + speakingBonus(day) + day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
 export function achieved(day: Day): boolean { return earned(day) > 0; }
 export function planStudy(data: RoutineData, key: string): RoutineData {
   if (getDay(data, key).plan) return data;
