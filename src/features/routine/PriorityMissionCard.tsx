@@ -9,16 +9,22 @@ import {rewardChange} from '../../lib/rewardChange';
 import {focusQuitPenalty,penaltyLabel} from '../../lib/focusPenalty';
 import {useRoutine} from './RoutineProvider';
 import {Link} from './ui';
+import {QuitAsk,useQuitQuestion} from './QuitAsk';
+import {useQuitConfirm} from './useQuitConfirm';
 
 export function PriorityMissionCard(){
  const {data,dayKey,update,ready,native}=useRoutine(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  const focused=useIsFocused();
- const [clock,setClock]=useState(Date.now()),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [clock,setClock]=useState(Date.now()),[busy,setBusy]=useState(false),[error,setError]=useState(''),[startingId,setStartingId]=useState<string>();
  useEffect(()=>{if(!focused)return;setClock(Date.now());const t=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(t)},[focused]);
  const plan=priorityPlan(data,dayKey),pending=nextPriorityTask(data,dayKey,clock),task=pending??plan?.tasks[0],progress=task?priorityTaskProgress(data,task,clock):undefined;
  useEffect(()=>{if(focused&&ready&&plan?.tasks.some(t=>!t.completedAt&&priorityTaskProgress(data,t,clock).complete))void update(s=>reconcilePriorityPlans(s,dayKey)).catch(e=>setError(e.message))},[focused,ready,clock,plan,dayKey,update]);
  const start=async(id:string)=>{if(busy)return;setBusy(true);setError('');try{let reward:ReturnType<typeof rewardChange>|undefined;await update(s=>{const next=beginPriorityTask(s,dayKey,id);reward=rewardChange(s,next,dayKey);return next});if(reward&&reward.minutes>0)nav.navigate('EarnedReward',{id:'start-'+id+'-'+Date.now(),kind:'plan',quantity:1,...reward,continueTo:'FocusTimer'});else nav.navigate('FocusTimer')}catch(e){setError(e instanceof Error?e.message:'공부를 시작하지 못했어요.')}finally{setBusy(false)}};
- return <PriorityMissionView quitNotice={task&&beginWouldEndRun(data,task)?penaltyLabel(focusQuitPenalty(data,clock)):''} data={data} plan={plan} task={task} pending={pending} progress={progress} clock={clock} busy={busy} ready={ready} error={error} warning={!!data.priorityPolicy?.enabled&&!!native?.supported&&!native.supportsPriorityGate} onStart={id=>void start(id)} onEdit={()=>nav.navigate('PriorityPlan',{day:dayKey})} onTomorrow={()=>nav.navigate('PriorityPlan',{day:addDays(dayKey,1)})}/>;
+ /** Any task on this card can end the run, including the rows under the main one, so each press is checked for its own task. */
+ const penalty=penaltyLabel(focusQuitPenalty(data,clock)),confirm=useQuitConfirm(penalty,useQuitQuestion(dayKey));
+ const open=(id:string)=>{const target=plan?.tasks.find(t=>t.id===id);if(!target||!beginWouldEndRun(data,target)){confirm.stay();void start(id);return}setStartingId(id);confirm.press(()=>void start(id))};
+ const asking=confirm.open&&startingId?startingId:undefined;
+ return <PriorityMissionView quitNotice={task&&beginWouldEndRun(data,task)?penalty:''} askFor={asking} ask={asking?<QuitAsk question={confirm.question} onStay={confirm.stay} go={{label:(confirm.question?'마치고 시작':'한 번 더 누르면 시작해요')+' · '+penalty,onPress:()=>open(asking)}}/>:null} data={data} plan={plan} task={task} pending={pending} progress={progress} clock={clock} busy={busy} ready={ready} error={error} warning={!!data.priorityPolicy?.enabled&&!!native?.supported&&!native.supportsPriorityGate} onStart={open} onEdit={()=>nav.navigate('PriorityPlan',{day:dayKey})} onTomorrow={()=>nav.navigate('PriorityPlan',{day:addDays(dayKey,1)})}/>;
 }
 
 export function PriorityContinuationCard(){
