@@ -149,3 +149,42 @@ describe('saved values are never trusted',()=>{
   expect(()=>validateBackup({schema:'routine.backup.v1',userId:'u',createdAt:iso(NOW),data:base()},'u')).not.toThrow();
  });
 });
+
+describe('real use beside play time',()=>{
+ test('today uses the phone value, including a real zero',()=>{
+  expect(dailyTimeline(base(),KEY,native({consumedMinutes:12}),NOW).totals.consumedMinutes).toBe(12);
+  expect(dailyTimeline(base(),KEY,native({consumedMinutes:0}),NOW).totals.consumedMinutes).toBe(0);
+ });
+ test('a past day uses the value kept at the 04:00 change, saved or still on the phone',()=>{
+  const status=native({consumedMinutes:12,consumedByDay:{'2026-11-04':40}});
+  expect(dailyTimeline(base(),'2026-11-04',status,NOW).totals.consumedMinutes).toBe(40);
+  const saved=mergePlayLog(base(),status,NOW);
+  expect(saved.playLog?.consumed).toEqual({'2026-11-04':40});
+  expect(dailyTimeline(saved,'2026-11-04',null,NOW).totals.consumedMinutes).toBe(40);
+ });
+ test('a past day with no value stays unknown instead of zero',()=>{
+  expect(dailyTimeline(base(),'2026-11-03',native({consumedByDay:{'2026-11-04':40}}),NOW).totals.consumedMinutes).toBeNull();
+ });
+ test('no phone, an old build or a disconnected phone shows nothing for today',()=>{
+  expect(dailyTimeline(base(),KEY,null,NOW).totals.consumedMinutes).toBeNull();
+  expect(dailyTimeline(base(),KEY,{...native(),supportsPlayLog:undefined},NOW).totals.consumedMinutes).toBeNull();
+  expect(dailyTimeline(base(),KEY,native({enabled:false}),NOW).totals.consumedMinutes).toBeNull();
+ });
+ test('the phone value for another day does not leak into today',()=>{
+  expect(dailyTimeline(base(),KEY,native({day:'2026-11-04',consumedMinutes:9}),NOW).totals.consumedMinutes).toBeNull();
+ });
+ test('a repeated status writes nothing and a new value is saved once',()=>{
+  const status=native({consumedByDay:{'2026-11-04':40}}),d=mergePlayLog(base(),status,NOW);
+  expect(mergePlayLog(d,status,NOW+60000)).toBe(d);
+  expect(mergePlayLog(d,native({consumedByDay:{'2026-11-04':40,[KEY]:5}}),NOW+60000).playLog?.consumed).toEqual({'2026-11-04':40,[KEY]:5});
+ });
+ test('broken values count as nothing and old days fall off past the cap',()=>{
+  const junk=base({playLog:{rows:[],coverage:[],consumed:{'2026-11-04':'x','2026-11-03':-1,'2026-11-02':7}}} as any);
+  expect(dailyTimeline(junk,'2026-11-04',null,NOW).totals.consumedMinutes).toBeNull();
+  expect(dailyTimeline(junk,'2026-11-03',null,NOW).totals.consumedMinutes).toBeNull();
+  expect(dailyTimeline(junk,'2026-11-02',null,NOW).totals.consumedMinutes).toBe(7);
+  const many=Object.fromEntries(Array.from({length:401},(_,i)=>[new Date(2025,0,1+i,12).toISOString().slice(0,10),1]));
+  const capped=mergePlayLog(base(),native({consumedByDay:many}),NOW).playLog!.consumed!;
+  expect(Object.keys(capped)).toHaveLength(400);expect(capped['2025-01-01']).toBeUndefined();
+ });
+});

@@ -31,6 +31,7 @@ struct ScreenTimeState: Codable {
   var debtIn: Int? = nil
   var playLog: [PlayInterval]? = nil
   var playLogSince: Double? = nil
+  var consumedByDay: [String: Int]? = nil
   var lastEvent = "아직 테스트하지 않았어요."
   var lastEventAt: Double = Date().timeIntervalSince1970
 }
@@ -44,6 +45,7 @@ enum ScreenTimeStorage {
   static let store = ManagedSettingsStore(named: .init("routine.screen-time"))
   /// Kept small because the extension reads this file on every callback. The app copies rows out on each status.
   static let playLogLimit = 200
+  static let consumedDayLimit = 60
 
   static func dayKey(_ date: Date = Date()) -> String {
     let calendar = Calendar.current
@@ -78,6 +80,11 @@ enum ScreenTimeStorage {
         let total = (state.paid ?? [:]).values.reduce(0, +)
         state.debtIn = min(60, max(0, (state.penalty ?? 0) + (state.debtIn ?? 0) + state.consumed - total))
         state.penalty = nil
+        // Display only: a copy for the daily record, read by nothing above.
+        var used = state.consumedByDay ?? [:]
+        used[state.day] = state.consumed
+        for key in used.keys.sorted().dropLast(consumedDayLimit) { used[key] = nil }
+        state.consumedByDay = used
       }
       state.day = dayKey()
       state.session = state.rewardMode == true ? "\(productionActivity).\(state.day)" : nil
@@ -231,6 +238,7 @@ enum ScreenTimeStorage {
       "penaltyMinutes": state.penalty ?? 0,
       "debtMinutes": state.debtIn ?? 0,
       "supportsPlayLog": true,
+      "consumedByDay": state.consumedByDay ?? [:],
       "playLogSince": (state.playLogSince ?? 0) * 1000,
       "playLog": (state.playLog ?? []).map { row -> [String: Double] in
         var item = ["start": row.s * 1000]

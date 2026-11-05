@@ -10,7 +10,7 @@ export type TimelineItem=
  |{kind:'play';id:string;start:number;end:number;seconds:number;live?:boolean};
 export type DailyTimeline={
  items:TimelineItem[];play:PlayDayState;
- totals:{studySeconds:number;playSeconds:number|null;earnedMinutes:number;penaltyMinutes:number;penaltyWon:number;untimedResponses:number};
+ totals:{studySeconds:number;playSeconds:number|null;consumedMinutes:number|null;earnedMinutes:number;penaltyMinutes:number;penaltyWon:number;untimedResponses:number};
 };
 
 /** Answers of one deck this close together read as one sitting. */
@@ -63,6 +63,14 @@ function playRows(data:RoutineData,key:string,status:ScreenTimeStatus|null|undef
  });
 }
 
+/** Today is the phone's own count. A past day is what the phone kept at 04:00. No value stays unknown, never zero. */
+function consumedOn(data:RoutineData,key:string,status:ScreenTimeStatus|null|undefined){
+ if(status?.supportsPlayLog&&status.enabled&&status.rewardMode&&status.day===key&&Number.isFinite(status.consumedMinutes))return status.consumedMinutes;
+ const saved=readPlayLog(data).consumed?.[key],kept=status?.supportsPlayLog?status.consumedByDay?.[key]:undefined;
+ if(saved!==undefined)return saved;
+ return Number.isSafeInteger(kept)&&kept!>=0?kept!:null;
+}
+
 export function dailyTimeline(data:RoutineData,key:string,status:ScreenTimeStatus|null|undefined,now=Date.now()):DailyTimeline{
  const day=getDay(data,key),study=studyRows(data,key,now),decks=deckRows(data,key),plays=playRows(data,key,status,now);
  const items=[...study,...decks,...plays].sort((a,b)=>a.start-b.start);
@@ -72,6 +80,7 @@ export function dailyTimeline(data:RoutineData,key:string,status:ScreenTimeStatu
  return {items,play,totals:{
   studySeconds:study.reduce((n,r)=>n+r.seconds,0)+(untimed?(Number.isFinite(day.studySeconds)?day.studySeconds:0):answered),
   playSeconds:plays.length||play.state!=='none'?playSeconds:null,
+  consumedMinutes:consumedOn(data,key,status),
   earnedMinutes:earned(day),
   penaltyMinutes:penalties.reduce((n,p)=>n+(Number.isFinite(p.minutes)?p.minutes:0),0),
   penaltyWon:penalties.reduce((n,p)=>n+(Number.isFinite(p.won)?p.won:0),0),

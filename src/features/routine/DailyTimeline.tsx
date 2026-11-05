@@ -26,8 +26,8 @@ function DateNav({selected,onChange}:{selected:string;onChange:(key:string)=>voi
  const arrow=(label:string,name:'chevron-back'|'chevron-forward',enabled:boolean,step:number)=><Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled:!enabled}} disabled={!enabled} onPress={()=>onChange(addDays(selected,step))} style={{width:control.touch,height:control.touch,alignItems:'center',justifyContent:'center',opacity:enabled?1:.3}}><Icon name={name} size={20} color={c.text}/></Pressable>;
  return <View style={{flexDirection:'row',alignItems:'center'}}>{arrow('이전 날','chevron-back',canBack,-1)}<Copy variant="label">{dateLabel(selected)}</Copy>{arrow('다음 날','chevron-forward',canForward,1)}</View>;
 }
-function Total({label,value}:{label:string;value:string}){
- return <View style={{flexGrow:1,flexBasis:'45%',gap:space.xxs}}><Copy variant="caption" muted>{label}</Copy><Copy variant="section">{value}</Copy></View>;
+function Total({label,value,detail}:{label:string;value:string;detail?:string}){
+ return <View style={{flexGrow:1,flexBasis:'45%',gap:space.xxs}}><Copy variant="caption" muted>{label}</Copy><Copy variant="section">{value}</Copy>{detail?<Copy variant="caption" muted>{detail}</Copy>:null}</View>;
 }
 const playValue=(t:Timeline)=>t.totals.playSeconds===null?'기록 없음':durationLabel(t.totals.playSeconds);
 function Row({item,full=false}:{item:TimelineItem;full?:boolean}){
@@ -69,7 +69,7 @@ export function DailyTimelineScreen({route,navigation}:RootScreenProps<'DailyTim
   <CardView>
    <View style={{alignItems:'center'}}><DateNav selected={selected} onChange={setSelected}/></View>
    <View style={{flexDirection:'row',flexWrap:'wrap',rowGap:space.md,columnGap:space.sm}}>
-    <Total label="공부" value={durationLabel(t.totals.studySeconds)}/><Total label="노는 시간" value={playValue(t)}/>
+    <Total label="공부" value={durationLabel(t.totals.studySeconds)}/><Total label="노는 시간" value={playValue(t)} detail={t.totals.consumedMinutes===null?undefined:'실제 사용 '+t.totals.consumedMinutes+'분'}/>
     <Total label="받은 유튜브 시간" value={t.totals.earnedMinutes+'분'}/><Total label="벌점" value={penalty}/>
    </View>
    <Copy variant="caption" muted>{note||'노는 시간은 앱 잠금을 풀어 둔 시간이에요. 실제로 쓴 시간과 다를 수 있어요.'}</Copy>
