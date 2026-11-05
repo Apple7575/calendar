@@ -51,13 +51,23 @@ export function focusRunCredit(data:RoutineData,now=Date.now()){
  * A rest opens the apps, so it has to be earned (user decision 2026-11-05): the same time the photo rule and the
  * clock count must reach the current stage. Before a plan there is no stage, so no rest. A saved timer outside
  * the stages keeps its rest: new study always starts with a stage, and that timer has no stage to meet.
+ * Credit a rest already used cannot open another (user decision 2026-11-05): the stage is studied again after each
+ * rest. Only this button reads restedCredit. The photo, the clock and the penalty keep counting all the credit.
  */
 export function canStartBreak(data:RoutineData,now=Date.now()){
  const t=data.bookTimer;if(t?.phase!=='focus')return false;
  if(t.rewardMode!=='output')return true;
  const required=focusRampStatus(data,now).required;
- return required>0&&focusRunCredit(data,now)>=required;
+ return required>0&&focusRunCredit(data,now)-storedSeconds(t.restedCredit)>=required;
 }
+/** Study still needed after a rest before the next one opens, to say why the button is gone. 0 when no rest is in the way. */
+export function focusBreakWait(data:RoutineData,now=Date.now()){
+ const t=data.bookTimer,rested=storedSeconds(t?.restedCredit);if(t?.phase!=='focus'||t.rewardMode!=='output'||!rested)return 0;
+ const status=focusRampStatus(data,now);if(status.needsPlan||!status.required)return 0;
+ return Math.max(0,status.required-Math.max(0,focusRunCredit(data,now)-rested));
+}
+/** What a new run keeps of it: only the part of its carried credit a rest already used. */
+export const focusRestedInto=(data:RoutineData,carry:number)=>Math.min(carry,storedSeconds(data.bookTimer?.restedCredit));
 /**
  * Surplus a new run starts with. A run that reached its stage hands on all its credit; a run cut short
  * adds nothing (user decision 2026-11-03) but keeps earlier surplus. Never more than the unspent reward time.
@@ -109,7 +119,7 @@ export function focusPlanMinutesDue(data:RoutineData){
 export function carryRunPastStage(data:RoutineData,subject:string,paid:number,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.subject!==subject||t.rewardMode!=='output')return data;
  const credit=focusRunCredit(data,now);if(credit<paid)return data;
- const run=focusRunSeconds(data,now),carry=credit-paid,timer={...t,carrySeconds:carry,creditMark:run};
+ const run=focusRunSeconds(data,now),carry=credit-paid,rested=Math.max(0,storedSeconds(t.restedCredit)-paid),{restedCredit:_paidOff,...kept}=t,timer={...kept,carrySeconds:carry,creditMark:run,...(rested>0?{restedCredit:rested}:{})};
  if(t.phase!=='focus')return {...data,bookTimer:timer};
  const left=Math.max(0,focusRampStatus(data,now).required-carry);
  return {...data,bookTimer:{...timer,remaining:left,endsAt:now+left*1000,targetSeconds:run+left,...(t.running?{focusElapsed:run,focusResumedAt:now}:{})}};

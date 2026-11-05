@@ -12,6 +12,7 @@ import {useTheme} from '../../theme/ThemeContext';
 import {control,space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
 import {CardView,Copy,Icon,Link,Page} from './ui';
+import {SpeakingDayRecords} from './SpeakingDayRecords';
 
 const clock=(n:number)=>new Date(n).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
 const dateLabel=(key:string)=>Number(key.slice(5,7))+'월 '+Number(key.slice(8,10))+'일';
@@ -74,6 +75,7 @@ export function DailyTimelineScreen({route,navigation}:RootScreenProps<'DailyTim
    <Copy variant="caption" muted>{note||'노는 시간은 앱 잠금을 풀어 둔 시간이에요. 실제로 쓴 시간과 다를 수 있어요.'}</Copy>
   </CardView>
   {t.items.length?<CardView>{t.items.map(item=><Row key={item.id} item={item} full/>)}</CardView>:<CardView><Copy muted>이날 시각이 남은 기록이 없어요.</Copy></CardView>}
+  <SpeakingDayRecords data={data} day={selected}/>
   {t.totals.untimedResponses?<Copy variant="caption" muted>{'단어 응답 '+t.totals.untimedResponses+'회는 시각 기록이 없어 목록에 넣지 못했어요.'}</Copy>:null}
  </Page>;
 }

@@ -3,14 +3,14 @@ import { getDay,routineDay,withDay } from './routineModel';
 import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
-import {canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus} from './focusRamp';
+import {canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedInto,focusRunCredit} from './focusRamp';
 import {acceptHandwriting,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
-export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number;awaitingChoice?:boolean};
+export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number;awaitingChoice?:boolean;restedCredit?:number};
 export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const timer=data.bookTimer;if(!timer||!timer.running||now<timer.endsAt)return data;
  // Reaching the target is a cue, not consent to stop studying or start a break.
@@ -26,8 +26,8 @@ export function startBookTimer(data:RoutineData,id:string,subject:string,now=Dat
  if((next.bookSessions??[]).some(s=>s.id===id))throw new Error('이미 기록된 공부예요. 새 타이머로 시작해 주세요.');
  if(!['standard','free','output'].includes(rewardMode))throw new Error('공부 보상 모드를 확인해 주세요.');
  if(rewardMode==='free'&&!freeStudyStatus(next,routineDay(new Date(now))).unlocked)throw new Error('오늘 기본 실천을 마친 뒤 자유 공부를 시작해 주세요.');
- const carry=rewardMode==='output'&&next.focusRamp&&focusRampStatus(next,now).required===duration?focusCarryInto(next,subject.trim(),duration,now):0,left=Math.max(0,duration-carry);
- return {...next,bookTimer:{id,subject:subject.trim(),startedAt:new Date(now).toISOString(),phase:'focus',endsAt:now+left*1000,remaining:left,running:true,duration,rewardMode,focusElapsed:0,focusResumedAt:now,targetSeconds:left,...(carry>0?{carrySeconds:carry}:{})}};
+ const carry=rewardMode==='output'&&next.focusRamp&&focusRampStatus(next,now).required===duration?focusCarryInto(next,subject.trim(),duration,now):0,left=Math.max(0,duration-carry),rested=focusRestedInto(next,carry);
+ return {...next,bookTimer:{id,subject:subject.trim(),startedAt:new Date(now).toISOString(),phase:'focus',endsAt:now+left*1000,remaining:left,running:true,duration,rewardMode,focusElapsed:0,focusResumedAt:now,targetSeconds:left,...(carry>0?{carrySeconds:carry}:{}),...(rested>0?{restedCredit:rested}:{})}};
 }
 export function pauseBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const next=settleBookTimer(data,now),t=next.bookTimer;if(!t||!t.running)return next;
@@ -61,8 +61,8 @@ export function acceptDeclaredFinish(data:RoutineData,id:string,hash:string,subj
 /** Only an explicit user action starts a break; preserve all real focus time first. */
 export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.phase!=='focus')return data;
- const next=stopBookTimer(data,now);
- return {...next,bookTimer:{...next.bookTimer!,phase:'break',endsAt:now+300000,remaining:300,running:true}};
+ const next=stopBookTimer(data,now),rested=t.rewardMode==='output'?focusRunCredit(data,now):0;
+ return {...next,bookTimer:{...next.bookTimer!,phase:'break',endsAt:now+300000,remaining:300,running:true,...(rested>0?{restedCredit:rested}:{})}};
 }
 /** What the app calls. startBookBreak is the bare state change underneath it and has no other caller. */
 export function takeEarnedBreak(data:RoutineData,now=Date.now()):RoutineData{

@@ -49,7 +49,7 @@ export type Day = {
   complete: string[]; responses: number; studySeconds: number;
   lastStudyWordId?: string;
   additional?:AdditionalPlan;additionalByDeck?:Record<string,AdditionalPlan>;
-  bonus?:{words?:number;book?:number;quick?:number;order?:number;freeStudy?:number;handwriting?:number};
+  bonus?:{words?:number;book?:number;quick?:number;order?:number;freeStudy?:number;handwriting?:number;speaking?:number};
   rewardedFreeSessionIds?:string[];
   orderProgress?:import('./habitOrder').HabitOrderProgress;
   evening?:boolean[];eveningPlan?:MorningStep[];guidedTimer?:import('./dailyPlan').GuidedTimer;
@@ -58,11 +58,13 @@ export type Day = {
   excludedStudyIds?:string[];
   wordRewardCap?:number;
   wordRewards?:import('./studyRewards').WordRewards;
+  speakingRewards?:import('./speaking').SpeakingDayRewards;
 };
 export type RoutineData = {
   primaryGoal?:import('./primaryGoal').PrimaryGoal;goals?:import('./routineGoals').Goal[];
   priorityPolicy?:import('./priorityPlan').PriorityPolicy;priorityDays?:Record<string,import('./priorityPlan').PriorityDay>;
   focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];focusPenalties?:import('./focusPenalty').FocusPenalty[];
+  speakingRecords?:import('./speaking').SpeakingRecord[];speakingConsentAt?:string;
   money?:import('./moneyRewards').MoneyWallet;playLog?:import('./playLog').PlayLog;
   version: 1; decks: Deck[]; words: Word[]; days: Record<string, Day>; newLimit: number; morningSteps?: MorningStep[];
   boriStage?: import("./boriGrowth").BoriGrowthStage;
@@ -116,7 +118,9 @@ export function earn(data: RoutineData, key: string, unit: Unit, level: Level): 
   if(unit==='words')return data;
   return withDay(data, key, day => ({ ...day, paid: { ...day.paid, [unit]: Math.max(day.paid[unit], (level === "full" ? FULL : MIN)[unit]) } }));
 }
-export function earned(day: Day): number { return day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
+/** Saved values are never trusted: a broken value counts as nothing and never blocks loading. */
+export const speakingBonus=(day:Day|undefined)=>{const v=day?.bonus?.speaking;return typeof v==='number'&&Number.isSafeInteger(v)&&v>0?v:0};
+export function earned(day: Day): number { return speakingBonus(day) + day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
 export function achieved(day: Day): boolean { return earned(day) > 0; }
 export function planStudy(data: RoutineData, key: string): RoutineData {
   if (getDay(data, key).plan) return data;

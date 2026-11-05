@@ -5,6 +5,7 @@
 import Constants from "expo-constants";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
+import { continuousListen } from "./liveTranscript";
 import { supabase } from "./supabase";
 
 // 네이티브 음성인식 모듈 — Expo Go에는 없으므로 로드 자체를 건너뛴다
@@ -66,6 +67,26 @@ export async function stopLive(): Promise<string> {
   for (const l of liveListeners) l?.remove?.();
   liveListeners = [];
   return liveShown.trim();
+}
+
+/**
+ * Listening past Apple's one minute limit, for answers of several minutes. Each task that ends is followed by the next.
+ * startLive above stays as it is for the short dictation that uses it.
+ */
+export async function startContinuousLive(
+  onText: (text: string) => void,
+  onStopped: (reason: "denied" | "silent" | "failed") => void,
+  language = "ko-KR"
+) {
+  const perm = await speech.ExpoSpeechRecognitionModule.requestPermissionsAsync();
+  if (!perm.granted) throw new Error("마이크·음성인식 권한이 필요해요. 설정에서 허용해 주세요.");
+  return continuousListen({
+    start: () => speech.ExpoSpeechRecognitionModule.start({ lang: language, interimResults: true, continuous: true }),
+    stop: () => speech.ExpoSpeechRecognitionModule.stop(),
+    on: (name, fn) => speech.addSpeechRecognitionListener(name, fn),
+    onText,
+    onStopped,
+  });
 }
 
 let recording: Audio.Recording | null = null;

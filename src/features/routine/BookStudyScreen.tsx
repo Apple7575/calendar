@@ -17,6 +17,8 @@ import {FocusList,FocusListRow} from './FocusList';
 import {FocusStart} from './FocusStart';
 import {HandwritingStudy} from './HandwritingStudy';
 import {HabitOrderCard} from './HabitOrderCard';
+import {QuitAsk,useQuitQuestion} from './QuitAsk';
+import {useQuitConfirm} from './useQuitConfirm';
 
 function NoteForm({session}:{session:BookSession}){
  const {update,data}=useRoutine(),{colors:c}=useTheme(),[note,setNote]=useState(session.note),[next,setNext]=useState(session.next),[error,setError]=useState(''),[busy,setBusy]=useState(false),prefix=useRef(''),reward=bookNoteRewardPreview(data,session);
@@ -37,13 +39,13 @@ function BookStudyPage({navigation,route}:RootScreenProps<'BookStudy'>){
  useEffect(()=>{if(focused&&ready&&toTimer&&!switchTo)navigation.replace('FocusTimer')},[focused,ready,toTimer,switchTo,navigation]);
  useStudyFeedback(timer?.running&&clock>=timer.endsAt?{kind:'timer',id:timer.id+':'+timer.phase}:null);
  const run=(fn:Parameters<typeof update>[0])=>{void update(fn).catch(e=>setError(e.message))};
- const canFinish=!!draft&&!data.handwritingPending&&!working,penalty=penaltyLabel(focusQuitPenalty(data,clock));
+ const canFinish=!!draft&&!data.handwritingPending&&!working,penalty=penaltyLabel(focusQuitPenalty(data,clock)),askQuit=useQuitQuestion(dayKey),finishConfirm=useQuitConfirm(penalty,askQuit),switchConfirm=useQuitConfirm(penalty,askQuit);
  const rows=<>
   {timer&&timer.phase!=='idle'?<FocusListRow label="큰 타이머로 돌아가기" onPress={()=>navigation.popTo('FocusTimer')}/>:null}<FocusListRow label="타이머 공부 메모·이전 기록" open={notes} last={!canFinish} onPress={()=>setNotes(!notes)}/>
-  {canFinish?<FocusListRow label={'이 과목 공부 마치기 · '+(penalty||'기록은 유지')} last onPress={()=>run(s=>({...finishFocusRun(s),outputDraft:undefined}))}/>:null}
+  {canFinish?<><QuitAsk question={finishConfirm.question} onStay={finishConfirm.stay}/><FocusListRow label={(finishConfirm.question?'마치기 · ':finishConfirm.open?'한 번 더 누르면 마쳐요 · ':'이 과목 공부 마치기 · ')+(penalty||'기록은 유지')} last onPress={()=>finishConfirm.press(()=>run(s=>({...finishFocusRun(s),outputDraft:undefined})))}/></>:null}
  </>;
  return <Page title={FOCUS_FLOW_TITLES[stage]} right={<View/>}>
-  {switchTo?<CardView><Copy>현재 {draft!.subject} 공부를 이어가는 중이에요.</Copy><Action secondary label={`${switchTo} 공부로 전환${penalty?' · '+penalty:''}`} onPress={()=>run(s=>startOutputStudy({...finishFocusRun(s),outputDraft:undefined},Crypto.randomUUID(),switchTo))}/>{toTimer?<Action label="큰 타이머로 돌아가기" onPress={()=>navigation.replace('FocusTimer')}/>:null}<Copy muted size={12}>{penalty?'지금 바꾸면 이번 단계를 못 채워 벌점이 있어요. 받은 시간과 기록은 유지돼요.':'지금까지 남긴 공부와 적립 시간은 유지돼요.'}</Copy></CardView>:null}
+  {switchTo?<CardView><Copy>현재 {draft!.subject} 공부를 이어가는 중이에요.</Copy><QuitAsk question={switchConfirm.question} onStay={switchConfirm.stay}/><Action secondary label={`${switchConfirm.open&&!switchConfirm.question?'한 번 더 누르면 ':''}${switchTo} 공부로 전환${penalty?' · '+penalty:''}`} onPress={()=>switchConfirm.press(()=>run(s=>startOutputStudy({...finishFocusRun(s),outputDraft:undefined},Crypto.randomUUID(),switchTo)))}/>{toTimer?<Action label="큰 타이머로 돌아가기" onPress={()=>navigation.replace('FocusTimer')}/>:null}<Copy muted size={12}>{penalty?'지금 바꾸면 이번 단계를 못 채워 벌점이 있어요. 받은 시간과 기록은 유지돼요.':'지금까지 남긴 공부와 적립 시간은 유지돼요.'}</Copy></CardView>:null}
   {!capturing&&!toTimer?<FocusStart compact initialSubject={route.params?.subject}/>:null}
   {capturing?<HandwritingStudy declare={!!route.params?.declare} onPhotoChange={setHasPhoto} onSaving={value=>{saving.current=value}} moreRows={working?undefined:rows} afterCard={stage==='capture'&&(!timer||timer.phase==='idle')?<FocusStart compact secondary initialSubject={route.params?.subject}/>:undefined}/>:null}
   {!working&&!toTimer&&getDay(data,dayKey).orderProgress?.status==='complete'?<HabitOrderCard/>:null}

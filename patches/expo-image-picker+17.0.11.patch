@@ -1,0 +1,47 @@
+diff --git a/node_modules/expo-image-picker/ios/ImageUtils.swift b/node_modules/expo-image-picker/ios/ImageUtils.swift
+index d9d1cd4..12358ec 100644
+--- a/node_modules/expo-image-picker/ios/ImageUtils.swift
++++ b/node_modules/expo-image-picker/ios/ImageUtils.swift
+@@ -52,6 +52,24 @@ internal struct ImageUtils {
+     return originalImage.fixOrientation()
+   }
+ 
++  // The direction readImageFrom bakes into the pixels, as its EXIF value. After that no file or size can tell it.
++  static func exifOrientation(mediaInfo: MediaInfo) -> Int? {
++    guard let original = mediaInfo[.originalImage] as? UIImage else {
++      return nil
++    }
++    switch original.imageOrientation {
++    case .up: return 1
++    case .upMirrored: return 2
++    case .down: return 3
++    case .downMirrored: return 4
++    case .leftMirrored: return 5
++    case .right: return 6
++    case .rightMirrored: return 7
++    case .left: return 8
++    @unknown default: return nil
++    }
++  }
++
+   static func crop(image: UIImage, to: CGRect) -> UIImage? {
+     guard let cgImage = image.cgImage?.cropping(to: to) else {
+       return nil
+diff --git a/node_modules/expo-image-picker/ios/MediaHandler.swift b/node_modules/expo-image-picker/ios/MediaHandler.swift
+index 6e4fbe1..56c0843 100644
+--- a/node_modules/expo-image-picker/ios/MediaHandler.swift
++++ b/node_modules/expo-image-picker/ios/MediaHandler.swift
+@@ -96,7 +96,12 @@ internal struct MediaHandler {
+         ? try ImageUtils.readBase64From(
+           imageData: imageData, orImageFileUrl: targetUrl, tryReadingFile: fileWasCopied) : nil
+ 
+-      let exif = options.exif ? await ImageUtils.readExifFrom(mediaInfo: mediaInfo) : nil
++      var exif = options.exif ? await ImageUtils.readExifFrom(mediaInfo: mediaInfo) : nil
++      if options.exif, let direction = ImageUtils.exifOrientation(mediaInfo: mediaInfo) {
++        var withDirection = exif ?? [:]
++        withDirection["Orientation"] = direction
++        exif = withDirection
++      }
+       let size = CGSize(width: image.size.width, height: image.size.height)
+ 
+       return AssetInfo(
