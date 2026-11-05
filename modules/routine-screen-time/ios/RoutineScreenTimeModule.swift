@@ -213,6 +213,7 @@ private enum ScreenTimeService {
         try ScreenTimeStorage.ensureProductionMonitoring(&state)
       }
       ScreenTimeStorage.apply(state)
+      ScreenTimeStorage.recordPlay(&state)
       var result = ScreenTimeStorage.snapshot(state)
       result["supported"] = true
       result["authorized"] = AuthorizationCenter.shared.authorizationStatus == .approved

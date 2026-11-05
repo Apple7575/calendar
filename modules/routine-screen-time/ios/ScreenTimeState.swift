@@ -5,6 +5,12 @@ import FamilyControls
 import ManagedSettings
 import DeviceActivity
 
+/// One stretch with the reward apps unlocked. Epoch seconds. No end means it is still open.
+struct PlayInterval: Codable {
+  var s: Double
+  var e: Double? = nil
+}
+
 @available(iOS 16.0, *)
 struct ScreenTimeState: Codable {
   var day = ScreenTimeStorage.dayKey()
@@ -23,6 +29,9 @@ struct ScreenTimeState: Codable {
   var paid: [String: Int]? = nil
   var penalty: Int? = nil
   var debtIn: Int? = nil
+  var playLog: [PlayInterval]? = nil
+  var playLogSince: Double? = nil
+  var consumedByDay: [String: Int]? = nil
   var lastEvent = "아직 테스트하지 않았어요."
   var lastEventAt: Double = Date().timeIntervalSince1970
 }
@@ -34,6 +43,9 @@ enum ScreenTimeStorage {
   static let productionActivity = "routine.production.v2"
   static let sleepActivity = "routine.sleep"
   static let store = ManagedSettingsStore(named: .init("routine.screen-time"))
+  /// Kept small because the extension reads this file on every callback. The app copies rows out on each status.
+  static let playLogLimit = 200
+  static let consumedDayLimit = 60
 
   static func dayKey(_ date: Date = Date()) -> String {
     let calendar = Calendar.current
@@ -68,6 +80,11 @@ enum ScreenTimeStorage {
         let total = (state.paid ?? [:]).values.reduce(0, +)
         state.debtIn = min(60, max(0, (state.penalty ?? 0) + (state.debtIn ?? 0) + state.consumed - total))
         state.penalty = nil
+        // Display only: a copy for the daily record, read by nothing above.
+        var used = state.consumedByDay ?? [:]
+        used[state.day] = state.consumed
+        for key in used.keys.sorted().dropLast(consumedDayLimit) { used[key] = nil }
+        state.consumedByDay = used
       }
       state.day = dayKey()
       state.session = state.rewardMode == true ? "\(productionActivity).\(state.day)" : nil
@@ -84,8 +101,43 @@ enum ScreenTimeStorage {
       state.session = "\(productionActivity).\(state.day).\(UUID().uuidString)"
     }
     let result = try body(&state)
+    recordPlay(&state)
     try JSONEncoder().encode(state).write(to: url, options: .atomic)
     return result
+  }
+
+  /// Display only: reads the lock state and never feeds it. Runs on every write, so balance, penalty, sleep and
+  /// 04:00 endings are all caught here, including those handled by the extension with the app closed.
+  static func recordPlay(_ state: inout ScreenTimeState, now: Date = Date()) {
+    let time = now.timeIntervalSince1970
+    let connected = state.enabled && state.rewardMode == true
+    let open = connected && state.usingRewards == true && !locked(state)
+    var log = state.playLog ?? []
+    if let last = log.last, last.e == nil {
+      if !open {
+        // The sleep lock can be noticed late. Use cannot run past it, whenever this write happens.
+        let end = min(time, playCutoff(after: last.s))
+        if end > last.s { log[log.count - 1].e = end } else { log.removeLast() }
+      }
+    } else if open {
+      log.append(PlayInterval(s: time))
+    }
+    // A day without a connection is unknown, not zero, so the record restarts on reconnecting.
+    var since = connected ? (state.playLogSince ?? time) : nil
+    if log.count > playLogLimit {
+      let dropped = log.count - playLogLimit
+      if let end = log[dropped - 1].e, let start = since { since = max(start, end) }
+      log.removeFirst(dropped)
+    }
+    state.playLogSince = since
+    if state.playLog != nil || !log.isEmpty { state.playLog = log }
+  }
+
+  private static func playCutoff(after start: Double) -> Double {
+    let date = Date(timeIntervalSince1970: start)
+    guard let cutoff = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: date) else { return .infinity }
+    if cutoff > date { return cutoff.timeIntervalSince1970 }
+    return (Calendar.current.date(byAdding: .day, value: 1, to: cutoff) ?? cutoff).timeIntervalSince1970
   }
 
   static func netGranted(_ state: ScreenTimeState) -> Int {
@@ -185,6 +237,14 @@ enum ScreenTimeStorage {
       "supportsMinuteHandwriting": true,
       "penaltyMinutes": state.penalty ?? 0,
       "debtMinutes": state.debtIn ?? 0,
+      "supportsPlayLog": true,
+      "consumedByDay": state.consumedByDay ?? [:],
+      "playLogSince": (state.playLogSince ?? 0) * 1000,
+      "playLog": (state.playLog ?? []).map { row -> [String: Double] in
+        var item = ["start": row.s * 1000]
+        if let end = row.e { item["end"] = end * 1000 }
+        return item
+      },
       "supportsProgressiveWordRewards": true,
       "sleepLocked": sleepLocked(state),
       "usingRewards": state.usingRewards == true,

@@ -11,6 +11,7 @@ import {TimeWalletScreen} from '../features/routine/TimeWalletScreen';
 import {MoneyWalletScreen} from '../features/routine/MoneyWalletScreen';
 import {DiaryDetailScreen} from '../features/routine/DiaryDetailScreen';
 import { StudyHistoryScreen } from '../features/routine/StudyHistoryScreen';
+import { DailyTimelineScreen } from '../features/routine/DailyTimeline';
 import {StudyForecastScreen} from '../features/routine/StudyForecastScreen';
 import { StudyPreferencesScreen } from "../features/routine/StudySettingsScreens";
 import {ConceptLabScreen} from '../features/conceptLab/ConceptLabScreen';
@@ -121,6 +122,7 @@ export function RootNavigator() {
             <Stack.Screen name="EarnedReward" component={EarnedRewardScreen} options={{headerShown:false,animation:"fade"}}/>
           <Stack.Screen name="RoutineHistory" component={RoutineHistoryScreen} options={{ title: "학습 · 실천 기록" }} />
           <Stack.Screen name="StudyHistory" component={StudyHistoryScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="DailyTimeline" component={DailyTimelineScreen} options={{headerShown:false}}/>
           <Stack.Screen name="StudyForecast" component={StudyForecastScreen} options={{headerShown:false}}/>
           <Stack.Screen name="MoneyWallet" component={MoneyWalletScreen} options={{headerShown:false}}/>
           <Stack.Screen name="RoutineScreenTime" component={RoutineScreenTimeScreen} options={{ title: "앱 제한 설정" }} />

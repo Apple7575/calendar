@@ -4,6 +4,7 @@ import {handwritingAccess,settleHandwritingRewards} from '../../lib/handwriting'
 ﻿import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
+import { mergePlayLog } from "../../lib/playLog";
 import { getScreenTimeStatus, ScreenTimeStatus, syncRoutineRewards,syncFocusWindow,adjustStudyRewards } from "../../lib/screenTime";
 import { studyLedger,undoStudyAnswer,validateStudyState } from '../../lib/studyHistory';
 import { emptyData, getDay, reconcileStudyExclusions, RoutineData, routineDay } from "../../lib/routineModel";
@@ -101,6 +102,11 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
     const subjects=[...new Set((data.handwritingReceipts??[]).filter(r=>r.rewardStatus==='pending').map(r=>r.subject))];
     if(subjects.some(subject=>handwritingAccess(data,subject).ready))void update(s=>s).catch(()=>{});
   },[ready,now,data.handwritingReceipts,data.bookTimer,data.bookSessions,update]);
+  // Copies closed play stretches from the phone so they reach backups. Unchanged status writes nothing.
+  useEffect(()=>{
+    if(!ready||!native||mergePlayLog(current.current,native)===current.current)return;
+    void update(s=>mergePlayLog(s,native)).catch(()=>{});
+  },[ready,native,update]);
   const undoStudy=useCallback(async()=>{
     await update(s=>{
       const next=undoStudyAnswer(s,expectedDay),from=studyLedger(getDay(s,expectedDay)),to=studyLedger(getDay(next,expectedDay));
