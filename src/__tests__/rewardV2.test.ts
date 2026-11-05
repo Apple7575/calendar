@@ -28,7 +28,7 @@ describe('stage table',()=>{
   expect(d.focusPlans![0].minutes).toBe(0);
   expect(()=>validateHandwritingState(d)).not.toThrow();
  });
- test.each([[120,2],[300,3],[420,3],[600,5],[900,8],[1020,8],[1500,16]])('%i seconds straight and one photo pays %i minutes with the plan',(seconds,minutes)=>{
+ test.each([[120,2],[300,3],[420,3],[600,5],[900,7],[1020,7],[1500,11]])('%i seconds straight and one photo pays %i minutes with the plan',(seconds,minutes)=>{
   const d=photo(running(),seconds);
   expect(bonus(d)).toBe(minutes);
   expect(()=>validateHandwritingState(d)).not.toThrow();
@@ -46,14 +46,14 @@ describe('stage table',()=>{
  });
  test('50 minutes straight and one photo pays the 25-minute stage twice',()=>{
   const d=photo(running(),3000);
-  expect(bonus(d)).toBe(31);
-  expect(d.handwritingReceipts![0]).toMatchObject({focusStage:5,stageMinutes:30,focusSeconds:3000});
+  expect(bonus(d)).toBe(21);
+  expect(d.handwritingReceipts![0]).toMatchObject({focusStage:5,stageMinutes:20,focusSeconds:3000});
   expect(()=>validateHandwritingState(d)).not.toThrow();
  });
- test('five photos, one per stage, pay the whole table once: 30 minutes',()=>{
+ test('five photos, one per stage, pay the whole table once: 24 minutes',()=>{
   let d=running(),clock=0;
   [120,300,600,900,1500].forEach((seconds,i)=>{clock+=seconds;d=keepGoing(photo(d,clock,'p'+(i+1),10,String.fromCharCode(0xAC00+i*200)),clock,'next'+i);});
-  expect(bonus(d)).toBe(30);
+  expect(bonus(d)).toBe(24);
   expect(()=>validateHandwritingState(d)).not.toThrow();
  });
  test('the plan minute is paid only once per plan',()=>{
@@ -64,10 +64,10 @@ describe('stage table',()=>{
 });
 
 describe('letters are a separate bonus',()=>{
- test('25 minutes and 300 new letters pay 16 plus 15',()=>{
+ test('25 minutes and 300 new letters pay 11 plus 15',()=>{
   const d=photo(running(),1500,'p1',300);
-  expect(bonus(d)).toBe(31);
-  expect(d.handwritingReceipts![0]).toMatchObject({stageMinutes:15,planMinutes:1,letterMinutes:15,minutes:31});
+  expect(bonus(d)).toBe(26);
+  expect(d.handwritingReceipts![0]).toMatchObject({stageMinutes:10,planMinutes:1,letterMinutes:15,minutes:26});
   expect(()=>validateHandwritingState(d)).not.toThrow();
  });
  test('letter remainders carry into the next photo',()=>{
@@ -80,8 +80,8 @@ describe('letters are a separate bonus',()=>{
 describe('money',()=>{
  test('stage minutes pay 100 won each and letters pay 500 per 100, once each',()=>{
   const d=photo(running(true),1500,'p1',300),entries=d.money!.entries;
-  expect(entries.find(e=>e.id==='focus:p1')?.amount).toBe(1600);
-  expect(moneySummary(d).balance).toBe(1600+1500);
+  expect(entries.find(e=>e.id==='focus:p1')?.amount).toBe(1100);
+  expect(moneySummary(d).balance).toBe(1100+1500);
  });
  test('settling the same photo again pays nothing more',()=>{
   const d=photo(running(true),1500);
@@ -115,9 +115,9 @@ describe('money',()=>{
 describe('declared finish',()=>{
  const finish=(d:RoutineData,seconds:number,id='p1',chars=120)=>{const when=at+seconds*sec;return reconcileMoneyRewards(d,acceptDeclaredFinish(d,id,hash(id),subject,analysis(chars),new Date(when)),key,new Date(when));};
  const atStage=(level:1|2|3|4|5,money=false)=>{const base=planned(money);return startBookTimer({...base,focusRamp:{...base.focusRamp!,level}},'run',subject,at,[0,120,300,600,900,1500][level],'output');};
- test('8 minutes of the 25-minute stage with 100 letters: 4 + 5',()=>{
+ test('8 minutes of the 25-minute stage with 100 letters: 3 + 5',()=>{
   const d=finish(atStage(5),480);
-  expect(d.handwritingReceipts![0]).toMatchObject({finish:'declared',stageMinutes:4,letterMinutes:5,focusSeconds:480});
+  expect(d.handwritingReceipts![0]).toMatchObject({finish:'declared',stageMinutes:3,letterMinutes:5,focusSeconds:480});
  });
  test('8 of 10 minutes pays 3, 8 of 15 pays 3',()=>{
   expect(finish(atStage(3),480).handwritingReceipts![0].stageMinutes).toBe(3);
