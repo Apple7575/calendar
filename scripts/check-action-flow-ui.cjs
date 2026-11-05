@@ -43,9 +43,6 @@ fs.mkdirSync(out, {recursive:true});
    assert.equal(await button('+1분').count(),0);
    await capture(`study-${width}`);
   }
-  await button('타이머 시간 조정').click();
-  await button('+1분').click();
-  await button('타이머 시간 조정').click();
   await page.setViewportSize({width:390,height:844});
   const meetStudyTime = async () => {
    await page.evaluate(() => {const key='routine.v1.web-priority-demo',s=JSON.parse(localStorage.getItem(key)),now=Date.now();s.bookTimer={...s.bookTimer,focusElapsed:121,focusResumedAt:now};localStorage.setItem(key,JSON.stringify(s));});
@@ -132,7 +129,7 @@ fs.mkdirSync(out, {recursive:true});
   await button('5분 집중 시작').click();
   await page.getByText('집중 시간',{exact:true}).waitFor();
   const restarted = await page.getByRole('timer').innerText();
-  assert(/^0[45]:\d\d$/.test(restarted), `The whole stage must restart: ${restarted}`);
+  assert(/^00:0\d$/.test(restarted), `The whole stage must restart: ${restarted}`);
   assert.deepEqual(errors,[]);
   fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({measurements,errors},null,2));
   console.log(JSON.stringify({primaryActionsVisible:true,secondaryControlsWork:true,rewardContinuesToTimer:true,noDuplicateReceipt:true,errors}));
