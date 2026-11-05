@@ -145,6 +145,9 @@ private enum ScreenTimeService {
         let handwriting = paid["handwriting"] ?? 0
         guard handwriting >= 0 else { throw ScreenTimeStorage.failure("손글씨 공부 보상 값을 확인해 주세요.") }
         ledger["handwriting"] = max(ledger["handwriting"] ?? 0, handwriting)
+      let speaking = paid["speaking"] ?? 0
+      guard speaking >= 0, speaking % 5 == 0 else { throw ScreenTimeStorage.failure("말하기 보상 값을 확인해 주세요.") }
+      ledger["speaking"] = max(ledger["speaking"] ?? 0, speaking)
       let penalty = paid["penalty"] ?? 0
       guard penalty >= 0 else { throw ScreenTimeStorage.failure("벌점 값을 확인해 주세요.") }
       // Kept apart from the reward ledger, which is the sum of earned minutes.

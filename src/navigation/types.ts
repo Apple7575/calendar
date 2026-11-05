@@ -27,7 +27,8 @@ export type RootStackParamList = {
   ExperienceSettings:undefined;
   TimeWallet:undefined;
   MoneyWallet:undefined;
-  EarnedReward:{id:string;kind:'plan'|'handwriting';minutes:number;cash:number;cashEnabled:boolean;quantity:number;pending?:boolean;cashBaseline?:number;continueTo?:'FocusTimer'};
+  SpeakingSession:{topicId?:string;recordId?:string}|undefined;
+  EarnedReward:{id:string;kind:'plan'|'handwriting'|'speaking';minutes:number;cash:number;cashEnabled:boolean;quantity:number;pending?:boolean;cashBaseline?:number;continueTo?:'FocusTimer'};
   DiaryDetail:{date:string;saved?:boolean};
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   LegacyCalendar: undefined;

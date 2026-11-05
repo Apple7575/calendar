@@ -245,6 +245,7 @@ enum ScreenTimeStorage {
       "supportsFreeStudyRewards": true,
       "supportsHandwritingRewards": true,
       "supportsMinuteHandwriting": true,
+      "supportsSpeakingRewards": true,
       "penaltyMinutes": state.penalty ?? 0,
       "debtMinutes": state.debtIn ?? 0,
       "supportsPlayLog": true,

@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 export type ScreenTimeStatus = {
   supportsPriorityGate?:boolean;priorityRequired?:boolean;priorityComplete?:boolean;
-  policyVersion?:number;supportsStudyUndo?:boolean;supportsOrderBonus?:boolean;supportsFreeStudyRewards?:boolean;supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;penaltyMinutes?:number;debtMinutes?:number;supportsProgressiveWordRewards?:boolean;sleepLocked?:boolean;usingRewards?:boolean;focusUntil?:number;
+  policyVersion?:number;supportsStudyUndo?:boolean;supportsOrderBonus?:boolean;supportsFreeStudyRewards?:boolean;supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean;penaltyMinutes?:number;debtMinutes?:number;supportsProgressiveWordRewards?:boolean;sleepLocked?:boolean;usingRewards?:boolean;focusUntil?:number;
   supported: boolean;
   authorized: boolean;
   day: string;

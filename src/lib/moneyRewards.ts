@@ -1,5 +1,6 @@
 import type {HandwritingReceipt} from './handwriting';
 import {FOCUS_MONEY_MINUTES,FOCUS_STEPS} from './focusRamp';
+import {SPEAKING_POLICY,speakingRecords} from './speaking';
 import type {RoutineData} from './routineModel';
 import {getDay} from './routineModel';
 import {eveningSteps} from './dailyPlan';
@@ -54,6 +55,11 @@ function reconcileFixedRewards(before:RoutineData,after:RoutineData,key:string,n
   if(r.rewardPolicy!=='ramp-v2'||r.rewardStatus!=='earned'||earlier.has(r.id))continue;
   const minutes=stageMoneyMinutes(r)+(r.planMinutes??0),id='focus:'+r.id;
   if(minutes>0&&!entries.some(e=>e.id===id))entries.push({id,kind:'reward',amount:minutes*FIXED.perMinute,at,day:r.rewardDay??key,source:'output',note:'집중 단계 보상'});
+ }
+ const settled=new Set(speakingRecords(before).filter(r=>r.status==='settled').map(r=>r.id));
+ for(const r of speakingRecords(after)){
+  const id='speaking:'+r.id,minutes=r.status==='settled'&&Number.isSafeInteger(r.minutes)?r.minutes!:0;
+  if(minutes>0&&!settled.has(r.id)&&!entries.some(e=>e.id===id))entries.push({id,kind:'reward',amount:minutes*SPEAKING_POLICY.wonPerMinute,at,day:r.rewardDay??key,note:'말하기 보상'});
  }
  const free=(b?.freeStudy??0)-(a?.freeStudy??0),freeId=`free:${key}:${b?.freeStudy??0}`;
  if(free>0&&!entries.some(e=>e.id===freeId))entries.push({id:freeId,kind:'reward',amount:free*FIXED.perMinute,at,day:key,note:'자유 공부 보상'});
