@@ -13,6 +13,7 @@ import {TimeWalletScreen} from './src/features/routine/TimeWalletScreen';
 import {DiaryDetailScreen} from './src/features/routine/DiaryDetailScreen';
 import { StudyHistoryScreen } from './src/features/routine/StudyHistoryScreen';
 import {DailyTimelineScreen} from './src/features/routine/DailyTimeline';
+import {StudyLogScreen} from './src/features/routine/StudyLogScreen';
 import {StudyForecastScreen} from './src/features/routine/StudyForecastScreen';
 import {MoneyWalletScreen} from './src/features/routine/MoneyWalletScreen';
 import { PhotoViewerScreen } from "./src/screens/PhotoViewerScreen";
@@ -84,7 +85,7 @@ function Preview() {
             <Stack.Screen name="EarnedReward" component={EarnedRewardScreen} options={{headerShown:false,animation:"fade"}}/>
             <Stack.Screen name="RoutineStudySession" component={RoutineStudySessionScreen} />
             <Stack.Screen name="RoutineHistory" component={RoutineHistoryScreen} />
-            <Stack.Screen name="StudyHistory" component={StudyHistoryScreen} /><Stack.Screen name="DailyTimeline" component={DailyTimelineScreen} />
+            <Stack.Screen name="StudyHistory" component={StudyHistoryScreen} /><Stack.Screen name="DailyTimeline" component={DailyTimelineScreen} /><Stack.Screen name="StudyLog" component={StudyLogScreen} />
             <Stack.Screen name="StudyForecast" component={StudyForecastScreen} />
             <Stack.Screen name="MoneyWallet" component={MoneyWalletScreen} />
             <Stack.Screen name="RoutineSetup" component={RoutineSetupScreen} />
