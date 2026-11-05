@@ -100,10 +100,20 @@ enum ScreenTimeStorage {
     if state.rewardMode == true && !(state.session?.hasPrefix("\(productionActivity).\(state.day)") ?? false) {
       state.session = "\(productionActivity).\(state.day).\(UUID().uuidString)"
     }
+    dropExhaustedUse(&state)
     let result = try body(&state)
+    dropExhaustedUse(&state)
     recordPlay(&state)
     try JSONEncoder().encode(state).write(to: url, options: .atomic)
     return result
+  }
+
+  /// Use ends with the balance, so a later refill waits for the user instead of reopening apps. Runs before a write
+  /// so a refill cannot hide an empty balance, and after it so the extension's usage callback ends use with the app closed.
+  static func dropExhaustedUse(_ state: inout ScreenTimeState) {
+    if state.rewardMode == true && state.usingRewards == true && state.consumed >= state.granted {
+      state.usingRewards = false
+    }
   }
 
   /// Display only: reads the lock state and never feeds it. Runs on every write, so balance, penalty, sleep and
