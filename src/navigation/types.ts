@@ -41,6 +41,7 @@ export type RootStackParamList = {
   RoutineHistory: undefined;
   StudyHistory: {deckId?:string;wordId?:string}|undefined;
   DailyTimeline: {date?:string}|undefined;
+  StudyLog: {tab?:'priority'|'focus'|'writing'}|undefined;
   StudyForecast:{deckId?:string}|undefined;
   RoutineScreenTime: undefined;
   RoutineSetup: {slot?:'morning'|'evening'}|undefined;

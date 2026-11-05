@@ -48,17 +48,16 @@ function playNote(t:Timeline){
  return '';
 }
 
-/** 기록 탭 맨 위의 하루 요약. 합계 둘과 최근 항목만 보여 주고 나머지는 전체 보기에 둔다. */
-export function DailyTimelineCard(){
- const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{data,dayKey,native}=useRoutine();
- const [picked,setPicked]=useState<string|null>(null),selected=picked&&picked<dayKey?picked:dayKey;
- const t=dailyTimeline(data,selected,native),recent=t.items.slice(-3).reverse();
- return <CardView>
-  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:space.xs}}><Copy variant="section">{selected===dayKey?'오늘 하루':'이날 하루'}</Copy><DateNav selected={selected} onChange={setPicked}/></View>
-  <View style={{flexDirection:'row',gap:space.sm}}><Total label="공부" value={durationLabel(t.totals.studySeconds)}/><Total label="노는 시간" value={playValue(t)}/></View>
-  {recent.length?<View style={{gap:space.sm}}>{recent.map(item=><Row key={item.id} item={item}/>)}</View>:<Copy muted>{t.totals.untimedResponses?'단어 응답 '+t.totals.untimedResponses+'회 · 시각 기록이 없어요.':'이날 남은 기록이 없어요.'}</Copy>}
-  <View style={{alignItems:'flex-end'}}><Link label="전체 보기" onPress={()=>nav.navigate('DailyTimeline',{date:selected})}/></View>
- </CardView>;
+/** 달력 위의 오늘 요약 한 줄. 날짜 이동과 항목 목록은 누르면 나오는 하루 기록 화면에 있다. */
+export function DailyTimelineRow(){
+ const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{data,dayKey,native}=useRoutine(),{colors:c}=useTheme();
+ const t=dailyTimeline(data,dayKey,native),summary='공부 '+durationLabel(t.totals.studySeconds)+' · 노는 시간 '+playValue(t);
+ return <Pressable accessibilityRole="button" accessibilityLabel={'오늘 하루 전체 보기, '+summary} onPress={()=>nav.navigate('DailyTimeline',{date:dayKey})} style={({pressed})=>({opacity:pressed?.6:1})}>
+  <CardView style={{flexDirection:'row',alignItems:'center',gap:space.sm,paddingVertical:space.sm}}>
+   <View style={{flex:1,minWidth:0}}><Copy variant="label">오늘 하루</Copy><Copy variant="caption" muted numberOfLines={1}>{summary}</Copy></View>
+   <Icon name="chevron-forward" size={18} color={c.textMuted}/>
+  </CardView>
+ </Pressable>;
 }
 
 export function DailyTimelineScreen({route,navigation}:RootScreenProps<'DailyTimeline'>){

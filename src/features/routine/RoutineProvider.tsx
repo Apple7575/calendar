@@ -21,6 +21,7 @@ import {advanceHabitOrder,initializeHabitOrder} from '../../lib/habitOrder';
 import {wordDailyCap} from '../../lib/studyRewards';
 import {reconcileMoneyRewards} from '../../lib/moneyRewards';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
+import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -186,6 +187,8 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   useEffect(()=>{
     if(ready&&native?.policyVersion&&native.policyVersion>=2)void syncFocusWindow(focusUntil).then(refreshNative).catch(e=>setError(e.message));
   },[ready,native?.policyVersion,focusUntil,refreshNative]);
+  const breakAlarm=breakAlarmAt(t);
+  useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm).catch(e=>setError(e.message));},[ready,breakAlarm]);
   useEffect(() => {
     let active = true;
       if (ready && !adjustment && native?.enabled && native.rewardMode) {

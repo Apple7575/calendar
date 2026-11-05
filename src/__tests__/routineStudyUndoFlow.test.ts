@@ -4,6 +4,7 @@ import { Rating } from 'ts-fsrs';
 import { RoutineProvider,useRoutine } from '../features/routine/RoutineProvider';
 import { addDeck,answerWord,emptyData,getDay,planStudy,routineDay } from '../lib/routineModel';
 import { adjustStudyRewards,getScreenTimeStatus,syncRoutineRewards } from '../lib/screenTime';
+jest.mock('../lib/breakAlarm',()=>({breakAlarmAt:()=>null,syncBreakAlarm:async()=>true}));
 jest.mock('@react-native-async-storage/async-storage',()=>require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 jest.mock('react-native',()=>({AppState:{currentState:'active',addEventListener:()=>({remove:jest.fn()})}}));
 jest.mock('../lib/screenTime',()=>({getScreenTimeStatus:jest.fn(),syncRoutineRewards:jest.fn(async()=>{}),syncFocusWindow:jest.fn(async()=>{}),adjustStudyRewards:jest.fn(async()=>{})}));

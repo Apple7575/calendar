@@ -2,6 +2,7 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {RoutineProvider,useRoutine} from '../features/routine/RoutineProvider';
 import {getScreenTimeStatus} from '../lib/screenTime';
+jest.mock('../lib/breakAlarm',()=>({breakAlarmAt:()=>null,syncBreakAlarm:async()=>true}));
 jest.mock('@react-native-async-storage/async-storage',()=>require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 jest.mock('react-native',()=>({AppState:{currentState:'active',addEventListener:()=>({remove:jest.fn()})}}));
 const renderer=require('react-test-renderer');

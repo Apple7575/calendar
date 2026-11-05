@@ -3,7 +3,7 @@ import {beginPriorityTask,savePriorityDay} from '../lib/priorityPlan';
 import {claimFocusPlan,focusRampStatus,focusRunCredit,focusSecondsForSubject} from '../lib/focusRamp';
 import {bookDisplaySeconds} from '../lib/bookTimerTime';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
-import {acceptDeclaredFinish,finishFocusRun,pauseBookTimer,resumeBookTimer,saveBookNote,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
+import {acceptDeclaredFinish,finishFocusRun,pauseBookTimer,resumeBookTimer,saveBookNote,skipBookBreak,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {canDeclareFinish,focusFlowStage} from '../lib/focusFlow';
 import {focusLockUntil,focusQuitPenalty,penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {PROPOSED_MONEY_RATES,moneySummary,reconcileMoneyRewards,startMoneyRewards} from '../lib/moneyRewards';
@@ -212,9 +212,16 @@ describe('leaving a run unfinished keeps the apps locked',()=>{
   expect(focusLockUntil(d.bookTimer,at+10*min)).toBe(next4);
   expect(focusLockUntil({...d.bookTimer!,running:false},at+10*min)).toBe(next4);
  });
- test('a rest that ran out still holds',()=>{
+ test('a rest opens the apps while it runs, while paused and after it runs out (user decision 2026-11-05)',()=>{
   const d=startBookBreak(running(),at+90*sec);
-  expect(focusLockUntil({...d.bookTimer!,phase:'idle',running:false,restEndedAt:at+390*sec},at+400*sec)).toBe(next4);
+  expect(focusLockUntil(d.bookTimer,at+100*sec)).toBe(0);
+  expect(focusLockUntil({...d.bookTimer!,running:false},at+100*sec)).toBe(0);
+  expect(focusLockUntil({...d.bookTimer!,phase:'idle',running:false,restEndedAt:at+390*sec},at+400*sec)).toBe(0);
+ });
+ test('studying again after a rest locks again',()=>{
+  const d=startBookBreak(running(),at+90*sec),again=skipBookBreak(d,d.bookTimer!.id,'next',at+100*sec);
+  expect(again.bookTimer!.phase).toBe('focus');
+  expect(focusLockUntil(again.bookTimer,at+101*sec)).toBe(next4);
  });
  test('finishing releases at once',()=>{
   expect(focusLockUntil(finishFocusRun(running(),at+90*sec).bookTimer,at+90*sec)).toBe(0);

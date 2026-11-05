@@ -1,76 +1,53 @@
-import { AutomaticDayNotes } from "./AutomaticDayNotes";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import { Pressable, View } from "react-native";
-import { useDayData } from "../../hooks/useDayData";
-import { useGoogleEvents } from "../../hooks/useGoogleEvents";
-import { addDays, formatTime, monthWeeks, parseDateKey, todayKey } from "../../lib/dateUtils";
-import { eventsOnDate, mergeEvents } from "../../lib/eventMerge";
+import { addDays, monthWeeks, parseDateKey, todayKey } from "../../lib/dateUtils";
 import { earned, getDay } from "../../lib/routineModel";
 import { RootStackParamList } from "../../navigation/types";
 import { useTheme, useThemeControls } from "../../theme/ThemeContext";
+import { control, space } from "../../theme/tokens";
 import { useRoutine } from "./RoutineProvider";
 import { Action, CardView, Copy, Icon, Link, Mascot, Page, u } from "./ui";
 import { MotionSwap } from "./motion";
 import { AccountConnection } from "./AccountConnection";
-import {activityDays,activityStatusLabel,isActivityComplete,routineActivities,RoutineActivity} from '../../lib/routineActivity';
+import {activityDays,isActivityComplete,routineActivities} from '../../lib/routineActivity';
 
-function Mark({ activity }: { activity:RoutineActivity }) {
+/** 달력 칸에 실천 수를 점으로 보여 준다. 정확한 수는 접근성 설명에 있다. */
+function DayDots({count,partial}:{count:number;partial:boolean}){
   const { colors: c } = useTheme();
-  return <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: isActivityComplete(activity)?c.primary:c.border,
-    alignItems: "center", justifyContent: "center", backgroundColor: isActivityComplete(activity)?c.primarySoft:'transparent' }}>
-    <Copy size={12}>{activity.status==='full'?'✓':activity.status==='min'?'◐':activity.status==='progress'?'·':''}</Copy>
-  </View>;
+  return <View style={{flexDirection:"row",gap:2,height:4}}>{count?Array.from({length:Math.min(count,4)},(_,i)=><View key={i} style={{width:4,height:4,borderRadius:2,backgroundColor:c.primary}}/>):partial?<View style={{width:4,height:4,borderRadius:2,backgroundColor:c.textMuted}}/>:null}</View>;
 }
 
 export function RoutineCalendarScreen({embedded=false}:{embedded?:boolean}={}) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { colors: c } = useTheme();
   const { data, dayKey } = useRoutine();
-  const [month, setMonth] = useState(todayKey().slice(0, 7)), [selected, setSelected] = useState(todayKey());
+  const [month, setMonth] = useState(todayKey().slice(0, 7));
   const [direction, setDirection] = useState<1 | -1>(1);
-  const day = getDay(data, selected);
-  const local = useDayData(selected), google = useGoogleEvents(month);
-  const events = eventsOnDate(mergeEvents(local.localEvents, google.events), selected);
   const monthly = activityDays(data).filter(key=>key.startsWith(month)&&routineActivities(data,key).some(isActivityComplete));
+  const small = monthly.filter(key=>!routineActivities(data,key).some(a=>a.status==='full')).length;
   const move = (delta: number) => {
     setDirection(delta > 0 ? 1 : -1);
     const date = parseDateKey(month + "-01"); date.setMonth(date.getMonth() + delta);
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    setMonth(key); setSelected(key + "-01");
+    setMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`);
   };
-  return <Page embedded={embedded} title="캘린더" right={<Link label="일정 보기" onPress={() => navigation.navigate("LegacyCalendar")} />}>
-    <View style={{gap:12}}><View style={u.row}><Mascot size={58} happy={monthly.length > 0} /><View style={{ flex: 1 }}><Copy size={22} weight="800">차곡차곡 쌓이는 하루</Copy><Copy muted size={13}>작게 한 날도, 운동한 날도 남아요.</Copy></View></View>
-      <View style={u.row}><View style={{ flex: 1 }}><Copy muted>이번 달 실천</Copy><Copy size={30} weight="800">{monthly.length}일</Copy></View><View style={{ flex: 1 }}><Copy muted>작게만 한 날</Copy><Copy size={30} weight="800">{monthly.filter(key=>!routineActivities(data,key).some(a=>a.status==='full')).length}일</Copy></View></View>
-    </View>
-    <CardView style={{ padding: 16 }}>
-      <View style={u.between}><Link label="〈 이전" onPress={() => move(-1)} /><Copy size={19} weight="800">{month.replace("-", "년 ")}월</Copy><Link label="다음 〉" onPress={() => move(1)} /></View>
-      <View style={{ flexDirection: "row" }}>{["월", "화", "수", "목", "금", "토", "일"].map(d => <View style={{ width: `${100 / 7}%`, alignItems: "center" }} key={d}><Copy muted size={12}>{d}</Copy></View>)}</View>
+  return <Page embedded={embedded} title="캘린더">
+    <CardView style={{ padding: space.sm, gap: space.xs }}>
+      <View style={u.between}><Link label="〈 이전" onPress={() => move(-1)} /><View style={{alignItems:"center"}}><Copy variant="section">{month.replace("-", "년 ")}월</Copy><Copy variant="caption" muted>실천 {monthly.length}일 · 작게만 {small}일</Copy></View><Link label="다음 〉" onPress={() => move(1)} /></View>
+      <View style={{ flexDirection: "row" }}>{["월", "화", "수", "목", "금", "토", "일"].map(d => <View style={{ width: `${100 / 7}%`, alignItems: "center" }} key={d}><Copy variant="caption" muted>{d}</Copy></View>)}</View>
       <MotionSwap transitionKey={month} direction={direction}>{monthWeeks(month).map((week, i) => <View key={i} style={{ flexDirection: "row" }}>{week.map(key => {
-        const activities=routineActivities(data,key),count=activities.filter(isActivityComplete).length,partial=activities.some(a=>a.status==='progress'),inMonth = key.startsWith(month), selectedDay = key === selected;
-        return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${key}, ${count}개 실천${partial?' · 진행 중 기록 있음':''}`} onPress={() => { setDirection(key > selected ? 1 : -1); setSelected(key); if (!inMonth) setMonth(key.slice(0, 7)); navigation.navigate('DayDetail',{date:key}); }}
-          style={{ width: `${100 / 7}%`, minHeight: 69, alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14,
-            backgroundColor: selectedDay ? c.primarySoft : "transparent", opacity: inMonth ? 1 : 0.35 }}>
+        const activities=routineActivities(data,key),count=activities.filter(isActivityComplete).length,partial=activities.some(a=>a.status==='progress'),inMonth = key.startsWith(month);
+        return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${key}, ${count}개 실천${partial?' · 진행 중 기록 있음':''}`} onPress={() => navigation.navigate('DayDetail',{date:key})}
+          style={{ width: `${100 / 7}%`, minHeight: control.touch, alignItems: "center", justifyContent: "center", gap: 2, opacity: inMonth ? 1 : 0.35 }}>
           <View style={{ minWidth: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: count ? c.primarySoft : "transparent",
-            borderWidth: key === dayKey ? 1.5 : 0, borderColor: c.primary }}><Copy size={14} weight={key === dayKey ? "800" : "600"}>{Number(key.slice(-2))}</Copy></View>
-          <Copy muted size={10}>{count?`${count}개 실천`:partial?'진행 중':' '}</Copy>
+            borderWidth: key === dayKey ? 1.5 : 0, borderColor: c.primary }}><Copy variant="caption" weight={key === dayKey ? "800" : "600"}>{Number(key.slice(-2))}</Copy></View>
+          <DayDots count={count} partial={partial}/>
         </Pressable>;
       })}</View>)}</MotionSwap>
-      <Copy muted size={11}>간단한 완료도 실천 1개예요. 날짜를 누르면 저녁 루틴과 집중 공부까지 볼 수 있어요.</Copy>
-      <View style={u.between}><Link label="일정 추가" onPress={()=>navigation.navigate('EventEdit',{date:selected})}/><Link label="일정 전체·편집" onPress={()=>navigation.navigate('LegacyCalendar')}/></View>
+      <Copy variant="caption" muted>간단한 완료도 실천 1개. 날짜를 누르면 자세히 봐요.</Copy>
+      <View style={u.between}><Link label="일정 추가" onPress={()=>navigation.navigate('EventEdit',{date:dayKey})}/><Link label="일정 전체·편집" onPress={()=>navigation.navigate('LegacyCalendar')}/></View>
     </CardView>
-    <MotionSwap transitionKey={selected} direction={direction}><CardView><Copy size={20} weight="800">{selected.replace(/-/g, ".")}의 기록</Copy>
-      {routineActivities(data,selected).map(activity => <View key={activity.id} style={u.between}>
-        <View style={u.row}><Mark activity={activity} /><Copy weight="700">{activity.title}</Copy></View>
-        <Copy muted size={13}>{activityStatusLabel[activity.status]}</Copy>
-      </View>)}
-      <Copy muted size={13}>학습 {day.complete.length}장 · 응답 {day.responses}회 · {Math.round(day.studySeconds / 60)}분</Copy>
-      {events.map(event => <View key={event.id} style={u.row}><Copy size={13} muted>{event.allDay ? "종일" : formatTime(event.startAt)}</Copy><View style={{ flex: 1 }}><Copy>{event.title}</Copy></View></View>)}
-      {local.error || google.error ? <Copy muted size={12}>일부 일정을 불러오지 못했어요. 기존 캘린더에서 다시 확인할 수 있어요.</Copy> : null}
-      <AutomaticDayNotes date={selected}/>
-      <Link label="이날의 일기 · 사진 · 할 일 보기" onPress={() => navigation.navigate("DayDetail", { date: selected })} />
-    </CardView></MotionSwap>
   </Page>;
 }
 
@@ -83,20 +60,20 @@ export function RoutineHistoryScreen({embedded=false}:{embedded?:boolean}={}) {
   const max = Math.max(1, ...records.map(r => r.day.responses));
   const total = records.reduce((sum, r) => sum + r.day.responses, 0);
   return <Page embedded={embedded} title="나의 기록">
-    <CardView><Copy muted>최근 7일 학습 응답</Copy><Copy size={42} weight="800">{total}회</Copy>
-      <View style={{ flexDirection: "row", alignItems: "flex-end", height: 150, gap: 10 }}>{records.map(({ key, day }) => <View key={key} style={{ flex: 1, alignItems: "center", gap: 8 }}>
-        <Copy size={11} muted>{day.responses || "–"}</Copy><View style={{ width: "70%", height: Math.max(3, day.responses / max * 100), borderRadius: 6, backgroundColor: key === dayKey ? c.primary : c.primarySoft }} />
-        <Copy size={11} muted>{Number(key.slice(-2))}일</Copy>
+    <CardView><View style={u.between}><Copy muted>최근 7일 학습 응답</Copy><Copy variant="heading">{total}회</Copy></View>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", height: 84, gap: 10 }}>{records.map(({ key, day }) => <View key={key} style={{ flex: 1, alignItems: "center", gap: 8 }}>
+        <Copy variant="caption" muted>{day.responses || "–"}</Copy><View style={{ width: "70%", height: Math.max(3, day.responses / max * 36), borderRadius: 6, backgroundColor: key === dayKey ? c.primary : c.primarySoft }} />
+        <Copy variant="caption" muted>{Number(key.slice(-2))}일</Copy>
       </View>)}</View>
-      <Copy muted size={12}>같은 카드를 여러 번 학습하면 응답 횟수에 각각 포함돼요.</Copy>
+      <Copy muted size={12}>같은 카드를 여러 번 학습하면 횟수마다 세요.</Copy>
     </CardView>
-    <CardView><Copy size={20} weight="800">꾸준히 쌓아 온 실천</Copy>
+    <CardView style={{ gap: space.xs }}>
       <View style={u.between}><Copy muted>이번 주 실천한 날 · 최소 목표 포함</Copy><Copy weight="800">{records.filter(r => routineActivities(data,r.key).some(isActivityComplete)).length}일</Copy></View>
       <View style={u.between}><Copy muted>누적 실천일</Copy><Copy weight="800">{activityDays(data).filter(key=>routineActivities(data,key).some(isActivityComplete)).length}일</Copy></View>
       <View style={u.between}><Copy muted>이번 주 학습 시간</Copy><Copy weight="800">{Math.round(records.reduce((n, r) => n + r.day.studySeconds, 0) / 60)}분</Copy></View>
       <View style={u.between}><Copy muted>이번 주 적립 시간</Copy><Copy weight="800">{records.reduce((n, r) => n + earned(r.day), 0)}분</Copy></View>
     </CardView>
-    <Copy muted size={12}>이 화면은 새 루틴 기능으로 실제 저장한 기록을 보여줘요. 기존 일기와 리포트는 더보기에서 볼 수 있어요.</Copy>
+    {embedded?null:<Copy muted size={12}>이 화면은 새 루틴 기능으로 실제 저장한 기록을 보여줘요. 기존 일기와 리포트는 더보기에서 볼 수 있어요.</Copy>}
   </Page>;
 }
 
