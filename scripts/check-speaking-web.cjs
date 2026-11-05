@@ -38,6 +38,7 @@ async function shots(page,name){
   const page=await context.newPage();
   page.on('pageerror',e=>errors.push('pageerror: '+e.message));
   await page.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle',timeout:300000});
+  await page.waitForFunction(k=>!!localStorage.getItem(k),DEMO,{timeout:30000});
   return page;
  };
  const btn=(p,name)=>p.getByRole('button',{name:new RegExp('^\\W*'+name+'\\W*$')});
