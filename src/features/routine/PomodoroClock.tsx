@@ -6,29 +6,35 @@ import {focusClockInverted} from '../../lib/focusFlow';
 import {clockLabel,journeyGoal,type FocusJourney} from '../../lib/focusJourney';
 import {tapLight} from '../../lib/haptics';
 import {ActionPanel,PanelButton} from './ActionPanel';
+import {MascotBubble} from './MascotBubble';
 import {TimerFace} from './TimerFace';
 import {Icon} from './ui';
 import {control,gutter,space,type} from '../../theme/tokens';
 export type ClockDesign='A'|'B'|'C';
 /** 수달 그림에서 머리 꼭대기와 턱의 위치(그림 크기 대비). 머리는 안내 문구 아래, 턱은 버튼 묶음 위에 둔다. */
 const CROWN=.34,CHIN=.64,NOTE_HEIGHT=20,PANEL_CLEARANCE=172;
+/** 질문을 읽고 고를 시간. 그냥 두면 닫혀서, 나중에 잘못 눌러도 벌점이 붙지 않는다. */
+const QUESTION_MS=10000;
 const palettes={A:{bg:focusTheme.colors.background,text:focusTheme.colors.text,muted:focusTheme.colors.textMuted,accent:focusTheme.colors.primary,onAccent:'#17251C',track:'#ffffff16',control:'#ffffff0D',line:'#81909B66',panel:'rgba(22,22,22,0.9)',cell:focusTheme.colors.border},B:{bg:'#FFF6E6',text:'#303E32',muted:'#687B68',accent:'#65914C',onAccent:'#FFFFFF',track:'#DBE5CF',control:'#ffffff0D',line:'#81909B66',panel:'rgba(255,246,230,0.9)',cell:'#DBE5CF'},C:{bg:'#192754',text:'#F7F9FF',muted:'#B9C8E6',accent:'#A8C4FF',onAccent:'#17251C',track:'#ffffff16',control:'#ffffff0D',line:'#81909B66',panel:'rgba(25,39,84,0.9)',cell:'#2A3B75'}};
 /** 시간 초과: 검은 시계를 연두 바탕에 뒤집는다. */
 const overtimePalette={bg:overtimeTheme.colors.background,text:overtimeTheme.colors.text,muted:overtimeTheme.colors.textMuted,accent:overtimeTheme.colors.primary,onAccent:overtimeTheme.colors.background,track:'#00000022',control:'#00000012',line:overtimeTheme.colors.border,panel:'rgba(214,242,168,0.9)',cell:overtimeTheme.colors.primarySoft};
-type Props={design:ClockDesign;left:number;total?:number;running:boolean;phase:string;subject:string;onPause:()=>void;onClose:()=>void;onPhoto?:()=>void;onBreak?:()=>void;onSkipBreak?:()=>void;onLeaveNote?:()=>void;onFinish?:()=>void;onAdjust?:(seconds:number)=>void;restOvertime?:number|null;ready?:boolean;requiredMinutes?:number;needsPlan?:boolean;onRotate?:()=>void;carried?:number;dueMinutes?:number;nextMinutes?:number;onDeclare?:()=>void;quitPenalty?:string;awaitingChoice?:boolean;overtimeFlashDone?:boolean;character?:(size:number)=>React.ReactNode;rewardUse?:{label:string;onPress:()=>void};journey?:FocusJourney|null};
-export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phase,subject,onPause,onClose,onPhoto,onBreak,onSkipBreak,onLeaveNote,onFinish,onAdjust,restOvertime=null,ready=false,requiredMinutes=25,needsPlan=false,onRotate,carried=0,dueMinutes=0,nextMinutes=0,onDeclare,quitPenalty='',awaitingChoice=false,overtimeFlashDone=false,character,rewardUse,journey=null}:Props){
+type Props={design:ClockDesign;left:number;total?:number;running:boolean;phase:string;subject:string;onPause:()=>void;onClose:()=>void;onPhoto?:()=>void;onBreak?:()=>void;onSkipBreak?:()=>void;onLeaveNote?:()=>void;onFinish?:()=>void;onAdjust?:(seconds:number)=>void;restOvertime?:number|null;ready?:boolean;requiredMinutes?:number;needsPlan?:boolean;onRotate?:()=>void;carried?:number;dueMinutes?:number;nextMinutes?:number;onDeclare?:()=>void;quitPenalty?:string;awaitingChoice?:boolean;overtimeFlashDone?:boolean;character?:(size:number)=>React.ReactNode;rewardUse?:{label:string;onPress:()=>void};journey?:FocusJourney|null;askQuit?:()=>string|null};
+export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phase,subject,onPause,onClose,onPhoto,onBreak,onSkipBreak,onLeaveNote,onFinish,onAdjust,restOvertime=null,ready=false,requiredMinutes=25,needsPlan=false,onRotate,carried=0,dueMinutes=0,nextMinutes=0,onDeclare,quitPenalty='',awaitingChoice=false,overtimeFlashDone=false,character,rewardUse,journey=null,askQuit}:Props){
  const idle=phase==='idle',resting=phase==='break',restOver=idle&&restOvertime!==null,left=restOver?-restOvertime!:idle?Math.max(0,requiredMinutes*60-(awaitingChoice?carried:0)):rawLeft,total=idle?requiredMinutes*60:rawTotal;
  const pauseLabel=idle?(needsPlan?'계획부터 시작':awaitingChoice?'계속 공부':requiredMinutes+'분 집중 시작'):resting?(running?'휴식 일시정지':'휴식 이어가기'):running?'일시정지':needsPlan?'계획부터 시작':'이어서 공부';
- const [area,setArea]=useState({width:844,height:390}),[revealed,setRevealed]=useState(false),[adjusting,setAdjusting]=useState(false),[confirmQuit,setConfirmQuit]=useState(false),inverted=focusClockInverted(phase,left,restOver?restOvertime:null,overtimeFlashDone),p=inverted?overtimePalette:palettes[design],landscape=area.width>area.height;
+ const [area,setArea]=useState({width:844,height:390}),[revealed,setRevealed]=useState(false),[adjusting,setAdjusting]=useState(false),[confirmQuit,setConfirmQuit]=useState(false),[quitQuestion,setQuitQuestion]=useState<string|null>(null),inverted=focusClockInverted(phase,left,restOver?restOvertime:null,overtimeFlashDone),p=inverted?overtimePalette:palettes[design],landscape=area.width>area.height;
  useEffect(()=>{if(!revealed)return;const id=setTimeout(()=>setRevealed(false),5000);return()=>clearTimeout(id)},[revealed]);
- useEffect(()=>{if(!confirmQuit)return;const id=setTimeout(()=>setConfirmQuit(false),5000);return()=>clearTimeout(id)},[confirmQuit]);
+ useEffect(()=>{if(!confirmQuit)return;const id=setTimeout(()=>setConfirmQuit(false),quitQuestion?QUESTION_MS:5000);return()=>clearTimeout(id)},[confirmQuit,quitQuestion]);
+ useEffect(()=>{if(!quitPenalty)setConfirmQuit(false)},[quitPenalty]);
  useEffect(()=>{const subscription=AppState.addEventListener('change',()=>setRevealed(false));return()=>subscription.remove()},[]);
  const half=area.width/2,size=Math.max(132,landscape?Math.min(290,area.height-80):Math.min(290,area.width-48)),progress=journey?journey.progress:Math.max(0,Math.min(1,left/Math.max(total,1)));
  const playIcon=!idle&&!(needsPlan&&!resting&&!running);
  const seconds=Math.abs(left),overtime=!journey&&phase==='focus'&&left<=0,time=journey?clockLabel(journey.studied):(left<0||restOver?'+':'')+clockLabel(seconds);
  /** A penalty needs a second press, so a stray tap cannot cost money. */
- const quit=()=>{if(quitPenalty&&!confirmQuit){setConfirmQuit(true);return;}setConfirmQuit(false);onFinish?.()};
- const quitLabel=confirmQuit?'한 번 더 누르면 마쳐요\n'+quitPenalty:awaitingChoice?'마치기':(restOver?'이 과목 공부 마치기':'공부 마치기')+(quitPenalty?'\n'+quitPenalty:'');
+ const quit=()=>{if(quitPenalty&&!confirmQuit){setQuitQuestion(askQuit?.()??null);setConfirmQuit(true);return;}setConfirmQuit(false);onFinish?.()};
+ const asking=confirmQuit&&!!quitPenalty&&!!quitQuestion;
+ const stay=()=>{setConfirmQuit(false);if((phase==='focus'&&!running)||restOver)onPause()};
+ const quitLabel=asking?'마치기\n'+quitPenalty:confirmQuit?'한 번 더 누르면 마쳐요\n'+quitPenalty:awaitingChoice?'마치기':(restOver?'이 과목 공부 마치기':'공부 마치기')+(quitPenalty?'\n'+quitPenalty:'');
  const characterSize=landscape?Math.round(area.height*1.6):Math.round(area.width*1.69),characterLeft=landscape?half+(half-characterSize)/2:(area.width-characterSize)/2,characterTop=Math.round(landscape?area.height-PANEL_CLEARANCE-characterSize*CHIN:control.touch+space.xs+size+space.xxs+NOTE_HEIGHT+space.xs-characterSize*CROWN);
  const panelWidth=landscape?Math.min(358,half-gutter):Math.min(358,area.width-gutter*2),panelLeft=landscape?half+(half-panelWidth)/2:(area.width-panelWidth)/2;
  const adjustButton=(label:string,amount:number)=><PanelButton tight key={label} label={label} colors={p} onPress={()=>onAdjust?.(amount)}/>;
@@ -47,8 +53,10 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
    </TimerFace>
    <Text style={{...type.caption,color:p.muted,textAlign:'center'}}>{needsPlan?'계획 한 줄부터 시작해요':awaitingChoice?'고를 때까지 시간이 멈춰요 · 마치기 전에는 앱이 잠겨 있어요':ready?'이번 단계 충족 · 사진 확인하면 +'+dueMinutes+'분':resting?'쉬는 시간은 공부 시간에 포함되지 않아요':(phase==='focus'&&carried>0?'지난 공부 '+Math.floor(carried/60)+'분 '+carried%60+'초 이어짐 · ':'실제 집중 ')+requiredMinutes+'분 후 필기 사진 · +'+nextMinutes+'분'}</Text>
   </View>
-  <View style={{position:'absolute',left:panelLeft,width:panelWidth,bottom:landscape?space.xs:gutter}}>
+  <View style={{position:'absolute',left:panelLeft,width:panelWidth,bottom:landscape?space.xs:gutter,gap:space.sm}}>
+   {asking?<MascotBubble text={quitQuestion!} background={p.text} color={p.bg} tail="up"/>:null}
    <ActionPanel background={p.panel}>
+    {asking?<PanelButton wide primary colors={p} label="계속 공부" onPress={stay}/>:null}
     {design==='C'?<Text style={{...type.label,fontWeight:'800',color:p.accent,flexBasis:'100%'}}>{revealed?subject:'지금 할 행동에 집중해요'}</Text>:null}
     {resting&&onSkipBreak?<PanelButton wide primary colors={p} label={needsPlan?'계획 쓰고 다시 공부하기':'쉬는 시간 건너뛰고 공부하기'} onPress={onSkipBreak}/>:null}
     {!playIcon&&!(resting&&needsPlan&&onSkipBreak)?<PanelButton wide primary={!resting&&!ready&&(idle||!running)} colors={p} label={pauseLabel} onPress={onPause}/>:null}

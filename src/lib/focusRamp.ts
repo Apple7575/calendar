@@ -2,8 +2,12 @@ import type {RoutineData} from './routineModel';
 import {routineDay,withDay} from './routineModel';
 import {bookFocusSeconds} from './bookTimerTime';
 export const FOCUS_STEPS=[0,120,300,600,900,1500] as const;
-/** Reward table (user decision 2026-11-04): what each stage pays, and the plan's one minute on the first payout. */
-export const FOCUS_STAGE_MINUTES=[0,1,2,4,7,15] as const;
+/** Reward table (user decision 2026-11-05, about 10 minutes for 25 of study): what each stage pays, and the plan's one minute on the first payout. */
+export const FOCUS_STAGE_MINUTES=[0,1,2,4,6,10] as const;
+/** What each stage pays in money, in units of 100 won. It stayed here when screen time came down (user decision 2026-11-05). */
+export const FOCUS_MONEY_MINUTES=[0,1,2,4,7,15] as const;
+/** Every table a saved payout may have used. Saved payouts keep what they paid. */
+export const FOCUS_STAGE_TABLES:readonly (readonly number[])[]=[FOCUS_STAGE_MINUTES,FOCUS_MONEY_MINUTES];
 export const FOCUS_PLAN_MINUTES=1;
 export const FOCUS_RESET_MS=2*60*60*1000;
 export type FocusLevel=1|2|3|4|5;

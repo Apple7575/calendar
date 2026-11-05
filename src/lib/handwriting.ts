@@ -1,6 +1,6 @@
 import type {RoutineData} from './routineModel';
 import {getDay,routineDay,withDay} from './routineModel';
-import {FOCUS_STEPS,carryRunPastStage,FOCUS_STAGE_MINUTES,focusPlanMinutesDue,focusRunCredit,focusRampAccess,focusStagePayout,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
+import {FOCUS_STEPS,carryRunPastStage,FOCUS_STAGE_MINUTES,FOCUS_STAGE_TABLES,focusPlanMinutesDue,focusRunCredit,focusRampAccess,focusStagePayout,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
 import {bookFocusSeconds} from './bookTimerTime';
 import {stopBookTimer} from './bookStudy';
 
@@ -139,10 +139,10 @@ function validStagePay(r:HandwritingReceipt,carry:number){
  const stage=r.focusStage!;
  if(r.focusSeconds===undefined)return r.stageMinutes===0&&r.planMinutes===0;
  if(!Number.isSafeInteger(r.focusSeconds)||r.focusSeconds<=0||(r.planMinutes!==0&&r.planMinutes!==1))return false;
- if(r.finish==='declared')return r.focusSeconds<=FOCUS_STEPS[stage]&&r.stageMinutes===Math.floor(FOCUS_STAGE_MINUTES[stage]*r.focusSeconds/FOCUS_STEPS[stage]);
+ if(r.finish==='declared')return r.focusSeconds<=FOCUS_STEPS[stage]&&FOCUS_STAGE_TABLES.some(table=>r.stageMinutes===Math.floor(table[stage]*r.focusSeconds!/FOCUS_STEPS[stage]));
  if(r.finish!=='timer')return false;
  const times=r.focusSeconds/FOCUS_STEPS[stage];
- return Number.isInteger(times)&&(times===1||stage===5)&&r.stageMinutes===FOCUS_STAGE_MINUTES[stage]*times;
+ return Number.isInteger(times)&&(times===1||stage===5)&&FOCUS_STAGE_TABLES.some(table=>r.stageMinutes===table[stage]*times);
 }
 export function validateHandwritingState(data:RoutineData){
  const rows=data.handwritingReceipts;
