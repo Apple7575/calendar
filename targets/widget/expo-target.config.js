@@ -1,3 +1,13 @@
+const fs = require("fs");
+const path = require("path");
+
+// 연속 실천 위젯 그림. images 폴더의 PNG가 위젯 전용 Assets.xcassets에 같은 이름으로 들어간다(3배 크기 하나).
+const streakImages = Object.fromEntries(
+  fs.readdirSync(path.join(__dirname, "images"))
+    .filter((file) => file.startsWith("streak_") && file.endsWith(".png"))
+    .map((file) => [file.replace(/\.png$/, ""), { "3x": `./images/${file}` }])
+);
+
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 module.exports = (config) => ({
   type: "widget",
@@ -9,6 +19,7 @@ module.exports = (config) => ({
     $accent: "#8B72E8",
     $widgetBackground: "#FFFFFF",
   },
+  images: streakImages,
   entitlements: {
     // 본체 앱과 같은 App Group으로 위젯 데이터를 공유한다
     "com.apple.security.application-groups":

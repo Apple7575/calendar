@@ -23,6 +23,8 @@ import {reconcileMoneyRewards} from '../../lib/moneyRewards';
 import {reconcileEmergency} from '../../lib/emergencyUnlock';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
+import {streakWidgetPayload} from '../../lib/streakWidget';
+import {writeStreakWidget} from '../../lib/widget';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -168,6 +170,8 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
     const listener = AppState.addEventListener("change", state => { if (state === "active" && ready) void syncDecks(); });
     return () => listener.remove();
   }, [ready, syncDecks]);
+  // 기록이 저장되거나 04시에 하루가 바뀌면 연속 실천 위젯에 같은 값을 넘긴다. 홈의 연속 실천과 같은 계산이다.
+  useEffect(()=>{if(ready)writeStreakWidget(streakWidgetPayload(data,dayKey));},[ready,data,dayKey]);
   const today=getDay(data,dayKey),paid=today.paid;
   const bonus=today.bonus;
   const adjustment=data.pendingStudyAdjustment;
