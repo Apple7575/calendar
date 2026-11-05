@@ -5,6 +5,7 @@ import { addDeck,emptyData } from '../lib/routineModel';
 import { latestRoutineBackup,uploadRoutineBackup } from '../lib/routineBackup';
 import { getScreenTimeStatus,syncRoutineRewards } from '../lib/screenTime';
 import { getDay,routineDay } from '../lib/routineModel';
+jest.mock('../lib/breakAlarm',()=>({breakAlarmAt:()=>null,syncBreakAlarm:async()=>true}));
 jest.mock('@react-native-async-storage/async-storage',()=>require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 jest.mock('react-native',()=>({AppState:{currentState:'active',addEventListener:()=>({remove:jest.fn()})}}));
 const renderer=require('react-test-renderer');

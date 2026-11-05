@@ -30,7 +30,7 @@ export function RoutineScreenTimeScreen({ navigation }: RootScreenProps<"Routine
       ])} /> : null}
       {native.enabled && !native.rewardMode ? <Copy>현재 테스트 모드예요. 테스트를 중단한 뒤 루틴 연결을 시작해 주세요.</Copy> : null}
     </>}
-    <CardView><Copy weight="700">취침·집중 보호</Copy><Copy>21:00부터 04:30까지 취침 잠금</Copy><Copy>공부 25분과 휴식 5분에는 앱 잠금 유지</Copy><Copy muted size={13}>{native?.policyVersion===2?"보상을 받으면 홈에서 모은 시간 사용을 시작해요.":"이 정책은 새 아이폰 빌드에서 적용돼요. 현재 설치본의 반영 상태를 확인해 주세요."}</Copy></CardView>
+    <CardView><Copy weight="700">취침·집중 보호</Copy><Copy>21:00부터 04:30까지 취침 잠금</Copy><Copy>공부 중에는 앱 잠금 유지 · 쉬는 시간에는 모은 시간 사용 가능</Copy><Copy muted size={13}>{native?.policyVersion===2?"보상을 받으면 홈에서 모은 시간 사용을 시작해요.":"이 정책은 새 아이폰 빌드에서 적용돼요. 현재 설치본의 반영 상태를 확인해 주세요."}</Copy></CardView>
     <Action secondary label="종료 2분 전 알림 허용" disabled={busy} onPress={() => {
       void Notifications.requestPermissionsAsync().then(permission => {
         if (!permission.granted) Alert.alert("알림 권한", "아이폰 설정에서 알림을 켜 주세요.");
