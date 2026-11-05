@@ -44,6 +44,17 @@ export function focusRunCredit(data:RoutineData,now=Date.now()){
  return storedSeconds(t.carrySeconds)+Math.max(0,focusRunSeconds(data,now)-storedSeconds(t.creditMark));
 }
 /**
+ * A rest opens the apps, so it has to be earned (user decision 2026-11-05): the same time the photo rule and the
+ * clock count must reach the current stage. Before a plan there is no stage, so no rest. A saved timer outside
+ * the stages keeps its rest: new study always starts with a stage, and that timer has no stage to meet.
+ */
+export function canStartBreak(data:RoutineData,now=Date.now()){
+ const t=data.bookTimer;if(t?.phase!=='focus')return false;
+ if(t.rewardMode!=='output')return true;
+ const required=focusRampStatus(data,now).required;
+ return required>0&&focusRunCredit(data,now)>=required;
+}
+/**
  * Surplus a new run starts with. A run that reached its stage hands on all its credit; a run cut short
  * adds nothing (user decision 2026-11-03) but keeps earlier surplus. Never more than the unspent reward time.
  */

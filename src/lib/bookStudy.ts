@@ -3,7 +3,7 @@ import { getDay,routineDay,withDay } from './routineModel';
 import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
-import {claimFocusPlan,focusCarryInto,focusRampStatus} from './focusRamp';
+import {canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus} from './focusRamp';
 import {acceptHandwriting,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
@@ -63,6 +63,10 @@ export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.phase!=='focus')return data;
  const next=stopBookTimer(data,now);
  return {...next,bookTimer:{...next.bookTimer!,phase:'break',endsAt:now+300000,remaining:300,running:true}};
+}
+/** What the app calls. startBookBreak is the bare state change underneath it and has no other caller. */
+export function takeEarnedBreak(data:RoutineData,now=Date.now()):RoutineData{
+ return canStartBreak(data,now)?startBookBreak(data,now):data;
 }
 /**
  * Leave a break early, whether it is running or paused. Keyed to the break's timer so a repeated
