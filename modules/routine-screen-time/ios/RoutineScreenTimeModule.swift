@@ -38,6 +38,10 @@ public class RoutineScreenTimeModule: Module {
       guard #available(iOS 17.4, *) else { throw self.unsupported() }
       try ScreenTimeService.startRewardUse()
     }
+    AsyncFunction("startEmergencyUnlock") { (id: String, minutes: Int, penalty: Int) throws -> [String: Double] in
+      guard #available(iOS 17.4, *) else { throw self.unsupported() }
+      return try ScreenTimeService.startEmergencyUnlock(id: id, minutes: minutes, penalty: penalty)
+    }
     AsyncFunction("pauseRewardUse") { () throws -> Void in
       guard #available(iOS 17.4, *) else { throw self.unsupported() }
       try ScreenTimeStorage.update { state in state.usingRewards = false; ScreenTimeStorage.apply(state) }
@@ -50,7 +54,11 @@ public class RoutineScreenTimeModule: Module {
         }
         let changed = abs((state.focusUntil ?? 0) - until / 1000) > 0.1
         state.focusUntil = until / 1000
-        if changed && until > Date().timeIntervalSince1970 * 1000 { state.usingRewards = false }
+        if changed && until > Date().timeIntervalSince1970 * 1000 {
+          state.usingRewards = false
+          // Starting study ends an emergency unlock for good.
+          if ScreenTimeStorage.emergencyOpen(state) { state.emergencyUntil = Date().timeIntervalSince1970 }
+        }
         ScreenTimeStorage.apply(state)
       }
     }
@@ -180,6 +188,38 @@ private enum ScreenTimeService {
     }
   }
 
+  /// The schedule is set first: if iOS refuses it, nothing has opened and nothing is charged. It starts a minute back and
+  /// ends after the unlock does, so it clears the 15 minute minimum and its end cannot arrive before the unlock is over.
+  static func startEmergencyUnlock(id: String, minutes: Int, penalty: Int) throws -> [String: Double] {
+    try requireAuthorization()
+    return try ScreenTimeStorage.update { state in
+      if let done = state.emergencyLog?.first(where: { $0.id == id }) { return ["until": done.until * 1000] }
+      guard !id.isEmpty, id.count <= 128, (15...30).contains(minutes), (0...240).contains(penalty) else {
+        throw ScreenTimeStorage.failure("긴급 해제 값을 확인해 주세요.")
+      }
+      guard state.enabled, state.rewardMode == true else { throw ScreenTimeStorage.failure("스크린타임 연결을 확인해 주세요.") }
+      guard ScreenTimeStorage.sleepLocked(state) else { throw ScreenTimeStorage.failure("긴급 해제는 21시부터 04시 30분까지만 쓸 수 있어요.") }
+      let now = Date().timeIntervalSince1970
+      guard (state.focusUntil ?? 0) <= now else { throw ScreenTimeStorage.failure("공부 중에는 긴급 해제를 쓸 수 없어요.") }
+      guard !ScreenTimeStorage.emergencyOpen(state) else { throw ScreenTimeStorage.failure("이미 긴급 해제 중이에요.") }
+      // Closes any stretch left open from before the lock, so this one is recorded on its own.
+      ScreenTimeStorage.recordPlay(&state)
+      let until = now + Double(minutes * 60)
+      let parts: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
+      let schedule = DeviceActivitySchedule(
+        intervalStart: Calendar.current.dateComponents(parts, from: Date(timeIntervalSince1970: now - 60)),
+        intervalEnd: Calendar.current.dateComponents(parts, from: Date(timeIntervalSince1970: until + 20)), repeats: false)
+      try center.startMonitoring(.init(ScreenTimeStorage.emergencyActivity), during: schedule)
+      state.emergencyUntil = until
+      state.emergencyLog = Array(((state.emergencyLog ?? []) + [EmergencyEntry(id: id, at: now, until: until, minutes: minutes, penalty: penalty)]).suffix(ScreenTimeStorage.emergencyLogLimit))
+      state.penalty = (state.penalty ?? 0) + penalty
+      state.granted = ScreenTimeStorage.netGranted(state)
+      ScreenTimeStorage.mark(&state, "긴급 해제 \(minutes)분 · 벌점 \(penalty)분")
+      ScreenTimeStorage.apply(state)
+      return ["until": until * 1000]
+    }
+  }
+
   static func adjustStudyRewards(day: String, previous: [String: Int], target: [String: Int]) throws {
     try requireAuthorization()
     try ScreenTimeStorage.update { state in
@@ -297,6 +337,7 @@ private enum ScreenTimeService {
     try ScreenTimeStorage.update { state in
       state.enabled = false
       state.rewardMode = false
+      state.emergencyUntil = nil
       state.paid = [:]
       state.session = nil
       state.granted = 0

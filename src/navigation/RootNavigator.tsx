@@ -20,6 +20,7 @@ import {JapaneseSampleScreen} from '../features/conceptLab/JapaneseSampleScreen'
 import { GuidedRoutineScreen } from "../features/routine/GuidedRoutineScreen";
 import { BookStudyScreen } from "../features/routine/BookStudyScreen";
 import { SpeakingSessionScreen } from "../features/routine/SpeakingSessionScreen";
+import { EmergencyUnlockScreen } from "../features/routine/EmergencyUnlockScreen";
 import { BackupScreen } from "../features/routine/BackupScreen";
 import { SavedStudyScreen } from "../features/routine/SavedStudyScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -135,6 +136,7 @@ export function RootNavigator() {
             <Stack.Screen name="FocusTimer" component={FocusTimerScreen} options={{headerShown:false}}/>
             <Stack.Screen name="BookStudy" component={BookStudyScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SpeakingSession" component={SpeakingSessionScreen} options={{headerShown:false}}/>
+            <Stack.Screen name="EmergencyUnlock" component={EmergencyUnlockScreen} options={{headerShown:false}}/>
             <Stack.Screen name="RoutineBackup" component={BackupScreen} options={{headerShown:false}}/>
             <Stack.Screen name="SavedStudy" component={SavedStudyScreen} options={{ headerShown: false }} />
           <Stack.Screen name="DeckCards" component={DeckCardsScreen} options={{headerShown:false}}/>

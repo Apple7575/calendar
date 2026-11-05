@@ -20,6 +20,7 @@ import { migrateN3Deck, mergeStudyDeck } from "../../lib/n3Deck";
 import {advanceHabitOrder,initializeHabitOrder} from '../../lib/habitOrder';
 import {wordDailyCap} from '../../lib/studyRewards';
 import {reconcileMoneyRewards} from '../../lib/moneyRewards';
+import {reconcileEmergency} from '../../lib/emergencyUnlock';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
 
@@ -187,6 +188,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   useEffect(()=>{
     if(ready&&native?.policyVersion&&native.policyVersion>=2)void syncFocusWindow(focusUntil).then(refreshNative).catch(e=>setError(e.message));
   },[ready,native?.policyVersion,focusUntil,refreshNative]);
+  useEffect(()=>{if(ready&&native?.supportsEmergencyUnlock&&reconcileEmergency(data,native.emergencyLog)!==data)void update(s=>reconcileEmergency(s,native.emergencyLog)).catch(e=>setError(e.message));},[ready,native?.supportsEmergencyUnlock,native?.emergencyLog?.length,data.emergencyPending?.id,data.emergencyUnlocks?.length]);
   const breakAlarm=breakAlarmAt(t);
   useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm).catch(e=>setError(e.message));},[ready,breakAlarm]);
   useEffect(() => {

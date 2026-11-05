@@ -8,6 +8,7 @@ import {Action,CardView,Copy,Link,Page,u} from './ui';
 import {BoriScene,MenuRow} from './experience';
 import {RewardUseToggle} from './RewardUseToggle';
 import {RewardSourcesCard} from './RewardSourcesCard';
+import {EmergencyUnlockLink} from './EmergencyUnlockScreen';
 export function TimeWalletScreen({navigation}:RootScreenProps<'TimeWallet'>){
  const {data,dayKey,native}=useRoutine(),day=getDay(data,dayKey),wallet=timeWallet(day,dayKey,native);
  const rows=[['아침 루틴',day.paid.morning],['오늘 단어 목표',day.paid.words],['운동',day.paid.gym],['추가 단어',day.bonus?.words??0],['이전 집중 공부',day.bonus?.book??0],['짧은 복습',day.bonus?.quick??0],['하루 순서 보너스',day.bonus?.order??0],['이전 자유 공부',day.bonus?.freeStudy??0],['집중 공부·계획',day.bonus?.handwriting??0],['말하기',day.bonus?.speaking??0],['콘텐츠 업로드',day.bonus?.content??0],['공부 중간에 마친 벌점',-(native?.penaltyMinutes??0)],['어제에서 넘어온 벌점',-(native?.debtMinutes??0)]] as const;
@@ -15,6 +16,7 @@ export function TimeWalletScreen({navigation}:RootScreenProps<'TimeWallet'>){
  return <Page title="시간 보관함" right={<Link label="닫기" onPress={()=>navigation.goBack()}/>}>
   <BoriScene action={wallet.available?'A55':'A54'} size={100} mood={wallet.available?'celebrate':'cheer'} title={`남은 사용 시간 ${wallet.balance}분`} description={wallet.available?`지금 ${wallet.available}분 사용할 수 있어요`:wallet.balance?`${wallet.reason} · 잔액은 보관 중이에요`:wallet.reason}/>
   <RewardUseToggle onConnect={()=>navigation.navigate('RoutineScreenTime')}/>
+  <EmergencyUnlockLink onPress={()=>navigation.navigate('EmergencyUnlock')}/>
   <MenuRow title="돈 보상 지갑" subtitle="실천으로 적립 · 쓴 금액 차감" icon="wallet-outline" onPress={()=>navigation.navigate('MoneyWallet')}/>
   <CardView><View style={u.between}><Copy>지금 사용 가능</Copy><Copy size={30} weight="800">{wallet.available}분</Copy></View><View style={u.between}><Copy muted>사용 조건 대기</Copy><Copy>{wallet.held}분</Copy></View><View style={u.between}><Copy muted>{wallet.connected?'기기 반영 대기':'연결 전 실천 적립'}</Copy><Copy>{wallet.pending}분</Copy></View>
   {!day.paid.morning?<Action label="아침 루틴 하러 가기" onPress={()=>navigation.navigate('GuidedRoutine',{slot:'morning'})}/>:null}</CardView>

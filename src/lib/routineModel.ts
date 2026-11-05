@@ -65,6 +65,7 @@ export type RoutineData = {
   priorityPolicy?:import('./priorityPlan').PriorityPolicy;priorityDays?:Record<string,import('./priorityPlan').PriorityDay>;
   focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];focusPenalties?:import('./focusPenalty').FocusPenalty[];
   speakingRecords?:import('./speaking').SpeakingRecord[];speakingConsentAt?:string;
+  emergencyUnlocks?:import('./emergencyUnlock').EmergencyUnlock[];emergencyPending?:import('./emergencyUnlock').EmergencyPending;
   contentUploads?:import('./content').ContentUpload[];contentSeenLinks?:string[];contentIdeas?:import('./content').ContentIdea[];
   money?:import('./moneyRewards').MoneyWallet;playLog?:import('./playLog').PlayLog;
   version: 1; decks: Deck[]; words: Word[]; days: Record<string, Day>; newLimit: number; morningSteps?: MorningStep[];
