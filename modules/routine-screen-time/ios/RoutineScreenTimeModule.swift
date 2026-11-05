@@ -154,9 +154,8 @@ private enum ScreenTimeService {
       state.granted = ScreenTimeStorage.netGranted(state)
       state.morningComplete = (ledger["morning"] ?? 0) > 0
       // Both a small (5) and full (10) morning finish open the reward gate.
-      // Only the first completion starts use; later syncs preserve a user's pause.
+      // Use itself starts only when the user asks, through startRewardUse.
       if !wasMorningComplete && state.morningComplete {
-        state.usingRewards = true
         ScreenTimeStorage.mark(&state, "아침 루틴 완료 · 모은 시간 사용 가능")
       }
       ScreenTimeStorage.apply(state)
