@@ -6,6 +6,7 @@ import {RootStackParamList} from '../../navigation/types';
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Image,Linking,Platform,ScrollView,View} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import {handwritingPhotoActions} from '../../lib/handwritingPhoto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Crypto from 'expo-crypto';
 import {recognizeHandwriting} from '../../lib/handwritingApi';
@@ -35,10 +36,10 @@ export function HandwritingStudy({declare=false,onPhotoChange,onSaving,moreRows,
   setBusy(true);setError('');setPermission(false);
   try{
    if(Platform.OS!=='web'){const result=await ImagePicker.requestCameraPermissionsAsync();if(!result.granted){setPermission(true);throw new Error('노트를 찍으려면 카메라 권한이 필요해요. 설정에서 카메라를 켠 뒤 다시 시도해 주세요.');}}
-   const picked=await ImagePicker.launchCameraAsync({mediaTypes:['images'],quality:1});
+   const picked=await ImagePicker.launchCameraAsync({mediaTypes:['images'],quality:1,exif:true});
    if(picked.canceled)return;
-   const asset=picked.assets[0],longest=Math.max(asset.width,asset.height),actions:ImageManipulator.Action[]=longest>2200?[{resize:asset.width>=asset.height?{width:2200}:{height:2200}}]:[];
-   const image=await ImageManipulator.manipulateAsync(asset.uri,actions,{compress:0.9,format:ImageManipulator.SaveFormat.JPEG,base64:true});
+   const asset=picked.assets[0];
+   const image=await ImageManipulator.manipulateAsync(asset.uri,handwritingPhotoActions(asset),{compress:0.9,format:ImageManipulator.SaveFormat.JPEG,base64:true});
    if(!image.base64||image.base64.length>6000000)throw new Error('사진이 너무 커요. 노트를 한 쪽씩 찍어 주세요.');
    const hash=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,image.base64);
    if(data.handwritingReceipts?.some(r=>r.imageHash===hash))throw new Error('이미 기록한 사진이에요. 새로 쓴 내용을 찍어 주세요.');
