@@ -24,7 +24,7 @@ import {reconcileEmergency} from '../../lib/emergencyUnlock';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
 import {streakWidgetPayload} from '../../lib/streakWidget';
-import {writeStreakWidget} from '../../lib/widget';
+import {writeStreakWidget} from '../../lib/streakWidgetStorage';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;

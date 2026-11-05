@@ -18,7 +18,6 @@ import { addDays } from "./dateUtils";
 import { listDiaryEntriesInRange } from "./diary";
 import { listCheckedRoutineIds, listChecksInRange, listRoutines, routinesForDate } from "./routines";
 import { computeStreakWithRecovery } from "./streaks";
-import type { StreakWidgetPayload } from "./streakWidget";
 import { supabase } from "./supabase";
 
 const APP_GROUP = "group.com.newblueday.mycalendar";
@@ -140,22 +139,6 @@ export async function updateWidget(): Promise<void> {
     const storage = new ExtensionStorage(APP_GROUP);
     storage.set("widgetData", JSON.stringify(payload));
     ExtensionStorage.reloadWidget();
-  } catch {
-    // 위젯 갱신 실패는 조용히 무시
-  }
-}
-
-let lastStreakJson: string | null = null;
-
-/** 연속 실천 위젯 값을 쓴다. 바뀔 때만 쓰고 이 위젯만 새로고침한다. 기존 위젯의 widgetData 키는 건드리지 않는다. */
-export function writeStreakWidget(payload: StreakWidgetPayload): void {
-  if (!ExtensionStorage) return;
-  const json = JSON.stringify(payload);
-  if (json === lastStreakJson) return;
-  try {
-    new ExtensionStorage(APP_GROUP).set("streakWidget", json);
-    ExtensionStorage.reloadWidget("StreakWidget");
-    lastStreakJson = json;
   } catch {
     // 위젯 갱신 실패는 조용히 무시
   }
