@@ -29,3 +29,17 @@ test('native errors are also surfaced as an alert and leave use off',async()=>{
 test('pause remains possible while focus blocks actual use, and never disables the app restriction service',async()=>{mockContext.native.usingRewards=true;mockContext.native.focusUntil=Date.now()+60000;let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(RewardUseToggle))});const control=tree.root.findByType(Switch);expect(control.props.disabled).toBe(false);await renderer.act(async()=>control.props.onValueChange(false));expect(runScreenTimeAction).toHaveBeenCalledWith('pauseRewardUse');expect(syncRoutineRewards).not.toHaveBeenCalled();expect(runScreenTimeAction).not.toHaveBeenCalledWith('disable');await renderer.act(async()=>tree.unmount());});
 test('free study uses its own native ledger instead of inflating capped word or focus amounts',async()=>{mockContext.native.supportsFreeStudyRewards=true;mockContext.data.days[mockContext.dayKey].bonus.freeStudy=35;let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(RewardUseToggle))});await renderer.act(async()=>tree.root.findByType(Switch).props.onValueChange(true));expect(syncRoutineRewards).toHaveBeenCalledWith(mockContext.dayKey,expect.objectContaining({words:20,book:0,order:60,wordDailyCap:0,freeStudy:35}));await renderer.act(async()=>tree.unmount());});
 
+
+test('a focus lock explains that a rest opens the apps',async()=>{
+ mockContext.native.focusUntil=Date.now()+86400000;
+ mockContext.data.bookTimer={id:'focus',subject:'수능',phase:'focus',running:true,remaining:900,endsAt:Date.now()+900000,startedAt:new Date().toISOString()};
+ let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(RewardUseToggle))});await renderer.act(async()=>tree.root.findByType(Switch).props.onValueChange(true));
+ const call=(Alert.alert as jest.Mock).mock.calls.at(-1);expect(call[0]).toBe('집중 중에는 사용할 수 없어요');expect(call[1]).toContain('휴식을 시작');
+ expect(runScreenTimeAction).not.toHaveBeenCalled();await renderer.act(async()=>tree.unmount());
+});
+test('during a rest the switch starts reward use',async()=>{
+ mockContext.native.focusUntil=0;
+ mockContext.data.bookTimer={id:'focus',subject:'수능',phase:'break',running:true,remaining:200,endsAt:Date.now()+200000,startedAt:new Date().toISOString()};
+ let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(RewardUseToggle))});await renderer.act(async()=>tree.root.findByType(Switch).props.onValueChange(true));
+ expect(runScreenTimeAction).toHaveBeenCalledWith('startRewardUse');await renderer.act(async()=>tree.unmount());
+});
