@@ -16,8 +16,8 @@ describe('a note photo always comes out as held upright',()=>{
  test('saved upside down turns over',()=>{
   expect(portraitTurn({...tall,exif:{Orientation:8}})).toBe(180);
  });
- test.each([[undefined],[null],[{}],[{Orientation:'x'}],[{Orientation:2}]])('with no usable direction %j only a wide photo turns',exif=>{
-  expect(portraitTurn({...wide,exif})).toBe(90);
+ test.each([[undefined],[null],[{}],[{Orientation:'x'}],[{Orientation:2}]])('with no usable direction %j nothing turns',exif=>{
+  expect(portraitTurn({...wide,exif})).toBe(0);
   expect(portraitTurn({...tall,exif})).toBe(0);
  });
 });
@@ -59,10 +59,10 @@ describe('a phone held upright whatever it guessed: the page ends up readable, n
   const seen=turn(raw,BAKED[orientation]),photo={width:seen[0].length*1000,height:seen.length*1000,exif:{Orientation:orientation}};
   expect(turn(seen,portraitTurn(photo))).toEqual(page);
  });
- test('with no value a wide photo comes out right only for one landscape side',()=>{
+ test('with no value neither landscape side is guessed, so neither can end up upside down',()=>{
   const left=turn(raw,BAKED[1]),right=turn(raw,BAKED[3]),size={width:3000,height:2000};
-  expect(turn(left,portraitTurn(size))).toEqual(page);
-  expect(turn(right,portraitTurn(size))).toEqual(turn(page,180));
+  expect(turn(left,portraitTurn(size))).toEqual(left);
+  expect(turn(right,portraitTurn(size))).toEqual(right);
  });
 });
 
