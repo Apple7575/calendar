@@ -77,9 +77,9 @@ fs.mkdirSync(out, {recursive:true});
   assert(errorBox && errorBox.y+errorBox.height<page.viewportSize().height, 'Recognition error must be visible without scrolling');
   assert(await button('AI로 읽기').isEnabled());
   await capture('submit-error-390');
-  assert.equal(await page.getByText('필기 100자당 5분 · 500원 · 받은 시간 1분당 100원',{exact:true}).count(),0);
+  assert.equal(await page.getByText('필기 100자당 5분 · 500원',{exact:true}).count(),0);
   await button('보상 기준·사진 안내').click();
-  await page.getByText('필기 100자당 5분 · 500원 · 받은 시간 1분당 100원',{exact:true}).waitFor();
+  await page.getByText('필기 100자당 5분 · 500원',{exact:true}).waitFor();
   await button('보상 기준·사진 안내').click();
 
   const fixture = async seconds => {
