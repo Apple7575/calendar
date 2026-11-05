@@ -1,3 +1,5 @@
+import type {HandwritingReceipt} from './handwriting';
+import {FOCUS_MONEY_MINUTES,FOCUS_STEPS} from './focusRamp';
 import type {RoutineData} from './routineModel';
 import {getDay} from './routineModel';
 import {eveningSteps} from './dailyPlan';
@@ -43,12 +45,14 @@ export function reconcileMoneyRewards(before:RoutineData,after:RoutineData,key:s
  * bonus. They are plain entries because a new rate key or source would make older wallets fail validation and block loading.
  */
 const FIXED={perMinute:100,order:3000} as const;
+/** A stage's money follows its own table, at the share studied when finished early. */
+const stageMoneyMinutes=(r:HandwritingReceipt)=>r.focusStage&&r.focusSeconds?Math.floor(FOCUS_MONEY_MINUTES[r.focusStage]*r.focusSeconds/FOCUS_STEPS[r.focusStage]):0;
 function reconcileFixedRewards(before:RoutineData,after:RoutineData,key:string,now:Date):RoutineData{
  const wallet=after.money;if(!wallet)return after;
  const entries=[...wallet.entries],at=now.toISOString(),a=getDay(before,key).bonus,b=getDay(after,key).bonus,earlier=new Set((before.handwritingReceipts??[]).filter(r=>r.rewardStatus==='earned').map(r=>r.id));
  for(const r of after.handwritingReceipts??[]){
   if(r.rewardPolicy!=='ramp-v2'||r.rewardStatus!=='earned'||earlier.has(r.id))continue;
-  const minutes=(r.stageMinutes??0)+(r.planMinutes??0),id='focus:'+r.id;
+  const minutes=stageMoneyMinutes(r)+(r.planMinutes??0),id='focus:'+r.id;
   if(minutes>0&&!entries.some(e=>e.id===id))entries.push({id,kind:'reward',amount:minutes*FIXED.perMinute,at,day:r.rewardDay??key,source:'output',note:'집중 단계 보상'});
  }
  const free=(b?.freeStudy??0)-(a?.freeStudy??0),freeId=`free:${key}:${b?.freeStudy??0}`;

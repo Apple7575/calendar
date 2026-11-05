@@ -1,7 +1,8 @@
 import {emptyData,getDay,routineDay} from '../lib/routineModel';
 import {claimFocusPlan,focusRewardPreview,FOCUS_STAGE_MINUTES} from '../lib/focusRamp';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
-import {startBookTimer} from '../lib/bookStudy';
+import {acceptDeclaredFinish,startBookTimer} from '../lib/bookStudy';
+import {PROPOSED_MONEY_RATES,reconcileMoneyRewards,startMoneyRewards} from '../lib/moneyRewards';
 import type {RoutineData} from '../lib/routineModel';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
@@ -25,6 +26,26 @@ describe('25 minutes of study is worth about 10 minutes of screen time',()=>{
  });
  test('the label before the photo says the new amount',()=>{
   expect(focusRewardPreview(running(),subject,at+1500*sec).due).toBe(11);
+ });
+});
+
+describe('money stays as it was when screen time came down (user decision 2026-11-05)',()=>{
+ const plannedWallet=()=>claimFocusPlan(startMoneyRewards(emptyData(),key,'w',PROPOSED_MONEY_RATES,new Date(at)),'plan',subject,'기출 1번',at);
+ const wallet=()=>startBookTimer(plannedWallet(),'run',subject,at,120,'output');
+ const paidAt=(seconds:number)=>{const d=wallet();return reconcileMoneyRewards(d,photo(d,seconds),key,new Date(at+seconds*sec))};
+ test.each([[120,200],[300,300],[600,500],[900,800],[1500,1600],[3000,3100]])('%i seconds pays %i won with the plan',(seconds,won)=>{
+  const d=paidAt(seconds);
+  expect(d.money!.entries.find(e=>e.id==='focus:p1')?.amount).toBe(won);
+ });
+ test('the screen time of the same payout is the lower amount',()=>{
+  expect(getDay(paidAt(1500),key).bonus?.handwriting).toBe(11);
+ });
+ test('finishing early pays money at the share studied, by the same table',()=>{
+  const start=plannedWallet(),base={...start,focusRamp:{...start.focusRamp!,level:5 as const}},timer=startBookTimer(base,'run',subject,at,1500,'output'),when=at+480*sec;
+  const letters=Array.from({length:120},(_,i)=>String.fromCharCode(0xAC00+i)).join('');
+  const d=reconcileMoneyRewards(timer,acceptDeclaredFinish(timer,'p1','a'.repeat(64),subject,{lines:[letters],languages:['ko'],quality:'readable',message:''},new Date(when)),key,new Date(when));
+  expect(d.handwritingReceipts![0]).toMatchObject({finish:'declared',stageMinutes:3,planMinutes:1});
+  expect(d.money!.entries.find(e=>e.id==='focus:p1')?.amount).toBe(500);
  });
 });
 

@@ -80,8 +80,8 @@ describe('letters are a separate bonus',()=>{
 describe('money',()=>{
  test('stage minutes pay 100 won each and letters pay 500 per 100, once each',()=>{
   const d=photo(running(true),1500,'p1',300),entries=d.money!.entries;
-  expect(entries.find(e=>e.id==='focus:p1')?.amount).toBe(1100);
-  expect(moneySummary(d).balance).toBe(1100+1500);
+  expect(entries.find(e=>e.id==='focus:p1')?.amount).toBe(1600);
+  expect(moneySummary(d).balance).toBe(1600+1500);
  });
  test('settling the same photo again pays nothing more',()=>{
   const d=photo(running(true),1500);
