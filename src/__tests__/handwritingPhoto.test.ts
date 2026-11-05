@@ -40,6 +40,32 @@ describe('the steps before saving',()=>{
  });
 });
 
+/**
+ * A small page moved the way the real steps move it. The sensor is fixed to the phone: raw is what it records of a page
+ * read with the phone upright, whichever direction the phone then guesses. Value 6 is that guess being right.
+ */
+describe('a phone held upright whatever it guessed: the page ends up readable, not upside down',()=>{
+ type Grid=string[][];
+ const clockwise=(g:Grid):Grid=>g[0].map((_,x)=>g.map(row=>row[x]).reverse());
+ const turn=(g:Grid,degrees:number)=>{let out=g;for(let i=0;i<((degrees%360)+360)%360/90;i++)out=clockwise(out);return out};
+ /** The EXIF meaning of each value, which the picker bakes into the pixels before the app sees them. */
+ const BAKED:Record<number,number>={1:0,3:180,6:90,8:270};
+ const raw:Grid=[['c','f'],['b','e'],['a','d']],page:Grid=[['a','b','c'],['d','e','f']];
+ const upright=turn(raw,90);
+ test('the model agrees: value 6 alone gives the readable page',()=>{
+  expect(upright).toEqual(page);
+ });
+ test.each([[1,'landscape, top to the left'],[3,'landscape, top to the right'],[6,'upright'],[8,'upside down']])('saved direction %i (%s)',orientation=>{
+  const seen=turn(raw,BAKED[orientation]),photo={width:seen[0].length*1000,height:seen.length*1000,exif:{Orientation:orientation}};
+  expect(turn(seen,portraitTurn(photo))).toEqual(page);
+ });
+ test('with no value a wide photo comes out right only for one landscape side',()=>{
+  const left=turn(raw,BAKED[1]),right=turn(raw,BAKED[3]),size={width:3000,height:2000};
+  expect(turn(left,portraitTurn(size))).toEqual(page);
+  expect(turn(right,portraitTurn(size))).toEqual(turn(page,180));
+ });
+});
+
 describe('the camera asks for the saved direction',()=>{
  test('the screen requests it and uses these steps',()=>{
   const fs=require('fs'),path=require('path');
