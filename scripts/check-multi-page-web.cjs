@@ -81,6 +81,58 @@ async function shots(p,name){
   await p.context().close();
  });
 
+ await step('finish photo under 100 letters',async()=>{
+  // Build 51 bug: after a finish photo with too few letters the timer lost '다 했어요'. It must come back, lead to the
+  // waiting page with '한 장 더 찍기', and '공부 마치기' must stay.
+  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  const p=await context.newPage();p.on('pageerror',e=>errors.push('pageerror: '+e.message));
+  await p.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle',timeout:300000});
+  await p.waitForFunction(k=>!!localStorage.getItem(k),DEMO,{timeout:30000});
+  await btn(p,'2분, 이 행동부터 시작').click();await p.getByTestId('focus-clock').waitFor();
+  const first=page(1,60);
+  await p.evaluate(([k,first])=>{const s=JSON.parse(localStorage.getItem(k)),now=Date.now(),subject=s.bookTimer.subject;
+   s.bookTimer={...s.bookTimer,focusElapsed:60,focusResumedAt:now,running:true,endsAt:now+60000};
+   s.handwritingPending={id:'declare-qa',imageHash:first.imageHash,subject,analysis:first.analysis,pages:[first],declared:true};
+   localStorage.setItem(k,JSON.stringify(s));},[DEMO,first]);
+  await p.reload({waitUntil:'networkidle'});
+  await btn(p,'첫 행동 이어서 하기').click();await p.getByTestId('focus-clock').waitFor({timeout:15000});await p.waitForTimeout(400);
+  check(await btn(p,'다 했어요 · 사진 이어서 (60/100자)').count()===1,'100자 미만 뒤 다 했어요 버튼이 없다');
+  check(await p.getByRole('button',{name:/^공부 마치기/}).count()===1,'공부 마치기가 없다');
+  await shots(p,'declare-under-100-timer');
+  await btn(p,'다 했어요 · 사진 이어서 (60/100자)').click();await p.waitForTimeout(1500);await p.screenshot({path:`${out}/declare-after-click.png`});
+  await p.getByText('읽은 내용을 확인해 주세요 · 1장',{exact:true}).waitFor({timeout:15000});
+  check(await p.getByRole('button',{name:/^한 장 더 찍기 · 1\/5장/}).count()===1,'한 장 더 찍기가 없다');
+  const submit=btn(p,'새 글자 60자 · 모두 합쳐 100자부터 끝낼 수 있어요');
+  check(await submit.count()===1&&(await submit.getAttribute('aria-disabled')==='true'||await submit.isDisabled()),'100자 미만인데 제출할 수 있다');
+  await shots(p,'declare-under-100-page');
+  await context.close();
+ });
+
+ await step('leave midway and start again',async()=>{
+  // Build 51 bug: 6 unpaid minutes from a run left midway made the next start show 06:00. A new start settles what was
+  // met and begins at 00:00 on the 2-minute stage.
+  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  const p=await context.newPage();p.on('pageerror',e=>errors.push('pageerror: '+e.message));
+  await p.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle',timeout:300000});
+  await p.waitForFunction(k=>!!localStorage.getItem(k),DEMO,{timeout:30000});
+  await btn(p,'2분, 이 행동부터 시작').click();await p.getByTestId('focus-clock').waitFor();
+  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k)),now=Date.now(),t=s.bookTimer;
+   s.bookSessions=[...(s.bookSessions||[]),{id:t.id,subject:t.subject,startedAt:new Date(now-360000).toISOString(),completedAt:new Date(now).toISOString(),seconds:360,note:'',next:'',rewardMode:'output'}];
+   s.bookTimer={...t,phase:'idle',running:false,remaining:0,focusElapsed:360,focusResumedAt:now};
+   localStorage.setItem(k,JSON.stringify(s));},DEMO);
+  await p.reload({waitUntil:'networkidle'});
+  await btn(p,'첫 행동 이어서 하기').click();
+  // The settled stages show first, then study begins.
+  await btn(p,'공부 시작하기').waitFor({timeout:15000});await shots(p,'restart-settled');
+  await btn(p,'공부 시작하기').click();await p.getByTestId('focus-clock').waitFor({timeout:15000});await p.waitForTimeout(600);
+  const shown=await p.getByRole('timer').first().innerText();
+  check(/^00:0\d$/.test(shown.trim()),'새로 시작했는데 0부터가 아니다: '+shown);
+  const settled=await p.evaluate(k=>(JSON.parse(localStorage.getItem(k)).focusBreakPayouts||[]).filter(r=>r.id.startsWith('settle:')).length,DEMO);
+  check(settled===1,'받지 않은 단계가 정산되지 않았다: '+settled);
+  await shots(p,'restart-from-zero');
+  await context.close();
+ });
+
  await browser.close();
  fs.writeFileSync(`${out}/report.json`,JSON.stringify(report,null,1));
  for(const r of report)console.log(r.name,JSON.stringify({wide:r.wide,small:r.small}));

@@ -26,7 +26,7 @@ test('a build-42 plan keeps its 5 minutes, is idempotent, and duplicate plans ca
 test('2, 5, 10, 15, 25 minute steps grant exactly 5 each and stay at 25',()=>{
  let d=planned(),now=base;
  for(const [index,duration]of [120,300,600,900,1500,1500].entries()){
-  expect(focusRampStatus(d,now).required).toBe(duration);d=startBookTimer(d,'t'+index,subject,now,duration,'output');
+  expect(focusRampStatus(d,now).required).toBe(duration);d=startBookTimer(d,'t'+index,subject,now,duration,'output',index>0);
   now+=duration*1000;d=settleBookTimer(d,now);d=photo(d,String.fromCharCode(65+index),now,subject,String.fromCharCode(0xAC00+index).repeat(1000));
   expect(getDay(d,key).bonus?.handwriting).toBe(5+(index+1)*5);expect(d.handwritingReceipts!.at(-1)!.minutes).toBe(5);validateHandwritingState(d);d=stopBookTimer(d,now);now+=1000;
  }

@@ -98,12 +98,13 @@ describe('what the rest settled',()=>{
   expect(canStartBreak(other,now+119*sec)).toBe(false);
   expect(canStartBreak(other,now+120*sec)).toBe(true);
  });
- test('surplus from a photo-paid stage with no rest still counts toward the next rest',()=>{
+ test('after a photo-paid stage, a new start carries nothing: the next rest needs the whole first stage (build 52)',()=>{
   const paid=settleHandwritingRewards(acceptHandwriting(running(),'p1','a'.repeat(64),subject,{lines:['가나다라마바사아자차카타파하'],languages:['ko'],quality:'readable',message:''},new Date(when(130))),when(130));
   const next=startBookTimer(paid,'next',subject,when(130),300,'output');
   expect(next.bookTimer!.restedCredit).toBeUndefined();
-  expect(canStartBreak(next,when(130+289))).toBe(false);
-  expect(canStartBreak(next,when(130+290))).toBe(true);
+  expect(next.bookTimer!.carrySeconds).toBeUndefined();
+  expect(canStartBreak(next,when(130+119))).toBe(false);
+  expect(canStartBreak(next,when(130+120))).toBe(true);
  });
 });
 

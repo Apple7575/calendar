@@ -126,11 +126,11 @@ fs.mkdirSync(out, {recursive:true});
   assert(/^\+00:\d\d$/.test(overtime), `Rest overtime must count up: ${overtime}`);
   await capture('rest-ended-360');
   await inViewport('이 과목 공부 마치기');
-  await button('3분 집중 시작').click();
+  // 계속 공부 after a photo starts a fresh round (build 52), so the rest after it restarts at the 2-minute stage from 00:00.
+  await button('2분 집중 시작').click();
   await page.getByText('집중 시간',{exact:true}).waitFor();
   const restarted = await page.getByRole('timer').innerText();
-  // The clock is one 25-minute round, so after the paid 2-minute stage it counts on from 02:00 (rounds, 2026-11-06).
-  assert(/^02:0\d$/.test(restarted), `The round clock must count on from the paid 2 minutes: ${restarted}`);
+  assert(/^00:0\d$/.test(restarted), `A fresh round must start from 00:00: ${restarted}`);
   assert.deepEqual(errors,[]);
   fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({measurements,errors},null,2));
   console.log(JSON.stringify({primaryActionsVisible:true,secondaryControlsWork:true,rewardContinuesToTimer:true,noDuplicateReceipt:true,errors}));

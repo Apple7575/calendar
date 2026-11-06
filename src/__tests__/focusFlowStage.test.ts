@@ -26,7 +26,7 @@ test('a malformed + value falls back to the start page',()=>{
  expect(focusFlowStage({...d,bookTimer:{...d.bookTimer!,restEndedAt:'soon' as unknown as number}},false,at+370000)).toBe('start');
 });
 /** At the 25-minute stage, the only stage that takes a photo since 2026-11-06. */
-const at25=()=>{const d=planned();return startBookTimer({...d,focusRamp:{...d.focusRamp!,level:5}},'t',subject,at,600,'output')};
+const at25=()=>{const d=planned();return startBookTimer({...d,focusRamp:{...d.focusRamp!,level:5}},'t',subject,at,600,'output',true)};
 test('with the timer stopped, meeting the 25-minute stage makes the photo the next step',()=>{
  expect(focusFlowStage(stopBookTimer(at25(),at+600000),false,at+600000)).toBe('capture');
 });

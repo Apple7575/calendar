@@ -7,7 +7,7 @@ import {startNewRound,canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatu
 import {acceptHandwriting,acceptHandwritingPages,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
-import {payBreakStage} from './focusBreakReward';
+import {payBreakStage,settleUnpaidStages} from './focusBreakReward';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
@@ -18,16 +18,22 @@ export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  if(timer.phase==='focus')return data;
  return {...data,bookTimer:{...timer,phase:'idle',remaining:0,running:false,restEndedAt:timer.endsAt}};
 }
-export function startBookTimer(data:RoutineData,id:string,subject:string,now=Date.now(),duration=1500,rewardMode:StudyRewardMode='output'):RoutineData{
+export function startBookTimer(data:RoutineData,id:string,subject:string,now=Date.now(),duration=1500,rewardMode:StudyRewardMode='output',fromRest=false):RoutineData{
  if(![120,180,300,600,900,1500,3000].includes(duration))throw new Error('집중 시간을 확인해 주세요.');
  if(rewardMode==='output'&&data.focusRamp&&focusRampStatus(data,now).needsPlan)throw new Error('공부를 2시간 쉬었어요. 계획 한 줄부터 다시 시작해 주세요.');
- const next=settleBookTimer(data,now);
- if(next.bookTimer&&next.bookTimer.phase!=='idle')throw new Error('진행 중인 공부·휴식을 마치거나 종료해 주세요.');
+ const settled=settleBookTimer(data,now);
+ if(settled.bookTimer&&settled.bookTimer.phase!=='idle')throw new Error('진행 중인 공부·휴식을 마치거나 종료해 주세요.');
+ // A new start begins the round at 0 and its first stage (build 52). Only coming back from a rest carries on: the rest's
+ // own skip, or a start after a rest that ran out. Anything met but unpaid is settled first; the rest is not carried.
+ const prev=settled.bookTimer,resting=fromRest||prev?.phase==='idle'&&typeof prev.restEndedAt==='number';
+ const fresh=rewardMode==='output'&&!!settled.focusRamp&&!resting;
+ const next=fresh?startNewRound(settleUnpaidStages(settled,now),now):settled;
+ if(fresh)duration=focusRampStatus(next,now).required||duration;
  if(!subject.trim()||subject.trim().length>80)throw new Error('공부 주제를 1~80자로 입력해 주세요.');
  if((next.bookSessions??[]).some(s=>s.id===id))throw new Error('이미 기록된 공부예요. 새 타이머로 시작해 주세요.');
  if(!['standard','free','output'].includes(rewardMode))throw new Error('공부 보상 모드를 확인해 주세요.');
  if(rewardMode==='free'&&!freeStudyStatus(next,routineDay(new Date(now))).unlocked)throw new Error('오늘 기본 실천을 마친 뒤 자유 공부를 시작해 주세요.');
- const carry=rewardMode==='output'&&next.focusRamp&&focusRampStatus(next,now).required===duration?focusCarryInto(next,subject.trim(),duration,now):0,left=Math.max(0,duration-carry),rested=focusRestedInto(next,carry);
+ const carry=!fresh&&rewardMode==='output'&&next.focusRamp&&focusRampStatus(next,now).required===duration?focusCarryInto(next,subject.trim(),duration,now):0,left=Math.max(0,duration-carry),rested=focusRestedInto(next,carry);
  return {...next,bookTimer:{id,subject:subject.trim(),startedAt:new Date(now).toISOString(),phase:'focus',endsAt:now+left*1000,remaining:left,running:true,duration,rewardMode,focusElapsed:0,focusResumedAt:now,targetSeconds:left,...(carry>0?{carrySeconds:carry}:{}),...(rested>0?{restedCredit:rested}:{})}};
 }
 export function pauseBookTimer(data:RoutineData,now=Date.now()):RoutineData{
@@ -53,12 +59,17 @@ export function stopBookTimer(data:RoutineData,now=Date.now()):RoutineData{
 }
 /** The user ending a run: charged if the stage is unmet (user decision 2026-11-04). Timer bookkeeping keeps using stopBookTimer. */
 export function finishFocusRun(data:RoutineData,now=Date.now()):RoutineData{
- // Ending study starts the next one at 2 minutes (user decision 2026-11-06).
- return startNewRound(stopBookTimer(recordQuitPenalty(settleBookTimer(data,now),now),now),now);
+ // Ending study settles what was met and starts the next one at 2 minutes (user decision 2026-11-06, build 52).
+ return startNewRound(settleUnpaidStages(stopBookTimer(recordQuitPenalty(settleBookTimer(data,now),now),now),now),now);
 }
 /** "다 했어요": study ends here and a photo with at least 100 new letters settles it. No penalty applies. */
 export function acceptDeclaredFinish(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now=new Date()):RoutineData{
  return startNewRound(acceptHandwriting(stopBookTimer(data,now.getTime()),id,hash,subject,analysis,now,'ramp-v2',true),now.getTime());
+}
+/** '공부 마치기' without a photo. A finish photo still waiting is dropped with it, so it cannot block the next study. */
+export function finishWithoutPhoto(data:RoutineData,now=Date.now()):RoutineData{
+ const next=finishFocusRun(data,now);
+ return {...next,outputDraft:undefined,...(next.handwritingPending?.declared?{handwritingPending:undefined}:{})};
 }
 /** "다 했어요" with the pending pages: 100 new letters over all of them settle it. */
 export function acceptDeclaredFinishPages(data:RoutineData,now=new Date()):RoutineData{
@@ -86,7 +97,7 @@ export function skipBookBreak(data:RoutineData,breakTimerId:string,id:string,now
  if(t.rewardMode!=='output')return startBookTimer(idle,id,t.subject,now,t.duration??1500,t.rewardMode??'standard');
  if(focusRampStatus(data,now).needsPlan)throw new Error('공부를 2시간 쉬었어요. 계획 한 줄부터 다시 시작해 주세요.');
  const drafted=startOutputStudy(idle,'draft-'+id,t.subject,new Date(now)),subject=drafted.outputDraft!.subject;
- return startBookTimer(drafted,id,subject,now,focusRampStatus(drafted,now).required,'output');
+ return startBookTimer(drafted,id,subject,now,focusRampStatus(drafted,now).required,'output',true);
 }
 export function adjustBookTimer(data:RoutineData,delta:number,now=Date.now()):RoutineData{
  if(![-300,-60,60,300].includes(delta))throw new Error('시간은 1분 또는 5분씩 조절해 주세요.');

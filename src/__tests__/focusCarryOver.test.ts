@@ -7,6 +7,7 @@ import {bookDisplaySeconds} from '../lib/bookTimerTime';
 import {focusStageMet} from '../lib/focusFlow';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
 import {validateStudyState} from '../lib/studyHistory';
+import {focusBreakPayouts} from '../lib/focusBreakReward';
 jest.mock('../lib/supabase',()=>({supabase:{}}));
 // This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
 // tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
@@ -68,7 +69,8 @@ test('another subject gets no surplus',()=>{
  const rest=at+210*sec,paid=photo(startBookBreak(firstRun(),rest),rest+sec);
  const other=startBookTimer(stopBookTimer(paid,rest+2*sec),'other','영어',rest+3*sec,300,'output');
  expect(other.bookTimer!.carrySeconds??0).toBe(0);
- expect(bookDisplaySeconds(other.bookTimer!,rest+3*sec)).toBe(300);
+ // A new start begins at the first stage of a fresh round (build 52), whatever was asked.
+ expect(bookDisplaySeconds(other.bookTimer!,rest+3*sec)).toBe(120);
 });
 test('a new plan cycle after two idle hours drops the surplus',()=>{
  const rest=at+210*sec,paid=stopBookTimer(photo(startBookBreak(firstRun(),rest),rest+sec),rest+2*sec),later=rest+3*60*60*sec;
@@ -121,11 +123,13 @@ test('a saved timer from before this change loads with no surplus',()=>{
  expect(focusStageMet({...firstRun(),bookTimer:old},at+119*sec)).toBe(false);
  expect(focusStageMet({...firstRun(),bookTimer:old},at+120*sec)).toBe(true);
 });
-test('a finished stage still waits for its photo after a home start',()=>{
+test('a home start settles the stages the earlier run met and begins at 0 (build 52)',()=>{
  const key=routineDay(new Date(at)),task={id:'t',subject,action:'1번',preparation:'',target:'',minimum:120 as const};
  const studied=stopBookTimer(startBookTimer(claimFocusPlan(savePriorityDay(emptyData(),key,[task],new Date(at)),'plan',subject,'기출 1번',at),'first',subject,at,120,'output'),at+420*sec);
  const home=beginPriorityTask(studied,key,'t',at+480*sec);
- expect(focusStageMet(home,at+480*sec)).toBe(true);
+ expect(focusBreakPayouts(home).length).toBe(1);
+ expect(focusStageMet(home,at+480*sec)).toBe(false);
+ expect(home.bookTimer!.carrySeconds??0).toBe(0);
  expect(priorityTaskProgress(home,home.priorityDays![key].tasks[0],at+480*sec).seconds).toBe(0);
 });
 const straight=(seconds:number)=>photo(firstRun(),at+seconds*sec);
@@ -171,10 +175,10 @@ test('earlier single-stage receipts stay valid and unchanged',()=>{
  expect(r).toMatchObject({focusSeconds:120,minutes:5});
  expect(()=>validateHandwritingState(d)).not.toThrow();
 });
-test('home start uses the current stage time, not the task minimum',()=>{
+test('a home start begins the round at its first stage, not the task minimum or the old level (build 52)',()=>{
  const key=routineDay(new Date(at)),task={id:'t',subject,action:'1번',preparation:'',target:'',minimum:120 as const};
  const base=savePriorityDay(planned(),key,[task],new Date(at)),high={...base,focusRamp:{...base.focusRamp!,level:5 as const}};
  const home=beginPriorityTask(high,key,'t',at+sec);
- expect(bookDisplaySeconds(home.bookTimer!,at+sec)).toBe(1500);
- expect(home.bookTimer!.targetSeconds).toBe(1500);
+ expect(bookDisplaySeconds(home.bookTimer!,at+sec)).toBe(120);
+ expect(home.bookTimer!.targetSeconds).toBe(120);
 });

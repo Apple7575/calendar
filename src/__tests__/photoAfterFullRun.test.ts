@@ -8,7 +8,7 @@ import {canTakeHandwritingPhoto,focusFlowStage} from '../lib/focusFlow';
 jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const at=new Date(2026,10,1,9).getTime(),subject='수능',min=60000;
 const stage5=()=>{const d=claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at);return {...d,focusRamp:{...d.focusRamp!,level:5 as const}};};
-const first=()=>startBookTimer(stage5(),'first',subject,at,1500,'output');
+const first=()=>startBookTimer(stage5(),'first',subject,at,1500,'output',true);
 /** 10 minutes of study, a break skipped after 1 minute, then a new run. */
 const restarted=()=>skipBookBreak(startBookBreak(first(),at+10*min),'first','second',at+11*min);
 

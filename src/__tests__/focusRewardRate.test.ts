@@ -45,7 +45,7 @@ describe('money stays as it was when screen time came down (user decision 2026-1
   expect(getDay(paidAt(1500),key).bonus?.handwriting).toBe(11);
  });
  test('finishing early pays money at the share studied, by the same table',()=>{
-  const start=plannedWallet(),base={...start,focusRamp:{...start.focusRamp!,level:5 as const}},timer=startBookTimer(base,'run',subject,at,1500,'output'),when=at+480*sec;
+  const start=plannedWallet(),base={...start,focusRamp:{...start.focusRamp!,level:5 as const}},timer=startBookTimer(base,'run',subject,at,1500,'output',true),when=at+480*sec;
   const letters=Array.from({length:120},(_,i)=>String.fromCharCode(0xAC00+i)).join('');
   const d=reconcileMoneyRewards(timer,acceptDeclaredFinish(timer,'p1','a'.repeat(64),subject,{lines:[letters],languages:['ko'],quality:'readable',message:''},new Date(when)),key,new Date(when));
   expect(d.handwritingReceipts![0]).toMatchObject({finish:'declared',stageMinutes:3,planMinutes:1});

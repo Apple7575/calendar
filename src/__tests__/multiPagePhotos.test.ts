@@ -2,7 +2,8 @@ import {emptyData,getDay,routineDay} from '../lib/routineModel';
 import type {RoutineData} from '../lib/routineModel';
 import {claimFocusPlan} from '../lib/focusRamp';
 import {acceptHandwritingPages,addPendingPage,MULTI_PAGE_POLICY,pagesPreview,pagesToday,pendingPages,removePendingPage,startOutputStudy,validateHandwritingState} from '../lib/handwriting';
-import {acceptDeclaredFinishPages,startBookTimer} from '../lib/bookStudy';
+import {acceptDeclaredFinishPages,finishWithoutPhoto,startBookTimer} from '../lib/bookStudy';
+import {canDeclareFinish} from '../lib/focusFlow';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
@@ -108,3 +109,32 @@ describe('saved data',()=>{
 });
 
 void getDay;void startOutputStudy;
+
+describe('finishing early with too few letters (build 51 bug)',()=>{
+ const waiting=()=>addPendingPage(running(),'f',subject,page(1,60),true,at+60*sec);
+ test('a waiting finish photo under 100 letters keeps 다 했어요 open, to add a page',()=>{
+  expect(canDeclareFinish(waiting(),at+70*sec)).toBe(true);
+  expect(pagesPreview(waiting()).total).toBe(60);
+ });
+ test('another page brings the total to 100 and the finish goes through',()=>{
+  const two=addPendingPage(waiting(),'f',subject,page(2,50),true,at+80*sec);
+  const done=acceptDeclaredFinishPages(two,new Date(at+80*sec));
+  expect(done.handwritingReceipts!.map(r=>r.units)).toEqual([60,50]);
+ });
+ test('a waiting photo taken for the 25-minute stage does not open 다 했어요',()=>{
+  const d=addPendingPage(running(),'p',subject,page(1,60),false,at+60*sec);
+  expect(canDeclareFinish(d,at+70*sec)).toBe(false);
+ });
+ test('a finish photo for another subject does not open it either',()=>{
+  const d={...waiting(),handwritingPending:{...waiting().handwritingPending!,subject:'영어'}};
+  expect(canDeclareFinish(d,at+70*sec)).toBe(false);
+ });
+ test('the study goes on meanwhile: the timer keeps running and can still be finished without a photo',()=>{
+  const d=waiting();
+  expect(d.bookTimer?.phase).toBe('focus');
+  expect(d.bookTimer?.running).toBe(true);
+  const ended=finishWithoutPhoto(d,at+90*sec);
+  expect(ended.handwritingPending).toBeUndefined();
+  expect(ended.bookTimer?.phase).toBe('idle');
+ });
+});
