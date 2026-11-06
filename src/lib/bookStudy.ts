@@ -3,7 +3,7 @@ import { getDay,routineDay,withDay } from './routineModel';
 import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
-import {startNewRound,canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedInto,focusRunCredit} from './focusRamp';
+import {startNewRound,canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedInto,focusRunCredit,focusStagePayout} from './focusRamp';
 import {acceptHandwriting,acceptHandwritingPages,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
@@ -11,12 +11,22 @@ import {payBreakStage,settleUnpaidStages} from './focusBreakReward';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
-export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number;awaitingChoice?:boolean;restedCredit?:number};
+export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'break'|'idle';endsAt:number;remaining:number;running:boolean;duration?:number;rewardMode?:StudyRewardMode;focusElapsed?:number;focusResumedAt?:number;targetSeconds?:number;restEndedAt?:number;carrySeconds?:number;creditMark?:number;awaitingChoice?:boolean;restedCredit?:number;breakSeconds?:number};
+/**
+ * Rest length by the stage it closes (S2-14, team lead 2026-11-07): a fifth of the stage, 2→1, 5→1, 10→2, 15→3, 25→5 minutes.
+ * Index 0 is a timer outside the stages (the plain 25-minute timer), which keeps 5 minutes.
+ */
+export const BREAK_SECONDS=[300,60,60,120,180,300] as const;
+/** A rest length a saved timer may hold: whole seconds, up to an hour. Wider than the table so a later table never breaks old saves. */
+export const validBreakSeconds=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=1&&n<=3600;
+/** How long this rest is. A rest saved before S2-14 has no length and was 5 minutes; a length that cannot be used reads as 5 too. */
+export const breakLength=(t:BookTimer|undefined)=>validBreakSeconds(t?.breakSeconds)?t!.breakSeconds!:BREAK_SECONDS[0];
 export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const timer=data.bookTimer;if(!timer||!timer.running||now<timer.endsAt)return data;
  // Reaching the target is a cue, not consent to stop studying or start a break.
  if(timer.phase==='focus')return data;
- return {...data,bookTimer:{...timer,phase:'idle',remaining:0,running:false,restEndedAt:timer.endsAt}};
+ const {breakSeconds:_rest,...rested}=timer;
+ return {...data,bookTimer:{...rested,phase:'idle',remaining:0,running:false,restEndedAt:timer.endsAt}};
 }
 export function startBookTimer(data:RoutineData,id:string,subject:string,now=Date.now(),duration=1500,rewardMode:StudyRewardMode='output',fromRest=false):RoutineData{
  if(![120,180,300,600,900,1500,3000].includes(duration))throw new Error('집중 시간을 확인해 주세요.');
@@ -76,15 +86,21 @@ export function acceptDeclaredFinishPages(data:RoutineData,now=new Date()):Routi
  return startNewRound(acceptHandwritingPages(stopBookTimer(data,now.getTime()),now,true),now.getTime());
 }
 /** Only an explicit user action starts a break; preserve all real focus time first. */
-export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{
+export function startBookBreak(data:RoutineData,now=Date.now(),seconds:number=BREAK_SECONDS[0]):RoutineData{
  const t=data.bookTimer;if(!t||t.phase!=='focus')return data;
  const next=stopBookTimer(data,now),rested=t.rewardMode==='output'?focusRunCredit(data,now):0;
- return {...next,bookTimer:{...next.bookTimer!,phase:'break',endsAt:now+300000,remaining:300,running:true,...(rested>0?{restedCredit:rested}:{})}};
+ return {...next,bookTimer:{...next.bookTimer!,phase:'break',endsAt:now+seconds*1000,remaining:seconds,breakSeconds:seconds,running:true,...(rested>0?{restedCredit:rested}:{})}};
+}
+/** The rest a press of 휴식 would start now: by the last stage this run has reached, so a late rest is not cut short. */
+export function earnedBreakSeconds(data:RoutineData,now=Date.now()):number{
+ const t=data.bookTimer;if(!t||t.rewardMode!=='output')return BREAK_SECONDS[0];
+ const stage=focusStagePayout(data,t.subject,now)?.stage??focusRampStatus(data,now).level;
+ return BREAK_SECONDS[stage]??BREAK_SECONDS[0];
 }
 /** What the app calls. startBookBreak is the bare state change underneath it and has no other caller. */
 export function takeEarnedBreak(data:RoutineData,now=Date.now()):RoutineData{
  // The stage is paid first, without a photo (user decision 2026-11-06), then the rest starts.
- return canStartBreak(data,now)?startBookBreak(payBreakStage(data,now),now):data;
+ return canStartBreak(data,now)?startBookBreak(payBreakStage(data,now),now,earnedBreakSeconds(data,now)):data;
 }
 /**
  * Leave a break early, whether it is running or paused. Keyed to the break's timer so a repeated
@@ -93,7 +109,7 @@ export function takeEarnedBreak(data:RoutineData,now=Date.now()):RoutineData{
  */
 export function skipBookBreak(data:RoutineData,breakTimerId:string,id:string,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.id!==breakTimerId||t.phase==='focus')return data;
- const idle:RoutineData={...data,bookTimer:{...t,phase:'idle',remaining:0,running:false}};
+ const {breakSeconds:_rest,...left}=t,idle:RoutineData={...data,bookTimer:{...left,phase:'idle',remaining:0,running:false}};
  if(t.rewardMode!=='output')return startBookTimer(idle,id,t.subject,now,t.duration??1500,t.rewardMode??'standard');
  if(focusRampStatus(data,now).needsPlan)throw new Error('공부를 2시간 쉬었어요. 계획 한 줄부터 다시 시작해 주세요.');
  const drafted=startOutputStudy(idle,'draft-'+id,t.subject,new Date(now)),subject=drafted.outputDraft!.subject;

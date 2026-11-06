@@ -76,6 +76,9 @@ function addMoney(data:RoutineData,id:string,amount:number,at:number,note:string
  */
 const GAIN_PREFIXES=['promise:','interest:','stake-payout:'];
 export function repairSavedData<T extends RoutineData>(data:T):T{
+ return repairBreakSeconds(repairMoneyKinds(data));
+}
+function repairMoneyKinds<T extends RoutineData>(data:T):T{
  const entries=data?.money?.entries;if(!Array.isArray(entries))return data;
  let changed=false;
  const fixed=entries.map(e=>{
@@ -83,6 +86,16 @@ export function repairSavedData<T extends RoutineData>(data:T):T{
   return e;
  });
  return changed?{...data,money:{...data.money!,entries:fixed}}:data;
+}
+/**
+ * A rest length out of range (S2-14, Ada) is dropped on load, so the backup check passes again from the next save.
+ * Without it the rest reads as 5 minutes (breakLength). Same range as routineBackup: whole seconds, 1 to 3600.
+ */
+function repairBreakSeconds<T extends RoutineData>(data:T):T{
+ const t=data?.bookTimer;if(!t||t.breakSeconds===undefined)return data;
+ const n=t.breakSeconds;if(Number.isSafeInteger(n)&&n>=1&&n<=3600)return data;
+ const {breakSeconds:_dropped,...timer}=t;
+ return {...data,bookTimer:timer};
 }
 
 /* Weekly rules chosen in the Monday review. */
