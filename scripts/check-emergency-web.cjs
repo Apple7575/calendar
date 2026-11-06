@@ -134,6 +134,13 @@ async function shots(page,name){
   check(cardBox&&priceBox&&cardBox.y<priceBox.y,'목표 카드가 벌점 위에 있지 않다');
   check(await p.getByText(/오늘 1번째 · 벌점 30분/).count()===1,'벌점 표시가 바뀌었다');
   await shots(p,'goal-card');
+  // 이유가 120자여도 3줄로 줄여서, 390x844 첫 화면에 가격 카드 머리가 보여야 한다.
+  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.goals[1].why='가'.repeat(30)+' '+'나'.repeat(30)+' '+'다'.repeat(30)+' '+'라'.repeat(27);localStorage.setItem(k,JSON.stringify(s));},DEMO);
+  await p.reload({waitUntil:'networkidle'});await wallet(p);
+  await btn(p,LINK).click();await p.getByText('제한 앱을 15분 열어요',{exact:true}).waitFor();
+  const head=await p.getByText(/오늘 1번째 · 벌점 30분/).boundingBox();
+  check(head&&head.y+head.height<=844,'긴 이유 때문에 가격 카드가 첫 화면 밖으로 밀렸다: '+JSON.stringify(head));
+  await p.screenshot({path:`${out}/goal-card-long-390x844.png`});
   await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.goals=[];localStorage.setItem(k,JSON.stringify(s));},DEMO);
   await p.reload({waitUntil:'networkidle'});await wallet(p);
   await btn(p,LINK).click();await p.getByText('제한 앱을 15분 열어요',{exact:true}).waitFor();

@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useMemo,useState} from 'react';
 import {Platform,View} from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {beginEmergencyUnlock,cancelEmergencyUnlock,EMERGENCY_POLICY,emergencyBlock,emergencyOpenUntil,emergencyPrice,finishEmergencyUnlock} from '../../lib/emergencyUnlock';
@@ -21,7 +21,7 @@ function GoalReminderCard({reminder:{goal,dueLabel,duePassed,week}}:{reminder:Go
  return <View testID="emergency-goal"><CardView style={{gap:space.xs}}>
   <Copy variant="label" style={{color:colorRoles(theme).primary.ink}}>{'내 목표'+(dueLabel&&!duePassed?' · '+dueLabel:'')}</Copy>
   <Copy variant="heading">{goal.title}</Copy>
-  {goal.why?<View style={{gap:2}}><Copy variant="caption" muted>내가 적은 이유</Copy><Copy>{goal.why}</Copy></View>:null}
+  {goal.why?<View style={{gap:2}}><Copy variant="caption" muted>내가 적은 이유</Copy><Copy numberOfLines={3}>{goal.why}</Copy></View>:null}
   {week?<View style={{gap:space.xxs}}>
    <Copy variant="caption" muted>{`이번 주 ${week.count}일 / 주 ${week.target}일`}</Copy>
    <Progress value={week.count/Math.max(1,week.target)} label={`${goal.title} 이번 주 공부한 날 ${week.count}일, 목표 ${week.target}일`}/>
@@ -40,7 +40,7 @@ export function EmergencyUnlockScreen({navigation}:RootScreenProps<'EmergencyUnl
   return()=>clearInterval(id);
  },[hasReason]);
  const nativeUntil=native?.emergencyUntil,until=emergencyOpenUntil(data,nativeUntil,now),block=emergencyBlock(data,nativeUntil,now),price=emergencyPrice(data,now),supported=Platform.OS==='web'||!!native?.supportsEmergencyUnlock;
- const reminder=emergencyGoal(data,dayKey);
+ const reminder=useMemo(()=>emergencyGoal(data,dayKey),[data,dayKey]);
  const submit=async()=>{
   if(busy||wait>0||!hasReason)return;
   setBusy(true);setError('');
