@@ -24,16 +24,17 @@ function Fact({label,value}:{label:string;value:string}){
  return <View style={[u.between,{gap:space.sm}]}><Copy muted>{label}</Copy><View style={{flexShrink:1}}><Copy variant="label">{value}</Copy></View></View>;
 }
 
-/** This week's time beside last week's. Shown only: the promise above still counts days. */
+/** This week's time beside last week's. Shown only: the promise above still counts days. No track under these bars,
+ * so a full bar for last week cannot read as the empty track of the progress bar above (design review). */
 function WeekTime({goal,today}:{goal:Goal;today:string}){
  const {data}=useRoutine(),theme=useTheme(),{colors:c}=theme,primary=colorRoles(theme).primary,{seconds,lastWeekSeconds}=goalWeekTime(data,goal,today),max=Math.max(seconds,lastWeekSeconds,1);
- const bar=(label:string,value:number,color:string,strong:boolean)=><View accessible accessibilityLabel={`${label} 공부 시간 ${durationLabel(value)}`} style={{gap:space.xxs}}>
+ const bar=(label:string,value:number,color:string,strong:boolean,fade=1)=><View accessible accessibilityLabel={`${label} 공부 시간 ${durationLabel(value)}`} style={{gap:space.xxs}}>
   <View style={u.between}><Copy variant="caption" muted={!strong}>{label}</Copy><Copy variant="label" muted={!strong}>{durationLabel(value)}</Copy></View>
-  <View style={{height:8,borderRadius:4,backgroundColor:c.inputBg,overflow:'hidden'}}><View style={{width:`${Math.round(value/max*100)}%`,height:8,borderRadius:4,backgroundColor:color}}/></View>
+  <View style={{height:6}}>{value>0?<View style={{width:`${Math.max(2,Math.round(value/max*100))}%`,height:6,borderRadius:3,backgroundColor:color,opacity:fade}}/>:null}</View>
  </View>;
- return <View testID="goal-week-time" style={{gap:space.xs}}>
+ return <View testID="goal-week-time" style={{gap:space.xs,marginTop:space.xs,paddingTop:space.md,borderTopWidth:1,borderTopColor:c.border}}>
   <Copy variant="section">이번 주 공부 시간</Copy>
-  {seconds+lastWeekSeconds?<>{bar('이번 주',seconds,primary.ink,true)}{bar('지난주',lastWeekSeconds,c.textMuted,false)}</>:<Copy variant="caption" muted>연결한 공부의 시간이 아직 없어요. 집중 공부와 단어장 시간을 모아 보여 줘요.</Copy>}
+  {seconds+lastWeekSeconds?<>{bar('이번 주',seconds,primary.ink,true)}{bar('지난주',lastWeekSeconds,c.textMuted,false,.45)}</>:<Copy variant="caption" muted>연결한 공부의 시간이 아직 없어요. 집중 공부와 단어장 시간을 모아 보여 줘요.</Copy>}
  </View>;
 }
 
