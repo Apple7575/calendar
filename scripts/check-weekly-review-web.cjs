@@ -48,7 +48,7 @@ async function open(browser,{data=null,time}={}){
   if(stage==='after'){
    await press(page,'이번 빌드 확인',1000);
    assert.ok((await text(page)).includes('빌드 50'));
-   await press(page,'월요일 주간 점검 됨',200);
+   await press(page,'주간 점검 됨',200);
    await press(page,'밤 돌아보기 알림 안 됨',200);
    await page.getByLabel('밤 돌아보기 알림 메모').fill('알림이 안 와요');
    await page.waitForTimeout(300);
@@ -56,7 +56,7 @@ async function open(browser,{data=null,time}={}){
    await page.getByRole('button',{name:/PM에게 보낼 글 복사/}).last().click();await page.waitForTimeout(600);
    const copied=await page.evaluate(()=>navigator.clipboard.readText());
    assert.ok(copied.startsWith('[빌드 50 확인]'),copied);
-   assert.ok(copied.includes('✓ 월요일 주간 점검')&&copied.includes('✗ 밤 돌아보기 알림 — 알림이 안 와요'),copied);
+   assert.ok(copied.includes('✓ 주간 점검')&&copied.includes('✗ 밤 돌아보기 알림 — 알림이 안 와요'),copied);
    assert.ok((await text(page)).includes('복사했어요'));
    await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(1500);
    assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('routine.buildCheck.v1.50'))));
