@@ -41,14 +41,14 @@ describe('a rest pays the stage it closes, without a photo',()=>{
   expect(time(d)).toBe(2);expect(d.money).toBeUndefined();
   valid(d);
  });
- test('money follows the older money table: the 25-minute stage pays 15 minutes of money, 10 of time',()=>{
-  let d=startBookTimer(planned(),'run',subject,at,1500,'output');
+ test('the 25-minute stage, the last 10 minutes of a round, pays 4 minutes of time and 7 units of money',()=>{
+  let d=startBookTimer(planned(),'run',subject,at,600,'output');
   d={...d,focusRamp:{...d.focusRamp!,level:5}};
-  const paid=rest(d,1500);
-  expect(focusBreakPayouts(paid)[0]).toMatchObject({stage:5,stageMinutes:10,moneyMinutes:15,planMinutes:1});
-  expect(time(paid)).toBe(11);
-  expect(moneySummary(paid).balance).toBe(1600);
- });
+  const paid=rest(d,600);
+  expect(focusBreakPayouts(paid)[0]).toMatchObject({stage:5,stageMinutes:4,moneyMinutes:7,planMinutes:1});
+  expect(time(paid)).toBe(5);
+  expect(moneySummary(paid).balance).toBe(800);
+ });;
  test('studying past a stage before resting pays the highest stage reached, like a photo',()=>{
   const d=rest(running(),420);
   expect(focusBreakPayouts(d)[0]).toMatchObject({stage:2,seconds:300,stageMinutes:2,moneyMinutes:2});
@@ -64,7 +64,7 @@ describe('the plan minute',()=>{
   expect(focusPlanMinutesDue(d)).toBe(0);
   d=rest(back(d,180),480);
   expect(focusBreakPayouts(d).map(p=>p.planMinutes)).toEqual([1,0]);
-  expect(time(d)).toBe(1+1+2);
+  expect(time(d)).toBe(1+1+1);
  });
  test('a photo after a rest never pays the plan again',()=>{
   const d=photo(back(rest(running(),120),180),480);
@@ -84,9 +84,9 @@ describe('a photo after a rest pays only what is new',()=>{
  test('photo once the next stage is met: that stage and the letters, never the 2-minute stage again',()=>{
   const d=photo(back(rest(running(),120),180),480,'p1',100);
   const r=d.handwritingReceipts!.find(x=>x.id==='p1')!;
-  expect(r).toMatchObject({rewardStatus:'earned',focusStage:2,stageMinutes:2,planMinutes:0,letterMinutes:5});
-  expect(time(d)).toBe(2+2+5);
-  expect(moneySummary(d).balance).toBe(200+200+500);
+  expect(r).toMatchObject({rewardStatus:'earned',focusStage:2,stageMinutes:1,planMinutes:0,letterMinutes:5});
+  expect(time(d)).toBe(2+1+5);
+  expect(moneySummary(d).balance).toBe(200+100+500);
   valid(d);
  });
  test('the same stage is never paid twice: a photo at the moment of the rest finds nothing left',()=>{
@@ -113,7 +113,7 @@ describe('rules that stay',()=>{
  });
  test('the minutes reach the phone with the photo minutes on the handwriting key',()=>{
   const d=photo(back(rest(running(),120),180),480,'p1',100);
-  expect(rewardSyncExtras(d,key,{supportsHandwritingRewards:true,supportsMinuteHandwriting:true})).toMatchObject({handwriting:9});
+  expect(rewardSyncExtras(d,key,{supportsHandwritingRewards:true,supportsMinuteHandwriting:true})).toMatchObject({handwriting:8});
  });
  test('a rest after 04:00 pays the new day',()=>{
   const late=new Date(2026,10,2,3,59).getTime();
@@ -135,14 +135,14 @@ describe('saved values',()=>{
 });
 
 describe('photos only at the 25-minute stage or when finishing early (user decision 2026-11-06)',()=>{
- const at25=(seconds:number)=>{let d=startBookTimer(planned(),'run',subject,at,1500,'output');d={...d,focusRamp:{...d.focusRamp!,level:5}};return d};
+ const at25=(_seconds:number)=>{let d=startBookTimer(planned(),'run',subject,at,600,'output');d={...d,focusRamp:{...d.focusRamp!,level:5}};return d};
  test('the stages in between take no photo: the rest button pays them',()=>{
   expect(canTakeHandwritingPhoto(running(),at+120*sec)).toBe(false);
   expect(canTakeHandwritingPhoto(running(),at+600*sec)).toBe(false);
  });
  test('the 25-minute stage takes the photo once met',()=>{
-  expect(canTakeHandwritingPhoto(at25(0),at+1499*sec)).toBe(false);
-  expect(canTakeHandwritingPhoto(at25(0),at+1500*sec)).toBe(true);
+  expect(canTakeHandwritingPhoto(at25(0),at+599*sec)).toBe(false);
+  expect(canTakeHandwritingPhoto(at25(0),at+600*sec)).toBe(true);
  });
  test('finishing early offers the photo at any stage before 25 minutes, met or not',()=>{
   expect(canDeclareFinish(running(),at+60*sec)).toBe(true);

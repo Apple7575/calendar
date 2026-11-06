@@ -20,21 +20,22 @@ export function focusStageMet(data:RoutineData,now=Date.now()){
  if(!t||t.subject!==subject)return false;
  return focusRunCredit(data,now)>=required;
 }
-const PHOTO_STAGE_SECONDS=1500;
+/** The 25-minute stage is the last one of a round (level 5), whatever its length. */
+const PHOTO_LEVEL=5;
 /**
  * Photos only at the 25-minute stage (user decision 2026-11-06: "사진은 25분 다 하면 이때만 찍자"). The stages before it are
  * paid by the rest button, and finishing early takes its photo through canDeclareFinish.
  */
 export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
- const required=focusRampStatus(data,now).required;
- return focusStageMet(data,now)&&(!required||required>=PHOTO_STAGE_SECONDS);
+ const status=focusRampStatus(data,now);
+ return focusStageMet(data,now)&&(!status.required||status.level===PHOTO_LEVEL);
 }
 /** "다 했어요" opens once some of this stage has been studied: before 25 minutes at any point, met or not; at 25 until it is met. */
 export function canDeclareFinish(data:RoutineData,now=Date.now()){
  const subject=data.outputDraft?.subject,t=data.bookTimer,required=focusRampStatus(data,now).required;
  if(!subject||!required||data.handwritingPending||t?.subject!==subject||t.rewardMode!=='output'||t.awaitingChoice===true)return false;
  const credit=focusRunCredit(data,now);
- return credit>0&&(required<PHOTO_STAGE_SECONDS||credit<required);
+ return credit>0&&(focusRampStatus(data,now).level<PHOTO_LEVEL||credit<required);
 }
 export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false,declare=false):FocusFlowStage{
  if(data.handwritingPending)return 'review';

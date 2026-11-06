@@ -3,6 +3,9 @@ import {claimFocusPlan} from '../lib/focusRamp';
 import {handwritingAccess} from '../lib/handwriting';
 import {bookDisplaySeconds,bookFocusSeconds} from '../lib/bookTimerTime';
 import {pauseBookTimer,settleBookTimer,skipBookBreak,startBookBreak,startBookTimer} from '../lib/bookStudy';
+// This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
+// tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
+jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const at=new Date(2026,10,1,9).getTime(),subject='수능';
 /** Level 5 is the 25-minute stage; the plan claim creates the draft and level 1 cycle. */
 const stage=(level:1|2|3|4|5)=>{const d=claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at);return {...d,focusRamp:{...d.focusRamp!,level}};};

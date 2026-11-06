@@ -5,6 +5,9 @@ import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState,star
 import {PROPOSED_MONEY_RATES,startMoneyRewards,reconcileMoneyRewards,moneySummary} from '../lib/moneyRewards';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
 jest.mock('../lib/supabase',()=>({supabase:{}}));
+// This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
+// tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
+jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const base=new Date(2026,10,1,8).getTime(),key=routineDay(new Date(base)),subject='수능';
 /** These suites pin the build-42 reward path, which pending and saved records still use: a plan worth 5 and ramp-v1 photos. */
 const asBuild42=<T extends ReturnType<typeof emptyData>>(before:T,after:T):T=>{

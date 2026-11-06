@@ -3,7 +3,7 @@ import { getDay,routineDay,withDay } from './routineModel';
 import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
-import {canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedInto,focusRunCredit} from './focusRamp';
+import {startNewRound,canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedInto,focusRunCredit} from './focusRamp';
 import {acceptHandwriting,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
@@ -19,7 +19,7 @@ export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  return {...data,bookTimer:{...timer,phase:'idle',remaining:0,running:false,restEndedAt:timer.endsAt}};
 }
 export function startBookTimer(data:RoutineData,id:string,subject:string,now=Date.now(),duration=1500,rewardMode:StudyRewardMode='output'):RoutineData{
- if(![120,300,600,900,1500,3000].includes(duration))throw new Error('집중 시간을 확인해 주세요.');
+ if(![120,180,300,600,900,1500,3000].includes(duration))throw new Error('집중 시간을 확인해 주세요.');
  if(rewardMode==='output'&&data.focusRamp&&focusRampStatus(data,now).needsPlan)throw new Error('공부를 2시간 쉬었어요. 계획 한 줄부터 다시 시작해 주세요.');
  const next=settleBookTimer(data,now);
  if(next.bookTimer&&next.bookTimer.phase!=='idle')throw new Error('진행 중인 공부·휴식을 마치거나 종료해 주세요.');
@@ -53,11 +53,12 @@ export function stopBookTimer(data:RoutineData,now=Date.now()):RoutineData{
 }
 /** The user ending a run: charged if the stage is unmet (user decision 2026-11-04). Timer bookkeeping keeps using stopBookTimer. */
 export function finishFocusRun(data:RoutineData,now=Date.now()):RoutineData{
- return stopBookTimer(recordQuitPenalty(settleBookTimer(data,now),now),now);
+ // Ending study starts the next one at 2 minutes (user decision 2026-11-06).
+ return startNewRound(stopBookTimer(recordQuitPenalty(settleBookTimer(data,now),now),now),now);
 }
 /** "다 했어요": study ends here and a photo with at least 100 new letters settles it. No penalty applies. */
 export function acceptDeclaredFinish(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now=new Date()):RoutineData{
- return acceptHandwriting(stopBookTimer(data,now.getTime()),id,hash,subject,analysis,now,'ramp-v2',true);
+ return startNewRound(acceptHandwriting(stopBookTimer(data,now.getTime()),id,hash,subject,analysis,now,'ramp-v2',true),now.getTime());
 }
 /** Only an explicit user action starts a break; preserve all real focus time first. */
 export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{

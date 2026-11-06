@@ -1,11 +1,14 @@
 import {emptyData,getDay,routineDay} from '../lib/routineModel';
-import {claimFocusPlan,focusRewardPreview,FOCUS_STAGE_MINUTES} from '../lib/focusRamp';
+import {claimFocusPlan,focusRewardPreview,FOCUS_STAGE_MINUTES,FOCUS_STEPS} from '../lib/focusRamp';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
 import {acceptDeclaredFinish,startBookTimer} from '../lib/bookStudy';
 import {PROPOSED_MONEY_RATES,reconcileMoneyRewards,startMoneyRewards} from '../lib/moneyRewards';
 import type {RoutineData} from '../lib/routineModel';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
+// This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
+// tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
+jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const at=new Date(2026,10,1,9).getTime(),subject='수능',sec=1000,key=routineDay(new Date(at));
 const running=()=>startBookTimer(claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at),'run',subject,at,120,'output');
 const photo=(d:RoutineData,seconds:number)=>{const when=at+seconds*sec;return settleHandwritingRewards(acceptHandwriting(d,'p1','a'.repeat(64),subject,{lines:['가나다라마바사아자차카타파하'],languages:['ko'],quality:'readable',message:''},new Date(when)),when)};
@@ -13,8 +16,9 @@ const photo=(d:RoutineData,seconds:number)=>{const when=at+seconds*sec;return se
 const saved=(d:RoutineData,stageMinutes:number)=>{const r=d.handwritingReceipts![0],minutes=stageMinutes+r.planMinutes!+r.letterMinutes!;return {...d,handwritingReceipts:[{...r,stageMinutes,minutes}],days:{...d.days,[key]:{...getDay(d,key),bonus:{handwriting:minutes}}}}};
 
 describe('25 minutes of study is worth about 10 minutes of screen time',()=>{
- test('each stage pays about 40 percent of its study time',()=>{
-  expect([...FOCUS_STAGE_MINUTES]).toEqual([0,1,2,4,6,10]);
+ test('rounds (2026-11-06): stages of 2, 3, 5, 5 and 10 minutes pay 1, 1, 2, 2 and 4, so 25 minutes pays 10',()=>{
+  expect([...FOCUS_STAGE_MINUTES]).toEqual([0,1,1,2,2,4]);
+  expect([...FOCUS_STEPS]).toEqual([0,120,180,300,300,600]);
  });
  test('25 straight minutes pays 10, and 1 more for the plan on the first payout',()=>{
   const d=photo(running(),1500);

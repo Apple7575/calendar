@@ -9,6 +9,9 @@ import {makeBackup,validateBackup} from '../lib/routineBackup';
 import type {RoutineData} from '../lib/routineModel';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
+// This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
+// tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
+jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const at=new Date(2026,10,1,9).getTime(),sec=1000,subject='전기기사 실기',user='00000000-0000-4000-8000-000000000000';
 const when=(s:number)=>at+s*sec;
 const running=()=>startBookTimer(startOutputStudy(claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at),'draft',subject,new Date(at)),'run',subject,at,120,'output');
@@ -89,11 +92,11 @@ describe('what the rest settled',()=>{
   const t=when(140+290),paid=settleHandwritingRewards(acceptHandwriting(d,'p1','a'.repeat(64),subject,{lines:['가나다라마바사아자차카타파하'],languages:['ko'],quality:'readable',message:''},new Date(t)),t);
   expect(paid.handwritingReceipts![0]).toMatchObject({focusSeconds:300,focusStage:2,stageMinutes:2,planMinutes:0});
  });
- test('another subject shares the stage the rest reached, as photos always did',()=>{
+ test('finishing starts the next study at 2 minutes, in any subject (rounds, 2026-11-06)',()=>{
   const ended=finishFocusRun(d,now),other=startBookTimer(startOutputStudy({...ended,outputDraft:undefined},'d2','영어',new Date(now)),'other','영어',now,300,'output');
   expect(other.bookTimer!.restedCredit).toBeUndefined();
-  expect(canStartBreak(other,now+299*sec)).toBe(false);
-  expect(canStartBreak(other,now+300*sec)).toBe(true);
+  expect(canStartBreak(other,now+119*sec)).toBe(false);
+  expect(canStartBreak(other,now+120*sec)).toBe(true);
  });
  test('surplus from a photo-paid stage with no rest still counts toward the next rest',()=>{
   const paid=settleHandwritingRewards(acceptHandwriting(running(),'p1','a'.repeat(64),subject,{lines:['가나다라마바사아자차카타파하'],languages:['ko'],quality:'readable',message:''},new Date(when(130))),when(130));

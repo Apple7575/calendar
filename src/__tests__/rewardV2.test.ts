@@ -10,6 +10,9 @@ import {PROPOSED_MONEY_RATES,moneySummary,reconcileMoneyRewards,startMoneyReward
 import {makeBackup,validateBackup} from '../lib/routineBackup';
 import type {RoutineData} from '../lib/routineModel';
 jest.mock('../lib/supabase',()=>({supabase:{}}));
+// This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
+// tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
+jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const at=new Date(2026,10,1,9).getTime(),subject='수능',sec=1000,min=60000,user='00000000-0000-4000-8000-000000000000',key=routineDay(new Date(at));
 const text=(n:number,seed='가')=>Array.from({length:n},(_,i)=>String.fromCharCode(seed.charCodeAt(0)+i)).join('');
 const analysis=(chars=50,seed='가')=>({lines:[text(chars,seed)],languages:['ko' as const],quality:'readable' as const,message:''});
@@ -130,7 +133,8 @@ describe('declared finish',()=>{
  test('it stops the timer, raises the stage and spends the credit',()=>{
   const d=finish(atStage(3),480);
   expect(d.bookTimer!.phase).toBe('idle');
-  expect(focusRampStatus(d,at+480*sec).level).toBe(4);
+  // Finishing ends study, so the next one starts at the 2-minute stage (rounds, 2026-11-06).
+  expect(focusRampStatus(d,at+480*sec).level).toBe(1);
   expect(canDeclareFinish(d,at+480*sec)).toBe(false);
   expect(focusQuitPenalty(d,at+481*sec)).toBeNull();
  });

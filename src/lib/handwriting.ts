@@ -1,13 +1,13 @@
 import type {RoutineData} from './routineModel';
 import {getDay,routineDay,withDay} from './routineModel';
-import {FOCUS_STEPS,carryRunPastStage,FOCUS_STAGE_MINUTES,FOCUS_STAGE_TABLES,focusPlanMinutesDue,focusRunCredit,focusRampAccess,focusStagePayout,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
+import {stageTimeOf,FOCUS_STEPS,LEGACY_FOCUS_STEPS,LEGACY_STAGE_TABLES,rampAfterPayout,stageSpan,carryRunPastStage,FOCUS_STAGE_MINUTES,FOCUS_STAGE_TABLES,focusPlanMinutesDue,focusRunCredit,focusRampAccess,focusStagePayout,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
 import {bookFocusSeconds} from './bookTimerTime';
 import {stopBookTimer} from './bookStudy';
 import {breakPayoutMinutes,focusBreakPayouts,validBreakPayout} from './focusBreakReward';
 
 export const OUTPUT_POLICY={version:1,units:100,minutes:5,goalUnits:500} as const;
 export type HandwritingAnalysis={lines:string[];languages:('ko'|'en'|'ja'|'math')[];quality:'readable'|'retake';message:string};
-export type HandwritingReceipt={id:string;imageHash:string;subject:string;at:string;day:string;lines:string[];languages:HandwritingAnalysis['languages'];units:number;duplicateUnits:number;minutes:number;policyVersion:1;focusSeconds?:number;rewardPolicy?:'ramp-v1'|'ramp-v2';stageMinutes?:number;planMinutes?:number;letterMinutes?:number;finish?:'timer'|'declared';focusCycle?:string;focusStage?:number;focusStagesPaid?:number[];focusBatch?:string;rewardStatus?:'pending'|'earned';rewardDay?:string;rewardOrder?:number};
+export type HandwritingReceipt={id:string;imageHash:string;subject:string;at:string;day:string;lines:string[];languages:HandwritingAnalysis['languages'];units:number;duplicateUnits:number;minutes:number;policyVersion:1;focusSeconds?:number;rewardPolicy?:'ramp-v1'|'ramp-v2';stageMinutes?:number;planMinutes?:number;letterMinutes?:number;finish?:'timer'|'declared';focusCycle?:string;focusStage?:number;focusStageFrom?:number;focusRound?:string;focusStagesPaid?:number[];focusBatch?:string;rewardStatus?:'pending'|'earned';rewardDay?:string;rewardOrder?:number};
 const isRamp=(r:HandwritingReceipt)=>r.rewardPolicy==='ramp-v1'||r.rewardPolicy==='ramp-v2';
 export type OutputDraft={id:string;subject:string;startedAt:string};
 export const normalizeHandwriting=(text:string)=>Array.from(text.normalize('NFKC').toLowerCase()).filter(c=>/[\p{L}\p{N}]/u.test(c)).join('');
@@ -84,7 +84,7 @@ export function settleHandwritingRewards(data:RoutineData,now=Date.now()):Routin
  return next;
 }
 /** One payout: the stage and plan go on the first photo of the batch, letters on each photo in order. Money follows in reconcileMoneyRewards. */
-function payStage(data:RoutineData,subject:string,now:number,pay:{stage:number;seconds:number;minutes:number;level:number;finish:'timer'|'declared'}):RoutineData{
+function payStage(data:RoutineData,subject:string,now:number,pay:{from?:number;stage:number;seconds:number;minutes:number;level:number;roundEnds?:boolean;finish:'timer'|'declared'}):RoutineData{
  const ramp=data.focusRamp;if(!ramp)return data;
  const rows=data.handwritingReceipts??[],pending=rows.filter(r=>r.subject===subject&&r.rewardStatus==='pending'&&r.rewardPolicy==='ramp-v2'&&r.focusCycle===ramp.cycleId);
  if(!pending.length)return data;
@@ -94,9 +94,9 @@ function payStage(data:RoutineData,subject:string,now:number,pay:{stage:number;s
   if(!pending.includes(r))return r;
   const head=r.id===batch,letterMinutes=Math.floor((carry+r.units)/OUTPUT_POLICY.units)*OUTPUT_POLICY.minutes,stageMinutes=head?pay.minutes:0,planMinutes=head?plan:0,minutes=stageMinutes+planMinutes+letterMinutes;
   carry=(carry+r.units)%OUTPUT_POLICY.units;total+=minutes;
-  return {...r,rewardStatus:'earned' as const,rewardDay:day,rewardOrder:ordinal++,focusStage:pay.stage,focusBatch:batch,finish:pay.finish,stageMinutes,planMinutes,letterMinutes,minutes,...(head?{focusSeconds:pay.seconds}:{})};
+  return {...r,rewardStatus:'earned' as const,rewardDay:day,rewardOrder:ordinal++,focusStage:pay.stage,focusBatch:batch,finish:pay.finish,stageMinutes,planMinutes,letterMinutes,minutes,...(head?{focusSeconds:pay.seconds,...(pay.finish==='timer'&&pay.from!==undefined?{focusStageFrom:pay.from}:{})}:{}),...(ramp.round?{focusRound:ramp.round}:{})};
  });
- const next=withDay({...data,handwritingReceipts:paid,focusRamp:{...ramp,level:pay.level as 1|2|3|4|5,consumed:{...ramp.consumed,[subject]:(Object.prototype.hasOwnProperty.call(ramp.consumed,subject)?ramp.consumed[subject]:0)+pay.seconds}}},day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+total}}));
+ const next=withDay({...data,handwritingReceipts:paid,focusRamp:rampAfterPayout(ramp,subject,pay,now)},day,d=>({...d,bonus:{...d.bonus,handwriting:(d.bonus?.handwriting??0)+total}}));
  const t=next.bookTimer,asks=t?.subject===subject&&t.rewardMode==='output'&&t.phase!=='break';
  const settled=carryRunPastStage(asks?stopBookTimer(next,now):next,subject,pay.seconds,now);
  // The run stops here and the user picks 계속 공부 or 마치기 (user decision 2026-11-04). A break just carries on.
@@ -106,7 +106,8 @@ function payStage(data:RoutineData,subject:string,now:number,pay:{stage:number;s
 function payDeclared(data:RoutineData,subject:string,now:number):RoutineData{
  const access=focusRampAccess(data,subject,now),seconds=Math.min(focusRunCredit(data,now),access.seconds);
  if(access.needsPlan||!access.level||seconds<=0)throw new Error('공부한 시간이 있어야 끝낼 수 있어요.');
- return payStage(data,subject,now,{stage:access.level,seconds,minutes:Math.floor(FOCUS_STAGE_MINUTES[access.level]*Math.min(1,seconds/access.required)),level:Math.min(5,access.level+1),finish:'declared'});
+ // A declared finish of the 25-minute stage still closes the round.
+ return payStage(data,subject,now,{stage:access.level,seconds,minutes:Math.floor(stageTimeOf(data.focusRamp)[access.level]*Math.min(1,seconds/access.required)),...(data.focusRamp?.round?{level:access.level===5?1:access.level+1,roundEnds:access.level===5}:{level:Math.min(5,access.level+1)}),finish:'declared'});
 }
 export function startOutputStudy(data:RoutineData,id:string,subject:string,now=new Date()):RoutineData{
  const clean=subject.trim();if(!clean||clean.length>80)throw new Error('공부 주제를 1~80자로 입력해 주세요.');
@@ -129,9 +130,9 @@ export function acceptHandwriting(data:RoutineData,id:string,hash:string,subject
 /** A receipt pays one stage, or the consecutive list one photo finished. */
 function validPaidStages(r:HandwritingReceipt){
  const list=r.focusStagesPaid;
- if(list===undefined)return r.minutes===(r.focusSeconds?5:0)&&(r.focusSeconds===undefined||r.focusSeconds===FOCUS_STEPS[r.focusStage!]);
+ if(list===undefined)return r.minutes===(r.focusSeconds?5:0)&&(r.focusSeconds===undefined||r.focusSeconds===LEGACY_FOCUS_STEPS[r.focusStage!]);
  if(!Array.isArray(list)||list.length<2||list.length>200||!r.focusSeconds||list[0]!==r.focusStage||list.some((s,i)=>!Number.isInteger(s)||s<1||s>5||i>0&&s!==Math.min(5,list[i-1]+1)))return false;
- return r.minutes===5*list.length&&r.focusSeconds===list.reduce((n,s)=>n+FOCUS_STEPS[s],0);
+ return r.minutes===5*list.length&&r.focusSeconds===list.reduce((n,s)=>n+LEGACY_FOCUS_STEPS[s],0);
 }
 /** A build-43 payout must add up from the table, so a tampered backup cannot mint time or money. */
 function validStagePay(r:HandwritingReceipt,carry:number){
@@ -140,10 +141,13 @@ function validStagePay(r:HandwritingReceipt,carry:number){
  const stage=r.focusStage!;
  if(r.focusSeconds===undefined)return r.stageMinutes===0&&r.planMinutes===0;
  if(!Number.isSafeInteger(r.focusSeconds)||r.focusSeconds<=0||(r.planMinutes!==0&&r.planMinutes!==1))return false;
- if(r.finish==='declared')return r.focusSeconds<=FOCUS_STEPS[stage]&&FOCUS_STAGE_TABLES.some(table=>r.stageMinutes===Math.floor(table[stage]*r.focusSeconds!/FOCUS_STEPS[stage]));
+ // Rounds (2026-11-06) use the new stage lengths and table; anything saved before them is checked with what it used then.
+ const pairs:[readonly number[],readonly number[]][]=[[FOCUS_STEPS,FOCUS_STAGE_MINUTES],...LEGACY_STAGE_TABLES.map(t=>[LEGACY_FOCUS_STEPS,t] as [readonly number[],readonly number[]])];
+ if(r.finish==='declared')return pairs.some(([steps,table])=>r.focusSeconds!<=steps[stage]&&r.stageMinutes===Math.floor(table[stage]*r.focusSeconds!/steps[stage]));
  if(r.finish!=='timer')return false;
- const times=r.focusSeconds/FOCUS_STEPS[stage];
- return Number.isInteger(times)&&(times===1||stage===5)&&FOCUS_STAGE_TABLES.some(table=>r.stageMinutes===table[stage]*times);
+ if(r.focusStageFrom!==undefined){const from=r.focusStageFrom,span=stageSpan(from,stage);return Number.isInteger(from)&&from>=1&&from<=stage&&r.focusSeconds===span.seconds&&r.stageMinutes===span.minutes;}
+ const times=r.focusSeconds/LEGACY_FOCUS_STEPS[stage];
+ return Number.isInteger(times)&&(times===1||stage===5)&&LEGACY_STAGE_TABLES.some(table=>r.stageMinutes===table[stage]*times);
 }
 export function validateHandwritingState(data:RoutineData){
  const rows=data.handwritingReceipts;
@@ -166,9 +170,15 @@ export function validateHandwritingState(data:RoutineData){
  const breakDaily=new Map<string,number>();for(const p of focusBreakPayouts(data))breakDaily.set(p.day,(breakDaily.get(p.day)??0)+breakPayoutMinutes(p));
  for(const [key,day]of Object.entries(data.days)){const value=day.bonus?.focusBreak??0;if(!Number.isSafeInteger(value)||value<0||value!==(breakDaily.get(key)??0))throw new Error('휴식 단계 보상 원장을 확인해 주세요.');}
  if(focusBreakPayouts(data).some(p=>!data.days[p.day]))throw new Error('휴식 단계 보상 날짜를 확인해 주세요.');
- if(data.focusRamp){const rested=focusBreakPayouts(data).filter(p=>p.cycle===data.focusRamp!.cycleId).map(p=>({rewardPolicy:'ramp-v2' as const,focusStage:p.stage,focusSeconds:p.seconds,subject:p.subject,focusStagesPaid:undefined as number[]|undefined}));
+ if(data.focusRamp){const rested=focusBreakPayouts(data).filter(p=>p.cycle===data.focusRamp!.cycleId).map(p=>({rewardPolicy:'ramp-v2' as const,focusStage:p.stage,focusSeconds:p.seconds,subject:p.subject,focusRound:p.round,focusStagesPaid:undefined as number[]|undefined}));
   const photos=(rows??[]).map((r,i)=>({r,order:r.rewardOrder??i})).sort((a,b)=>a.order-b.order).map(x=>x.r).filter(r=>isRamp(r)&&r.rewardStatus==='earned'&&r.focusCycle===data.focusRamp!.cycleId&&r.focusSeconds!==undefined);
-  const current=rested.length?[...photos,...rested].sort((a,b)=>a.focusStage!-b.focusStage!):photos,used:Record<string,number>=Object.fromEntries([...new Set(current.map(r=>r.subject))].map(subject=>[subject,current.filter(r=>r.subject===subject).reduce((n,r)=>n+r.focusSeconds!,0)]));
-  if(data.focusRamp.level!==current.reduce((level,r)=>r.rewardPolicy==='ramp-v2'?Math.min(5,r.focusStage!+1):Math.min(5,level+(r.focusStagesPaid?.length??1)),1)||Object.keys({...used,...data.focusRamp.consumed}).some(subject=>(used[subject]??0)!==(data.focusRamp!.consumed[subject]??0)))throw new Error('집중 단계 진행과 사용 시간을 확인해 주세요.');
+  const all=[...photos,...rested],used:Record<string,number>=Object.fromEntries([...new Set(all.map(r=>r.subject))].map(subject=>[subject,all.filter(r=>r.subject===subject).reduce((n,r)=>n+r.focusSeconds!,0)]));
+  // With rounds the level is read from this round's payouts only: one past the highest stage, and the 25-minute stage
+  // always ends a round. A ramp from before rounds (no round) is read from every payout of the cycle, as before.
+  const round=data.focusRamp.round,inRound=round===undefined?null:all.filter(r=>(r as {focusRound?:string}).focusRound===round).map(r=>r.focusStage!);
+  const current=rested.length?[...photos,...rested].sort((a,b)=>a.focusStage!-b.focusStage!):photos;
+  const expected=inRound===null?current.reduce((level,r)=>r.rewardPolicy==='ramp-v2'?Math.min(5,r.focusStage!+1):Math.min(5,level+(r.focusStagesPaid?.length??1)),1):!inRound.length?1:Math.max(...inRound)>=5?-1:Math.max(...inRound)+1;
+  if(round!==undefined&&(typeof round!=='string'||!round.startsWith(data.focusRamp.cycleId+':r')))throw new Error('집중 단계 진행과 사용 시간을 확인해 주세요.');
+  if(data.focusRamp.level!==expected||Object.keys({...used,...data.focusRamp.consumed}).some(subject=>(used[subject]??0)!==(data.focusRamp!.consumed[subject]??0)))throw new Error('집중 단계 진행과 사용 시간을 확인해 주세요.');
  }
 }

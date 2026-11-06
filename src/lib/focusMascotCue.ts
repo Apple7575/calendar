@@ -1,4 +1,4 @@
-import {FOCUS_STEPS} from './focusRamp';
+import {FOCUS_MARKS as FOCUS_STEPS} from './focusRamp';
 /** Read-only snapshot of the focus timer. The cue is display only and never feeds timer or reward logic. */
 export type FocusMascotFrame={timerId:string;phase:string;credit:number;elapsed:number};
 export type FocusMascotCue='start'|'stage'|'break';
