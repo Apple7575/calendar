@@ -35,6 +35,13 @@ describe('친구가 먼저 말 걸기 (팀장 결정 2026-11-06)',()=>{
   const both={day:DAY,slots:['evening' as const,'lastCall' as const]};
   expect(friendNudge({now:at(20,45),dayKey:DAY,todayDone:false,closed:both})).toBeNull();
  });
+ test('문구는 칸 안의 어느 시각에 열어도 맞는다(고정된 지금 시각을 말하지 않는다)',()=>{
+  for(const now of [at(18,0),at(19,45),at(20,29),at(20,30),at(20,59)]){
+   const n=friendNudge({now,dayKey:DAY,todayDone:false,closed:null})!;
+   expect(n.title+n.detail).not.toMatch(/6시|30분 뒤/);
+  }
+  expect(friendNudge({now:at(20,50),dayKey:DAY,todayDone:false,closed:null})!.title).toContain('9시');
+ });
  test('깨진 닫기 기록은 무시한다',()=>{
   expect(friendNudge({now:at(19),dayKey:DAY,todayDone:false,closed:{day:DAY,slots:'x' as any}})?.slot).toBe('evening');
  });

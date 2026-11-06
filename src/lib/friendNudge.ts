@@ -17,9 +17,10 @@ export function nudgeSlot(now:Date):NudgeSlot|null{
  return null;
 }
 
+/** 문구는 칸 안의 어느 시각에 열어도 맞아야 해서 지금 시각을 말하지 않는다. 9시는 FRIEND_NUDGE_TIMES.lock이다. */
 const LINES:Record<NudgeSlot,Omit<FriendNudge,'slot'>>={
- evening:{title:'저녁 6시예요. 오늘 공부는 아직이에요.',detail:'딱 2분만 같이 시작해요.',action:'A32'},
- lastCall:{title:'30분 뒤 9시에 잠겨요.',detail:'지금 2분만 하면 오늘도 이어져요.',action:'A35'},
+ evening:{title:'저녁이에요. 오늘 공부는 아직이에요.',detail:'딱 2분만 같이 시작해요.',action:'A32'},
+ lastCall:{title:'곧 9시, 잠기기 전이에요.',detail:'지금 2분만 하면 오늘도 이어져요.',action:'A35'},
 };
 
 /** 지금 띄울 말풍선. 오늘 공부했거나 시간 밖이거나 이 칸을 닫았으면 null. */

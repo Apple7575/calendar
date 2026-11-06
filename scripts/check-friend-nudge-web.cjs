@@ -37,7 +37,7 @@ async function measure(page,name){
  await step('evening',async()=>{
   const p=await open(new Date(2026,10,6,18,30));
   await p.getByTestId('friend-nudge-evening').waitFor({timeout:15000});
-  check(await p.getByText('저녁 6시예요. 오늘 공부는 아직이에요.',{exact:true}).count()===1,'18시 말풍선 문구가 없다');
+  check(await p.getByText('저녁이에요. 오늘 공부는 아직이에요.',{exact:true}).count()===1,'18시 말풍선 문구가 없다');
   const start=p.getByRole('button',{name:/이 행동부터 시작|첫 공부 준비|오늘의 첫 행동/}).first();
   const box=await start.boundingBox();check(!!box&&box.y+box.height<=844-70,'말풍선이 있어도 시작 버튼이 첫 화면에 보여야 한다: '+JSON.stringify(box));
   await p.screenshot({path:`${out}/home-1800-390x844.png`});await measure(p,'home 18:30');
