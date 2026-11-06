@@ -14,12 +14,27 @@ import {koreanTitle,space} from '../../theme/tokens';
 import {GoalForm} from './GoalForm';
 import {GoalLinksForm} from './GoalLinksForm';
 import {useRoutine} from './RoutineProvider';
+import {durationLabel} from '../../lib/dailyTimeline';
+import {goalWeekTime} from '../../lib/goalTime';
 import {Action,CardView,Copy,Icon,Link,LoadingState,Notice,Page,Progress,u} from './ui';
 
 type Nav=NativeStackNavigationProp<RootStackParamList>;
 
 function Fact({label,value}:{label:string;value:string}){
  return <View style={[u.between,{gap:space.sm}]}><Copy muted>{label}</Copy><View style={{flexShrink:1}}><Copy variant="label">{value}</Copy></View></View>;
+}
+
+/** This week's time beside last week's. Shown only: the promise above still counts days. */
+function WeekTime({goal,today}:{goal:Goal;today:string}){
+ const {data}=useRoutine(),theme=useTheme(),{colors:c}=theme,primary=colorRoles(theme).primary,{seconds,lastWeekSeconds}=goalWeekTime(data,goal,today),max=Math.max(seconds,lastWeekSeconds,1);
+ const bar=(label:string,value:number,color:string,strong:boolean)=><View accessible accessibilityLabel={`${label} 공부 시간 ${durationLabel(value)}`} style={{gap:space.xxs}}>
+  <View style={u.between}><Copy variant="caption" muted={!strong}>{label}</Copy><Copy variant="label" muted={!strong}>{durationLabel(value)}</Copy></View>
+  <View style={{height:8,borderRadius:4,backgroundColor:c.inputBg,overflow:'hidden'}}><View style={{width:`${Math.round(value/max*100)}%`,height:8,borderRadius:4,backgroundColor:color}}/></View>
+ </View>;
+ return <View testID="goal-week-time" style={{gap:space.xs}}>
+  <Copy variant="section">이번 주 공부 시간</Copy>
+  {seconds+lastWeekSeconds?<>{bar('이번 주',seconds,primary.ink,true)}{bar('지난주',lastWeekSeconds,c.textMuted,false)}</>:<Copy variant="caption" muted>연결한 공부의 시간이 아직 없어요. 집중 공부와 단어장 시간을 모아 보여 줘요.</Copy>}
+ </View>;
 }
 
 function WeekCard({goal,today}:{goal:Goal;today:string}){
@@ -32,6 +47,7 @@ function WeekCard({goal,today}:{goal:Goal;today:string}){
    <View style={{width:34,height:34,borderRadius:17,alignItems:'center',justifyContent:'center',backgroundColor:day.counted?primary.soft:'transparent',borderWidth:day.isToday?2:1,borderColor:day.counted||day.isToday?primary.ink:c.border,opacity:day.isFuture?0.5:1}}>{day.counted?<Icon name="checkmark" size={18} color={primary.ink}/>:null}</View>
   </View>)}</View>
   <Copy variant="caption" muted>{left>0?`${left}일 더 공부하면 이번 주 약속을 채워요.`:'이번 주 약속을 채웠어요.'} 연결한 공부를 끝낸 날을 세요.</Copy>
+  <WeekTime goal={goal} today={today}/>
  </CardView>;
 }
 
