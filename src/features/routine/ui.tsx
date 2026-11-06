@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Keyboard, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, useWindowDimensions, View, ViewStyle } from "react-native";
+import { ActivityIndicator, Animated, Keyboard, Platform, Pressable, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, useWindowDimensions, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeContext";
@@ -26,7 +26,7 @@ export function ProfileButton(){
  const {colors:c}=useTheme(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  return <Pressable accessibilityRole="button" accessibilityLabel="프로필·설정" onPress={()=>nav.navigate('SettingsHub')} style={{width:control.touch,height:control.touch,borderRadius:control.touch/2,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'}}><Icon name="person-outline" size={21} color={c.primary}/></Pressable>;
 }
-export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef,showHeader=true,keyboardInsets=true }: { title: string; keyboardInsets?:boolean; showHeader?:boolean; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
+export function Page({ title, right, children, footer, scrollable = true, floatingFooter = false, fillContent = false,embedded=false,scrollEnabled=true,scrollRef,showHeader=true,keyboardInsets=true,onRefresh,refreshing=false }: { title: string; onRefresh?:()=>void; refreshing?:boolean; keyboardInsets?:boolean; showHeader?:boolean; right?: ReactNode; children: ReactNode; footer?: ReactNode; scrollable?: boolean; floatingFooter?: boolean;fillContent?:boolean;embedded?:boolean;scrollEnabled?:boolean;scrollRef?:React.RefObject<ScrollView|null> }) {
   const { colors: c } = useTheme();
   const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),route=useRoute();
   const pushed=nav.canGoBack()&&!['Today','Study','GoalTab','Records','Calendar','More'].includes(route.name);
@@ -39,7 +39,7 @@ export function Page({ title, right, children, footer, scrollable = true, floati
   if(embedded)return <View style={{gap:space.md}}>{children}</View>;
   const content = <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.surface }}>
     {showHeader?<View style={u.header}>{back?<Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={()=>nav.goBack()} style={{minWidth:control.touch,minHeight:control.touch,justifyContent:'center'}}><Icon name="arrow-back" size={23} color={c.text}/></Pressable>:null}<Text accessibilityRole="header" style={[type.title, { color: c.text,flex:1 }]}>{title}</Text>{right??(pushed?null:<ProfileButton/>)}</View>:null}
-    {scrollable ? <ScrollView ref={scroller} scrollEnabled={scrollEnabled} automaticallyAdjustKeyboardInsets={keyboardInsets} onScroll={event=>{offset.current=event.nativeEvent.contentOffset.y}} scrollEventThrottle={16} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : space.xl } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
+    {scrollable ? <ScrollView ref={scroller} scrollEnabled={scrollEnabled} refreshControl={onRefresh?<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.textMuted} colors={[c.primary]}/>:undefined} automaticallyAdjustKeyboardInsets={keyboardInsets} onScroll={event=>{offset.current=event.nativeEvent.contentOffset.y}} scrollEventThrottle={16} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={[u.page, fillContent?{flexGrow:1}:null, footer ? { paddingBottom: floatingFooter ? fillContent?12:120 : space.xl } : null]} showsVerticalScrollIndicator={false}>{children}</ScrollView>
       : <View style={{ flex: 1, minHeight: 0, paddingHorizontal: gutter, paddingBottom: space.sm }}>{children}</View>}
     {footer ? floatingFooter ? <View style={{position:'absolute',left:gutter,right:gutter,bottom:0}}>{footer}</View> : <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.surface, borderTopWidth: 1, borderColor: c.border, padding: gutter }}>{footer}</SafeAreaView> : null}
   </SafeAreaView>;
