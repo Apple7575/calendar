@@ -9,7 +9,7 @@ import {wordRewardStatus} from '../../lib/studyRewards';
 import {State} from 'ts-fsrs';
 import {FocusThemeProvider,useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
-import {Action,CardView,Choice,Copy,Icon,Link,Page,Progress,u,CharacterPeek,NavCard} from './ui';
+import {Notice,Action,CardView,Choice,Copy,Icon,Link,Page,Progress,u,CharacterPeek,NavCard} from './ui';
 import {MenuRow,Segments,SettingsButton} from './experience';
 import {type} from '../../theme/tokens';
 import {FocusStart} from './FocusStart';
@@ -25,7 +25,8 @@ export function StudyHomeScreen(){
  const label=deckId?decks.find(d=>d.id===deckId)!.name:decks.length===1?decks[0].name:'전체 단어장';
  const page=<Page title="학습" right={<SettingsButton/>}>
   <Segments value={section} onChange={setSection} items={[{id:'word',label:'단어'},{id:'focus',label:'집중'},{id:'speak',label:'말하기'},{id:'content',label:'콘텐츠'}]}/>
-  {priorityGate(data,dayKey).blocked?<CardView><Copy weight="800">오늘 먼저 시작하기로 한 공부</Copy><Copy size={13}>{priorityGate(data,dayKey).reason}</Copy><Link label="준비한 첫 행동으로 이동" onPress={()=>nav.navigate('Main',{screen:'Today'})}/><Copy muted size={12}>단어도 자유롭게 공부할 수 있어요. 보상은 적립하고 첫 공부 뒤 사용할 수 있어요.</Copy></CardView>:null}
+  {priorityGate(data,dayKey).blocked&&(section==='speak'||section==='content')?<Notice tone="warning" actionLabel="준비한 첫 행동으로 이동" onAction={()=>nav.navigate('Main',{screen:'Today'})}>{'오늘 먼저 시작하기로 한 공부가 있어요. '+priorityGate(data,dayKey).reason+' 보상은 적립하고 첫 공부 뒤 사용할 수 있어요.'}</Notice>
+  :priorityGate(data,dayKey).blocked?<CardView><Copy weight="800">오늘 먼저 시작하기로 한 공부</Copy><Copy size={13}>{priorityGate(data,dayKey).reason}</Copy><Link label="준비한 첫 행동으로 이동" onPress={()=>nav.navigate('Main',{screen:'Today'})}/><Copy muted size={12}>단어도 자유롭게 공부할 수 있어요. 보상은 적립하고 첫 공부 뒤 사용할 수 있어요.</Copy></CardView>:null}
   {section==='focus'?<FocusStart/>:section==='speak'?<SpeakingHome/>:section==='content'?<ContentHome/>:<>
    {decks.length>1?<View style={{flexDirection:'row',gap:7,flexWrap:'wrap'}}>{[{id:undefined,name:'전체 덱'},...decks].map(deck=><Choice key={deck.id??'all'} label={deck.name} accessibilityLabel={`${deck.name} 선택`} selected={deckId===deck.id} onPress={()=>setSelected(deck.id)}/>)}</View>:null}
    {!data.words.length?<View><CharacterPeek character="C02" action="A31"/><CardView><Text accessibilityRole="header" style={[type.heading,{color:c.text}]}>첫 단어를 심어볼까요?</Text><Copy muted>컴퓨터에서 준비한 단어장을 같은 계정으로 받아요.</Copy><Action label="첫 단어장 준비하기" onPress={()=>nav.navigate('StudySettings')}/></CardView></View>:<>

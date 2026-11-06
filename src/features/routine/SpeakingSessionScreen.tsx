@@ -14,6 +14,7 @@ import {koreanTitle,space} from '../../theme/tokens';
 import {useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,Copy,Field,Link,LoadingState,Notice,Page} from './ui';
+import {SpeakingProgress} from './SpeakingHome';
 
 const STOP_TEXT:Record<SpeakingStop,string>={denied:'마이크·음성 인식 권한이 필요해요. 설정에서 허용해 주세요. 지금까지 말한 내용은 남아 있어요.',silent:'한동안 말소리가 들리지 않아 잠시 멈췄어요. 지금까지 말한 내용은 남아 있어요.',failed:'음성 인식이 멈췄어요. 지금까지 말한 내용은 남아 있어요.'};
 /** Only the latest words are drawn while speaking, so a long answer stays light. All of it is kept. */
@@ -117,15 +118,15 @@ export function SpeakingSessionScreen({route,navigation}:RootScreenProps<'Speaki
 
  if(speaking){
   const said=join(speaking.before,speaking.text),chars=spokenChars(said),seconds=Math.floor(speaking.secondsBefore+(speaking.held?0:Math.max(0,clock-speaking.startedAt)/1000));
-  const next=speakingToday(data,dayKey,(speaking.kind==='followUp'?chars*P.followUpWeight:chars)*weight);
+  const saying=(speaking.kind==='followUp'?chars*P.followUpWeight:chars)*weight,next=speakingToday(data,dayKey,saying);
   return <Page title={speaking.kind==='answer'?'말로 답하기':'되묻는 질문에 답하기'} footer={<View style={{gap:space.xs}}>{speaking.held?<Action label="이어서 말하기" icon="mic-outline" onPress={()=>void listen(speaking.kind,said,speaking.secondsBefore)}/>:null}<Action secondary={speaking.held} label="다 말했어요" disabled={busy} onPress={()=>void finishSpeaking()}/></View>}>
    {speaking.kind==='followUp'&&record?.feedback?<CardView><Copy variant="label">{record.feedback.followUp}</Copy></CardView>:questionCard}
    <CardView>
     <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:space.sm}}>
-     <View style={{flexDirection:'row',alignItems:'center',gap:space.xs}}>{speaking.held?null:<View style={{width:10,height:10,borderRadius:5,backgroundColor:c.primary}}/>}<Copy variant="label">{speaking.held?'잠시 멈췄어요':'듣고 있어요'}</Copy></View>
-     <Copy variant="section" style={{fontVariant:['tabular-nums']}}>{clockLabel(seconds)}</Copy>
+     <View style={{flexDirection:'row',alignItems:'center',gap:space.xs}}><View style={{width:10,height:10,borderRadius:5,backgroundColor:speaking.held?c.textMuted:c.primary}}/><Copy variant="label">{speaking.held?'잠시 멈췄어요':'듣고 있어요'}</Copy></View>
+     <Copy variant="heading" style={{fontVariant:['tabular-nums']}}>{clockLabel(seconds)}</Copy>
     </View>
-    <Copy variant="label">{next.moreChars.toLocaleString('ko-KR')+'자 더 말하면 +5분'}</Copy>
+    <SpeakingProgress data={data} dayKey={dayKey} saying={saying}/>
     <Copy variant="caption" muted>{chars.toLocaleString('ko-KR')+'자'+(speaking.kind==='followUp'?' · 되묻는 답변은 2배로 인정해요':'')+(next.upcomingSteps?' · 이번에 +'+next.upcomingSteps*P.stepMinutes+'분 예정':'')}</Copy>
     <View testID="speaking-live-text"><Copy>{said?(said.length>LIVE_CHARS?'… '+said.slice(-LIVE_CHARS):said):'말하면 여기에 글자로 나와요.'}</Copy></View>
     {SPEAKING_SAMPLE?<Copy variant="caption" muted>웹 미리보기라 예시 답변이 자동으로 입력돼요. 마이크를 쓰지 않아요.</Copy>:null}
@@ -137,38 +138,40 @@ export function SpeakingSessionScreen({route,navigation}:RootScreenProps<'Speaki
  if(!speakingCaptureAvailable())return <Page title="말하기" right={close}><Notice tone="warning">말하기는 새 아이폰 빌드에서 쓸 수 있어요.</Notice></Page>;
 
  if(record?.status==='settled'){
-  const earned=record.minutes??0,credited=record.creditedChars??0,next=speakingToday(data,dayKey);
-  return <Page title="말하기 결과" right={close}>
+  const earned=record.minutes??0,credited=record.creditedChars??0;
+  const again=speakingTopic(record.topicId);
+  return <Page title="말하기 결과" right={close} footer={again?<Action label="한 번 더 말하기" icon="mic-outline" onPress={()=>navigation.replace('SpeakingSession',{topicId:again.id})}/>:undefined}>
    {questionCard}
    <CardView>
     <Copy variant="section">{earned?earned+'분 · '+(earned*P.wonPerMinute).toLocaleString('ko-KR')+'원을 받았어요':credited?credited.toLocaleString('ko-KR')+'자를 인정했어요':'이번 글자는 인정되지 않았어요'}</Copy>
     {record.uncounted?<Copy>{SPEAKING_UNCOUNTED_TEXT[record.uncounted]}</Copy>:null}
-    <Copy>{next.moreChars.toLocaleString('ko-KR')+'자 더 말하면 +5분'}</Copy>
+    <SpeakingProgress data={data} dayKey={dayKey}/>
     <Copy variant="caption" muted>말한 내용과 AI 답변은 하루 기록에서 다시 볼 수 있어요.</Copy>
    </CardView>
-   <Action label="닫기" onPress={()=>navigation.goBack()}/>
   </Page>;
  }
  if(record){
   const fb=record.feedback,waiting=record.followUpAnswer;
-  return <Page title={fb?'AI 답변':'답변 저장됨'} right={close}>
+  const actions=busy?null:!fb?<><Action label="AI 답변 다시 받기" disabled={!callsLeft} onPress={()=>void askCoach(record.id,record.question,record.answer)}/><Link label="글자 인정 없이 연습만 마치기" onPress={()=>void finish(record)}/></>:waiting?<><Action label="다시 확인하고 마치기" disabled={!callsLeft} onPress={()=>void finish(record,waiting)}/><Link label="되묻는 답변 빼고 마치기" onPress={()=>void finish(record)}/></>:<><Action label="되묻는 질문에 답하기" icon="mic-outline" disabled={!callsLeft} onPress={()=>void listen('followUp')}/><Link label="건너뛰고 마치기" onPress={()=>void finish(record)}/></>;
+  return <Page title={fb?'AI 답변':'답변 저장됨'} right={close} footer={actions?<View style={{gap:space.xxs}}>{actions}</View>:undefined}>
    {questionCard}
    {fb?<>
-    <CardView><Copy variant="label">잘한 점</Copy><Copy>{fb.good}</Copy><Copy variant="label">{missedLabel}</Copy><Copy>{fb.missed}</Copy></CardView>
     <CardView><Copy variant="label">되묻는 질문</Copy><Copy {...koreanTitle.props} variant="section" style={koreanTitle.style}>{fb.followUp}</Copy>{waiting?<Copy>{waiting}</Copy>:<Copy variant="caption" muted>답하면 글자를 2배로 인정해요. 건너뛰어도 돼요.</Copy>}</CardView>
+    <CardView><Copy variant="label">잘한 점</Copy><Copy>{fb.good}</Copy><Copy variant="label">{missedLabel}</Copy><Copy>{fb.missed}</Copy></CardView>
    </>:busy?null:<Notice tone="warning">아직 AI 답변을 받지 못했어요. 말한 내용은 저장되어 있어요.</Notice>}
    {!callsLeft&&!busy?<Notice tone="warning">오늘 AI 답변 100회를 모두 썼어요. 말한 내용은 남아 있고, 내일 이어서 받을 수 있어요.</Notice>:null}
    {error?<Notice tone="error">{error}</Notice>:null}
-   {busy?<LoadingState label="AI 답변을 기다리고 있어요"/>:!fb?<><Action label="AI 답변 다시 받기" disabled={!callsLeft} onPress={()=>void askCoach(record.id,record.question,record.answer)}/><Link label="글자 인정 없이 연습만 마치기" onPress={()=>void finish(record)}/></>:waiting?<><Action label="다시 확인하고 마치기" disabled={!callsLeft} onPress={()=>void finish(record,waiting)}/><Link label="되묻는 답변 빼고 마치기" onPress={()=>void finish(record)}/></>:<><Action label="되묻는 질문에 답하기" icon="mic-outline" disabled={!callsLeft} onPress={()=>void listen('followUp')}/><Link label="건너뛰고 마치기" onPress={()=>void finish(record)}/></>}
+   {busy?<LoadingState label="AI 답변을 기다리고 있어요"/>:null}
    <CardView><Copy variant="caption" muted>{'내가 말한 내용 · '+(record.answerChars??spokenChars(record.answer)).toLocaleString('ko-KR')+'자'}</Copy><Copy>{record.answer}</Copy>{(record.answerChars??0)>record.answer.length?<Copy variant="caption" muted>긴 답변은 앞부분만 저장해요. 글자 수는 말한 만큼 모두 인정해요.</Copy>:null}</CardView>
   </Page>;
  }
- const blocked=!canStartSpeaking(data),next=speakingToday(data,dayKey);
- return <Page title="말하기" right={close}>
+ const blocked=!canStartSpeaking(data);
+ const start=question?<Action label="말로 답하기" icon="mic-outline" disabled={!ready||busy||blocked||!callsLeft} onPress={()=>void listen('answer')}/>:topic?.aiBrief&&!busy?<Action label="질문 다시 받기" disabled={!callsLeft} onPress={()=>void fetchQuestion()}/>:null,another=other&&!busy?<Link label="다른 질문" onPress={other}/>:null;
+ return <Page title="말하기" right={close} footer={start||another?<View style={{gap:space.xxs}}>{start}{another}</View>:undefined}>
   {questionCard}
   {!question&&busy?<LoadingState label="질문을 받고 있어요"/>:null}
   <CardView>
-   <Copy variant="label">{next.moreChars.toLocaleString('ko-KR')+'자 더 말하면 +5분'}</Copy>
+   <SpeakingProgress data={data} dayKey={dayKey}/>
    <Copy variant="caption" muted>길게 말해도 끊기지 않아요. 말한 글자를 모두 인정하고, 같은 질문도 고쳐 말하면 다시 인정돼요.{weight>1?' 일본어는 글자를 '+weight+'배로 인정해요.':''}</Copy>
    {topic?.notice?<Copy variant="caption" muted>{topic.notice}</Copy>:null}
   </CardView>
@@ -176,7 +179,5 @@ export function SpeakingSessionScreen({route,navigation}:RootScreenProps<'Speaki
   {blocked?<Notice tone="warning">공부 타이머가 진행 중이에요. 쉬는 시간이나 공부를 마친 뒤 시작할 수 있어요.</Notice>:null}
   {!callsLeft?<Notice tone="warning">오늘 AI 답변 100회를 모두 썼어요. 내일 다시 할 수 있어요.</Notice>:null}
   {error?<Notice tone="error">{error}</Notice>:null}
-  {question?<Action label="말로 답하기" icon="mic-outline" disabled={!ready||busy||blocked||!callsLeft} onPress={()=>void listen('answer')}/>:topic?.aiBrief&&!busy?<Action label="질문 다시 받기" disabled={!callsLeft} onPress={()=>void fetchQuestion()}/>:null}
-  {other&&!busy?<Link label="다른 질문" onPress={other}/>:null}
  </Page>;
 }

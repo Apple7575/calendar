@@ -26,12 +26,6 @@ function TodayCard(p:ReturnType<typeof contentToday>[number]){
   <Copy variant="caption">{p.minutes/60+'시간 · '+won(p.won)}</Copy>
  </View>;
 }
-function WeekRow({days,today}:{days:{key:string;uploaded:boolean}[];today:string}){
- const {colors:c}=useTheme();
- return <View accessibilityLabel={'이번 주 업로드한 날 '+days.filter(d=>d.uploaded).length+'일'} style={{flexDirection:'row',justifyContent:'space-between'}}>
-  {days.map((d,i)=><View key={d.key} style={{alignItems:'center',gap:space.xxs}}><Copy variant="caption" muted={d.key!==today}>{WEEK[i]}</Copy><View style={{width:24,height:24,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:d.uploaded?c.primary:c.inputBg}}>{d.uploaded?<Icon name="checkmark" size={15} color={c.background}/>:null}</View></View>)}
- </View>;
-}
 /** The idea's place in 아이디어 → 만드는 중 → 올림. */
 function IdeaRow({idea,today,onPick,onUnpick,onRemove}:{idea:ContentIdea;today:string;onPick:()=>void;onUnpick:()=>void;onRemove:()=>void}){
  const at=STAGES.findIndex(s=>s.id===idea.stage),{colors:c}=useTheme();
@@ -65,7 +59,7 @@ function LinkRow({upload}:{upload:ContentUpload}){
  </Pressable>;
 }
 
-/** The content section of the study tab: today's two uploads, the week, ideas, then the record. */
+/** The content section of the study tab: today's two uploads and the link to prove one, ideas, then the month. */
 export function ContentHome(){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{data,dayKey,ready,update}=useRoutine(),{colors:c}=useTheme();
  const [link,setLink]=useState(''),[idea,setIdea]=useState(''),[chosen,setChosen]=useState<string>(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[note,setNote]=useState(''),[month,setMonth]=useState(dayKey.slice(0,7)),prefix=useRef('');
@@ -90,18 +84,13 @@ export function ContentHome(){
    <CardView>
     <Copy variant="heading">오늘의 업로드</Copy>
     <View testID="content-today" style={{flexDirection:'row',gap:space.xs}}>{today.map(p=><TodayCard key={p.id} {...p}/>)}</View>
-    <Copy variant="label">{'이번 주 '+week.count+'일 올렸어요'}</Copy>
-    <WeekRow days={week.days} today={dayKey}/>
+    <Field label="링크 붙여넣기" value={link} onChangeText={v=>{setLink(v);setError('');setNote('')}} maxLength={500} placeholder="릴스나 쇼츠 링크" helper={parsed?titleOf(parsed.platform)+' 링크예요':undefined}/>
+    {making.length>1?<View style={{gap:space.xs}}><Copy variant="caption" muted>어떤 아이디어를 올렸나요?</Copy><View style={{flexDirection:'row',gap:space.xs,flexWrap:'wrap'}}>{making.map(i=><Choice key={i.id} label={i.text.length>14?i.text.slice(0,14)+'…':i.text} selected={pickedIdea===i.id} onPress={()=>setChosen(i.id)}/>)}</View></View>:null}
+    {error?<Notice tone="error">{error}</Notice>:null}{note?<Notice>{note}</Notice>:null}
+    <Action label={busy?'인증하고 있어요':'인증하기'} disabled={!ready||busy||!link.trim()} onPress={()=>void submit()}/>
     <Copy variant="caption" muted>플랫폼마다 하루 1번 보상을 받아요. 못 올린 날에도 벌점은 없어요.</Copy>
    </CardView>
   </View>
-  <CardView>
-   <Copy variant="section">올린 영상 인증</Copy>
-   <Field label="링크 붙여넣기" value={link} onChangeText={v=>{setLink(v);setError('');setNote('')}} maxLength={500} placeholder="릴스나 쇼츠 링크" helper={parsed?titleOf(parsed.platform)+' 링크예요':undefined}/>
-   {making.length>1?<View style={{gap:space.xs}}><Copy variant="caption" muted>어떤 아이디어를 올렸나요?</Copy><View style={{flexDirection:'row',gap:space.xs,flexWrap:'wrap'}}>{making.map(i=><Choice key={i.id} label={i.text.length>14?i.text.slice(0,14)+'…':i.text} selected={pickedIdea===i.id} onPress={()=>setChosen(i.id)}/>)}</View></View>:null}
-   {error?<Notice tone="error">{error}</Notice>:null}{note?<Notice>{note}</Notice>:null}
-   <Action label={busy?'인증하고 있어요':'인증하기'} disabled={!ready||busy||!link.trim()} onPress={()=>void submit()}/>
-  </CardView>
   <CardView>
    <Copy variant="section">아이디어 창고</Copy>
    <View style={{flexDirection:'row',alignItems:'flex-end',gap:space.xs}}>
@@ -118,6 +107,7 @@ export function ContentHome(){
     <Copy variant="section">{Number(month.slice(0,4))+'년 '+Number(month.slice(5,7))+'월'}</Copy>
     <Pressable accessibilityRole="button" accessibilityLabel="다음 달" accessibilityState={{disabled:month>=dayKey.slice(0,7)}} disabled={month>=dayKey.slice(0,7)} onPress={()=>shift(1)} style={{width:control.touch,height:control.touch,alignItems:'center',justifyContent:'center',opacity:month>=dayKey.slice(0,7)?.3:1}}><Icon name="chevron-forward" size={20} color={c.textMuted}/></Pressable>
    </View>
+   <Copy variant="label">{'이번 주 '+week.count+'일 올렸어요'}</Copy>
    <Calendar month={month} days={record.days} today={dayKey}/>
    <View style={{flexDirection:'row',gap:space.md}}>{CONTENT_PLATFORMS.map(p=><View key={p.id} style={{flexDirection:'row',alignItems:'center',gap:space.xxs}}><View style={{width:6,height:6,borderRadius:3,backgroundColor:p.id==='reels'?c.primary:c.text}}/><Copy variant="caption" muted>{p.title}</Copy></View>)}</View>
    {record.uploads.length?record.uploads.map(u=><LinkRow key={u.id} upload={u}/>):<Copy variant="caption" muted>이 달에 올린 영상이 아직 없어요.</Copy>}
