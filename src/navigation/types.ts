@@ -26,6 +26,7 @@ export type RootStackParamList = {
   GoalDetail:{goalId:string;open?:'links'};
   WeekCheck:undefined;
   NightReflection:undefined;
+  NextStudy:{id:string};
   BuildCheck:undefined;
   ExperienceSettings:undefined;
   TimeWallet:undefined;

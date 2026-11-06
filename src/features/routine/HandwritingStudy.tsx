@@ -16,6 +16,7 @@ import {Action,CardView,Copy,Link,Notice} from './ui';
 import {FocusList,FocusListRow} from './FocusList';
 import {rewardChange} from '../../lib/rewardChange';
 import {canDeclareFinish,canTakeHandwritingPhoto} from '../../lib/focusFlow';
+import {askNextStudy} from '../../lib/studyReservation';
 
 export function HandwritingStudy({declare=false,onPhotoChange,onSaving,moreRows,afterCard}:{declare?:boolean;onPhotoChange?:(hasPhoto:boolean)=>void;onSaving?:(saving:boolean)=>void;moreRows?:React.ReactNode;afterCard?:React.ReactNode}){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -60,7 +61,7 @@ export function HandwritingStudy({declare=false,onPhotoChange,onSaving,moreRows,
  };
  const save=async()=>{
   if(!pending||busy)return;setBusy(true);setError('');onSaving?.(true);
-  try{let result:{id:string;units:number;minutes:number;waiting:boolean}|null=null,cash=0;await update(s=>{const next=pending.declared?acceptDeclaredFinishPages(s,new Date()):acceptHandwritingPages(s,new Date());cash=rewardChange(s,next,dayKey).cash;const ids=new Set((next.handwritingReceipts??[]).filter(r=>r.id===pending.id||r.id.startsWith(pending.id+':')).map(r=>r.id)),batch=(next.handwritingReceipts??[]).filter(r=>ids.has(r.id));if(batch.length)result={id:pending.id,units:batch.reduce((n,r)=>n+r.units,0),minutes:batch.reduce((n,r)=>n+r.minutes,0),waiting:batch[0].rewardStatus==='pending'};return next});if(live.current){setPhoto(null);if(result){const r=result as {id:string;units:number;minutes:number;waiting:boolean};nav.navigate('EarnedReward',{id:r.id,kind:'handwriting',quantity:r.units,minutes:r.minutes,cash,cashEnabled:!!data.money,pending:r.waiting,cashBaseline:(data.money?.entries??[]).filter(e=>e.source==='output').reduce((n,e)=>n+e.amount,0)});}}}
+  try{let result:{id:string;units:number;minutes:number;waiting:boolean}|null=null,cash=0;await update(s=>{const next=pending.declared?askNextStudy(acceptDeclaredFinishPages(s,new Date()),'ask-'+Date.now()):acceptHandwritingPages(s,new Date());cash=rewardChange(s,next,dayKey).cash;const ids=new Set((next.handwritingReceipts??[]).filter(r=>r.id===pending.id||r.id.startsWith(pending.id+':')).map(r=>r.id)),batch=(next.handwritingReceipts??[]).filter(r=>ids.has(r.id));if(batch.length)result={id:pending.id,units:batch.reduce((n,r)=>n+r.units,0),minutes:batch.reduce((n,r)=>n+r.minutes,0),waiting:batch[0].rewardStatus==='pending'};return next});if(live.current){setPhoto(null);if(result){const r=result as {id:string;units:number;minutes:number;waiting:boolean};nav.navigate('EarnedReward',{id:r.id,kind:'handwriting',quantity:r.units,minutes:r.minutes,cash,cashEnabled:!!data.money,pending:r.waiting,cashBaseline:(data.money?.entries??[]).filter(e=>e.source==='output').reduce((n,e)=>n+e.amount,0)});}}}
   catch(e){onSaving?.(false);if(live.current)setError(e instanceof Error?e.message:'기록을 저장하지 못했어요.');}finally{if(live.current)setBusy(false);}
  };
  return <View style={{gap:16}}>
