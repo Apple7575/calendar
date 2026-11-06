@@ -8,6 +8,7 @@ import {BuildCheckScreen} from './src/features/routine/BuildCheckScreen';
 import {CommitmentGate} from './src/features/routine/CommitmentGate';
 import {NextStudyGate} from './src/features/routine/NextStudyGate';
 import {NextStudyScreen} from './src/features/routine/NextStudyScreen';
+import {RestAlarmGate} from './src/features/routine/RestAlarmGate';
 import { CelebrationHost } from "./src/features/routine/Celebration";
 import {FocusNoiseHost} from "./src/features/routine/FocusNoise";
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
@@ -124,6 +125,7 @@ function Preview() {
           </Stack.Navigator>
           <CommitmentGate/>
           <NextStudyGate/>
+          <RestAlarmGate/>
           <CelebrationHost/>
           <FocusNoiseHost/>
         </NavigationContainer>

@@ -206,6 +206,14 @@
         ]
       ],
       [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/rest_alarm.wav"
+          ]
+        }
+      ],
+      [
         "expo-screen-orientation",
         {
           "initialOrientation": "PORTRAIT_UP"
