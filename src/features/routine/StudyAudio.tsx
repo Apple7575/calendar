@@ -10,6 +10,8 @@ import { Action, Copy, Link } from './ui';
 import { useSession } from '../../hooks/useSession';
 import { parseStudyRate,StudyRate,studyRateKey,WORD_SENTENCE_GAP_MS } from '../../lib/studyPlayback';
 import {claimStudyAudio,registerStudyAudio} from '../../lib/studyAudioFocus';
+import {playbackAudioMode} from '../../lib/focusNoise';
+import {duckFocusNoise} from '../../lib/focusNoisePlayer';
 
 const preference = 'routine.studyAudio.auto.v1';
 const sentencePreference = 'routine.studyAudio.sentenceAuto.v1';
@@ -46,10 +48,13 @@ export function useStudyAudio(note: JapaneseNote | undefined, kind: StudyAudioKi
     return pauseTask.current;
   }, []);
   useEffect(()=>registerStudyAudio(audioOwner,stop),[audioOwner,stop]);
+  // Focus noise steps back while a word or sentence is loading or playing.
+  const speaking=playing!==null||loading!==null;
+  useEffect(()=>speaking?duckFocusNoise():undefined,[speaking]);
   useEffect(()=>{
     if(!focused||!foreground)return;
     let active=true;const players=new Set<Audio.Sound>(),pending=new Map<StudyAudioKind,Promise<Audio.Sound|null>>();
-    const mode=Audio.setAudioModeAsync({allowsRecordingIOS:false,playsInSilentModeIOS:true,staysActiveInBackground:false,shouldDuckAndroid:true});
+    const mode=Audio.setAudioModeAsync(playbackAudioMode());
     for(const [target,source]of [['word',wordSource],['sentence',sentenceSource]]as const){
       if(source===null)continue;
       const task=mode.then(()=>Audio.Sound.createAsync(source,{shouldPlay:false,progressUpdateIntervalMillis:50})).then(async result=>{

@@ -7,6 +7,7 @@ import {NightReflectionScreen} from './src/features/routine/NightReflectionScree
 import {BuildCheckScreen} from './src/features/routine/BuildCheckScreen';
 import {CommitmentGate} from './src/features/routine/CommitmentGate';
 import { CelebrationHost } from "./src/features/routine/Celebration";
+import {FocusNoiseHost} from "./src/features/routine/FocusNoise";
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -120,6 +121,7 @@ function Preview() {
           </Stack.Navigator>
           <CommitmentGate/>
           <CelebrationHost/>
+          <FocusNoiseHost/>
         </NavigationContainer>
       </RoutineProvider>
     </View>

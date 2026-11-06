@@ -6,6 +6,7 @@ import {NightReflectionScreen} from '../features/routine/NightReflectionScreen';
 import {BuildCheckScreen} from '../features/routine/BuildCheckScreen';
 import {CommitmentGate} from '../features/routine/CommitmentGate';
 import {CelebrationHost} from '../features/routine/Celebration';
+import {FocusNoiseHost} from '../features/routine/FocusNoise';
 import {EarnedRewardScreen} from '../features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from '../features/routine/AnimalPreviewScreen';
 import {FocusTimerScreen} from '../features/routine/FocusTimerScreen';
@@ -296,6 +297,7 @@ export function RootNavigator() {
     </Stack.Navigator>
     <CommitmentGate/>
     <CelebrationHost/>
+    <FocusNoiseHost/>
     </RoutineProvider>
   );
 }
