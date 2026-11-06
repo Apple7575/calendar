@@ -20,9 +20,10 @@ import {PriorityMissionCard} from './PriorityMissionCard';
 import {RewardUseToggle} from './RewardUseToggle';
 import {usePriorityVisuals} from './PriorityUI';
 import {MotionEnter} from './motion';
+import {useRefresh} from './useRefresh';
 
 export function PriorityHomeScreen(){
- const {data,dayKey,ready,error,native}=useRoutine(),p=usePriorityVisuals(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+ const {data,dayKey,ready,error,native,refreshNative}=useRoutine(),pull=useRefresh(refreshNative),p=usePriorityVisuals(),nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>();
  const scroll=useRef<ScrollView>(null),focused=useIsFocused(),stamp=priorityPlan(data,dayKey)?.updatedAt,lastStamp=useRef<string|undefined>(undefined),wasFocused=useRef(false);
  useEffect(()=>{if(focused&&!wasFocused.current&&stamp!==lastStamp.current)scroll.current?.scrollTo({y:0,animated:false});if(focused)lastStamp.current=stamp;wasFocused.current=focused},[focused,stamp]);
  const day=getDay(data,dayKey),words=studyProgress(day),streak=routineStreak(data,dayKey),tomorrow=addDays(dayKey,1),prepared=!!priorityPlan(data,tomorrow);
@@ -36,7 +37,8 @@ export function PriorityHomeScreen(){
   {name:'저녁 루틴',icon:'moon-outline' as const,done:eveningDone,status:eveningDone?'완료':'오늘을 정리하는 시간',onPress:()=>nav.navigate('GuidedRoutine',{slot:'evening'})},
  ];
  const finished=entries.filter(e=>e.done).length;
- return <Page title="오늘" showHeader={false} scrollRef={scroll}>
+ // 당겨서 새로고침: 스크린타임·시간 사용 상태를 다시 읽기만 한다. 보상·잠금은 바꾸지 않는다(S1-25 ⑨).
+ return <Page title="오늘" showHeader={false} scrollRef={scroll} onRefresh={pull.onRefresh} refreshing={pull.refreshing}>
   <View testID="home-metrics" style={{flexDirection:'row',alignItems:'stretch',borderRadius:radii.card,backgroundColor:p.paper,paddingVertical:space.xs}}>{[
    {label:'연속 실천',value:streak.current.toLocaleString('ko-KR'),unit:'일',icon:'flame' as const,color:'#DF7436',go:()=>nav.navigate('RoutineHistory')},
    {label:'지금 사용 가능',value:timeWallet(day,dayKey,native).available.toLocaleString('ko-KR'),unit:'분',icon:'timer-outline' as const,color:p.brandInk,go:()=>nav.navigate('TimeWallet')},
