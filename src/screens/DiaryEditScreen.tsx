@@ -12,7 +12,8 @@ import { PencilSimpleLine } from "phosphor-react-native/src/icons/PencilSimpleLi
 import { PlusCircle } from "phosphor-react-native/src/icons/PlusCircle";
 import { Sparkle } from "phosphor-react-native/src/icons/Sparkle";
 import { X } from "phosphor-react-native/src/icons/X";
-import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { diarySnapshot, hasUnsavedDiary } from "../lib/diaryUnsaved";
 import {
   ActivityIndicator,
   Alert,
@@ -141,6 +142,19 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
   const [peopleInput, setPeopleInput] = useState("");
   const [peopleSuggestions, setPeopleSuggestions] = useState<string[]>([]);
   const [gratitude, setGratitude] = useState("");
+  // 저장하지 않고 나가면 묻기(S1-06 ①). 불러온 값을 기억해 두고 지금 값과 비교한다. 저장해서 나갈 때는 묻지 않는다.
+  const loadedSnapshot = useRef<string | null>(null), leaving = useRef(false), unsaved = useRef(false);
+  unsaved.current = hasUnsavedDiary(loadedSnapshot.current, diarySnapshot({ content, mood, highlight, energy, sleepHours, people, gratitude }), { pendingPhotos: pending.length, typing: [peopleInput, customAnswer] });
+  useEffect(() => navigation.addListener("beforeRemove", (event) => {
+    if (leaving.current || !unsaved.current) return;
+    event.preventDefault();
+    const leave = () => { leaving.current = true; navigation.dispatch(event.data.action); };
+    if (Platform.OS === "web") { if (window.confirm("저장하지 않고 나갈까요? 쓴 내용이 사라져요.")) leave(); return; }
+    Alert.alert("저장하지 않고 나갈까요?", "쓴 내용이 사라져요.", [
+      { text: "계속 쓰기", style: "cancel" },
+      { text: "나가기", style: "destructive", onPress: leave },
+    ]);
+  }), [navigation]);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: formatKoreanDate(date) });
@@ -157,8 +171,10 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         setPeople(diary?.people ?? []);
         setGratitude(diary?.gratitude ?? "");
         setPhotos(rows);
+        loadedSnapshot.current = diarySnapshot({ content: diary?.content ?? "", mood: diary?.mood ?? null, highlight: diary?.highlight ?? "", energy: diary?.energy ?? null, sleepHours: diary?.sleep_hours != null ? Number(diary.sleep_hours) : null, people: diary?.people ?? [], gratitude: diary?.gratitude ?? "" });
       })
       .catch((e) => {
+        loadedSnapshot.current = diarySnapshot({ content: "", mood: null, highlight: "", energy: null, sleepHours: null, people: [], gratitude: "" });
         Alert.alert("오류", e instanceof Error ? e.message : "일기를 불러오지 못했어요.");
       })
       .finally(() => setLoading(false));
@@ -340,6 +356,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
         void linkDiaryToGoals(date, content);
         // 컨페티 한 번 보여주고 닫기
         setCelebrate(true);
+        leaving.current = true;
         navigation.replace('DiaryDetail',{date,saved:true});
       }
     } catch (e) {
