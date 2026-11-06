@@ -7,6 +7,7 @@ import {dayPromise,setTomorrowPromise} from '../../lib/weeklyCommitments';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
 import {Segments} from './experience';
+import {celebrate} from './Celebration';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,Choice,Copy,Link,LoadingState,Notice,Page,Progress,u} from './ui';
 
@@ -52,7 +53,7 @@ export function NightReflectionScreen({navigation}:RootScreenProps<'NightReflect
  const save=async()=>{
   if(hour===null)return;
   setBusy(true);setSaveError('');
-  try{await update(current=>setTomorrowPromise(current,dayKey,`${String(hour).padStart(2,'0')}:${minute}`));setEditing(false);}
+  try{await update(current=>setTomorrowPromise(current,dayKey,`${String(hour).padStart(2,'0')}:${minute}`));celebrate({kind:'planSaved'});setEditing(false);}
   catch(e){setSaveError(e instanceof Error?e.message:'약속을 저장하지 못했어요. 다시 시도해 주세요.');}
   finally{setBusy(false);}
  };

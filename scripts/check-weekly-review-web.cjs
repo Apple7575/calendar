@@ -83,7 +83,10 @@ async function open(browser,{data=null,time}={}){
    await press(page,'10,000원',200);
    await press(page,'밤 돌아보기 알림 20:50로 바꾸기',200);
    await page.getByLabel('지난주는 어떤 주였나요? (선택)').fill('  시험 주  ');
-   await press(page,'이번 주 시작하기',1200);
+   await press(page,'이번 주 시작하기',300);
+   assert.ok(await page.locator('[data-testid^="celebration-"][data-testid$="-weekCheck"]').count(),'주간 점검 저장 뒤 축하');
+   await page.screenshot({path:`${out}/week-check-celebrate-390.png`});
+   await page.waitForTimeout(900);
    const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
    assert.ok(saved.weeklyReviews[MON].doneAt);
    assert.deepEqual(saved.weeklyReviews[MON].rule,{kind:'reflectTime',value:2050});
@@ -132,7 +135,10 @@ async function open(browser,{data=null,time}={}){
   await page.screenshot({path:`${out}/reflect-390.png`,fullPage:true});
   await press(page,'오전 7시',150);
   await page.getByRole('tab',{name:'30분',exact:true}).click();await page.waitForTimeout(150);
-  await press(page,'내일 7:30에 시작하기',900);
+  await press(page,'내일 7:30에 시작하기',300);
+  // 작은 축하는 화면에 띄우지 않고 가벼운 진동만 낸다(Diana 부품). 표시 기록으로 요청됐는지 본다.
+  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('celebration.log.v1')??'null')?.last?.planSaved),'내일 약속 저장 뒤 작은 축하 요청');
+  await page.waitForTimeout(600);
   t=await text(page);
   assert.ok(t.includes('내일 07:30에 첫 공부를 시작해요'),'약속 저장 표시');
   const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
