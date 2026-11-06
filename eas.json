@@ -1,13 +1,14 @@
 {
   "cli": {
     "version": ">= 12.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "production": {
-      "autoIncrement": true,
+      "autoIncrement": false,
       "node": "22.14.0",
-      "channel": "production"
+      "channel": "production",
+      "credentialsSource": "local"
     },
     "preview": {
       "distribution": "internal",
