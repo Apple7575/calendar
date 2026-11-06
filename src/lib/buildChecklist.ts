@@ -10,6 +10,13 @@ export type BuildCheckMark={ok?:boolean;note:string};
 export type BuildCheckState=Record<string,BuildCheckMark>;
 
 export const BUILD_CHECKS:BuildChecklist[]=[
+ {build:52,items:[
+  {id:'speaking-live',title:'말하기 음성 인식',how:'"말로 답하기"를 누르면 오류 없이 말한 내용이 글자로 나오고, 1분 넘게 말해도 계속 받아 적나요?'},
+  {id:'diary-voice-52',title:'일기 음성 입력',how:'일기 마이크 버튼으로 말하면 글자로 바뀌나요?'},
+  {id:'restart-zero',title:'새로 시작하면 00:00부터',how:'중간에 나가거나 마친 뒤 다시 시작하면 00:00, 2분 단계로 시작하나요? 받을 단계가 있었으면 시작 전에 적립이 보이나요?'},
+  {id:'break-resume',title:'휴식 뒤에는 이어서',how:'휴식하고 돌아오면 같은 바퀴가 이어지나요?'},
+  {id:'under-100',title:'100자 미만 사진 뒤',how:'마칠 때 100자가 안 되면 "다 했어요 · 사진 이어서"와 "공부 마치기"가 보이고, 한 장 더 찍어 제출되나요?'},
+ ]},
  {build:51,items:[
   {id:'records-open',title:'기록이 다시 열림',how:'목표 탭이 열리고 연속 실천·지갑·단어 진도가 예전대로 보이나요?'},
   {id:'backup-resume',title:'자동 백업 다시 올라감',how:'설정 → 백업에서 마지막 백업 시각이 오늘 지금 시각으로 바뀌나요?'},
