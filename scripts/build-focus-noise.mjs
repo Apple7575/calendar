@@ -11,11 +11,11 @@ import {join, resolve} from 'node:path';
 const SRC = resolve(process.argv[2] ?? '');
 if (!process.argv[2] || !existsSync(SRC)) throw new Error('원본 폴더를 주세요. 예: node scripts/build-focus-noise.mjs C:/Users/SSAFY/Desktop/routine-portfolio/sound-candidates/_downloads/alarm-noise');
 const OUT = resolve('assets/sounds/noise'), TMP = resolve('.focus-noise-tmp');
-// Team-lead pick pending; PM asked for rain-c1, noise-c1 (pink) and cafe-c1 until then (2026-11-07).
+// Team-lead pick (2026-11-07): rain-c1, noise-c2 (brown) and cafe-c3.
 const ITEMS = [
   {out: 'rain', id: 242889, start: 0, len: 48, x: 2},             // Rain from Indoors - Perfect loop · samesamesame · CC0
-  {out: 'white', gen: 'pink', start: 0, len: 123, x: 3},          // ffmpeg anoisesrc pink, seed 7 · no third-party work
-  {out: 'cafe', id: 459573, start: 30, len: 123, x: 3},           // cafe_recording_take_1 · dougbarrett123 · CC0
+  {out: 'white', gen: 'brown', start: 0, len: 123, x: 3},         // ffmpeg anoisesrc brown, seed 7 · no third-party work
+  {out: 'cafe', id: 403066, start: 5, len: 123, x: 3},            // MS-STEREO Coffee Shop, 6 People, low chatter · AwenAudio · CC0
 ];
 const TARGET = -30, TP = -6;
 const ff = args => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);

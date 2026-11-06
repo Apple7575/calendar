@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Modal, Pressable, Text, View} from 'react-native';
+import {Modal, Pressable, Text, useWindowDimensions, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {FOCUS_NOISE_LABEL, FOCUS_NOISES, FocusNoise, shouldPlayFocusNoise} from '../../lib/focusNoise';
 import {focusNoiseChoice, loadFocusNoise, saveFocusNoise, subscribeFocusNoise} from '../../lib/focusNoisePrefs';
@@ -28,16 +28,24 @@ export function FocusNoiseHost() {
 
 const ICON: Record<FocusNoise, keyof typeof Ionicons.glyphMap> = {off: 'volume-mute-outline', rain: 'rainy-outline', white: 'radio-outline', cafe: 'cafe-outline'};
 
-/** Small button for the focus timer. Colours come from the caller because the timer has its own dark theme. */
-export function FocusNoiseButton({color, phase}: {color: string; phase: 'focus' | 'break' | 'idle'}) {
+/**
+ * Small button for the focus timer. Colours come from the caller because the timer has its own dark theme.
+ * compact: a 44×44 round icon like the rest-alarm bell; the name is only read by VoiceOver (Diana, S1-26).
+ * Without the prop it follows the screen: compact in landscape (big timer), the name label in portrait.
+ */
+export function FocusNoiseButton({color, phase, compact: compactProp, surface}: {color: string; phase: 'focus' | 'break' | 'idle'; compact?: boolean; surface?: string}) {
+  const window = useWindowDimensions(), compact = compactProp ?? window.width > window.height;
   const reduced = useReducedMotion(), choice = useFocusNoiseChoice();
   const [open, setOpen] = useState(false);
   const resting = choice !== 'off' && phase === 'break';
+  const name = choice === 'off' ? '소리' : resting ? `${FOCUS_NOISE_LABEL[choice]} · 휴식 중 멈춤` : FOCUS_NOISE_LABEL[choice];
   return <>
-    <Pressable testID="focus-noise-button" accessibilityRole="button" accessibilityLabel={`집중 소리 · ${FOCUS_NOISE_LABEL[choice]}`} onPress={() => setOpen(true)} hitSlop={6}
-      style={({pressed}) => ({minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 22, opacity: pressed ? 0.6 : 1})}>
-      <Icon name={ICON[choice]} size={18} color={color}/>
-      <Text style={{color, fontSize: 13, fontWeight: '600'}}>{choice === 'off' ? '소리' : resting ? `${FOCUS_NOISE_LABEL[choice]} · 휴식 중 멈춤` : FOCUS_NOISE_LABEL[choice]}</Text>
+    <Pressable testID="focus-noise-button" accessibilityRole="button" accessibilityLabel={`집중 소리 · ${choice === 'off' ? FOCUS_NOISE_LABEL.off : name}`} onPress={() => setOpen(true)} hitSlop={compact ? 0 : 6}
+      style={({pressed}) => compact
+        ? {width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: surface, transform: [{scale: pressed ? 0.97 : 1}]}
+        : {minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 22, opacity: pressed ? 0.6 : 1}}>
+      <Icon name={ICON[choice]} size={compact ? 22 : 18} color={color}/>
+      {compact ? null : <Text style={{color, fontSize: 13, fontWeight: '600'}}>{name}</Text>}
     </Pressable>
     <Modal visible={open} transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={() => setOpen(false)}>
       {/* The timer always uses the dark focus colours, whatever theme the app is in; the sheet follows it (Diana). */}
