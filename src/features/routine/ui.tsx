@@ -84,11 +84,11 @@ export function IconAction({icon,label,onPress,caption,large=false,disabled=fals
     {caption?<Copy variant="caption" muted>{caption}</Copy>:null}
   </Pressable>;
 }
-/** 글자 버튼. 이동·열기는 기본 색, 닫기·건너뛰기처럼 물러나는 행동은 muted. */
+/** 글자 버튼. 이동·열기는 기본 색, 닫기·건너뛰기처럼 물러나는 행동은 muted. 누르면 흐려지고 가볍게 진동한다(다른 버튼과 같게). */
 export function Link({ label, onPress,disabled=false,muted }: { label: string; onPress: () => void;disabled?:boolean;muted?:boolean }) {
   const theme=useTheme(),{colors:c}=theme;
   const quiet=muted??EXIT_LABELS.includes(label);
-  return <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={{ minHeight: control.touch,minWidth:control.touch, alignItems:"center",justifyContent: "center", paddingHorizontal: space.xs,opacity:disabled?0.5:1 }}>
+  return <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={()=>{tapLight();onPress();}} style={({pressed})=>({ minHeight: control.touch,minWidth:control.touch, alignItems:"center",justifyContent: "center", paddingHorizontal: space.xs,opacity:disabled?0.5:pressed?0.55:1 })}>
     <Text style={[type.label,{ color: quiet?c.textMuted:colorRoles(theme).primary.ink, textAlign: "center" }]}>{label}</Text>
   </Pressable>;
 }
