@@ -6,6 +6,7 @@ import { Copy, Icon } from './ui';
 import { useStudyAudio } from './StudyAudio';
 import { StudyCardMenu } from './StudyCardMenu';
 import {StudyCardSurface} from './StudyCardSurface';
+import {LAPSE_MIN,lapseCount,wordMemoText} from '../../lib/lapseWords';
 
 export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word:Word;revealed:boolean;onReveal:()=>void;fill?:boolean;paused?:boolean}) {
   const {colors:c}=useTheme(),{height}=useWindowDimensions();const compact=height<760;
@@ -24,7 +25,7 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
   };
   return <StudyCardSurface fill={fill} revealed={revealed} onReveal={onReveal} canReveal={!details} overlay={<StudyCardMenu word={word} visible={details} onClose={()=>setDetails(false)} auto={audio.auto} sentenceAuto={audio.sentenceAuto} toggleAuto={audio.toggleAuto} toggleSentenceAuto={audio.toggleSentenceAuto} rates={audio.rates} setRate={audio.setRate}/>}>
     <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',height:24}}>
-      <Copy muted size={12}>{word.kind==='sentence'?'문장':'단어'} · {word.card.reps===0?'새 카드':'복습 카드'}{word.favorite?' · ★':''}{word.issue?' · 확인 필요':''}</Copy>
+      <Copy muted size={12}>{word.kind==='sentence'?'문장':'단어'} · {word.card.reps===0?'새 카드':'복습 카드'}{word.favorite?' · ★':''}{word.issue?' · 확인 필요':''}{lapseCount(word)>=LAPSE_MIN?' · 자꾸 잊는 단어':''}</Copy>
       <Pressable accessibilityRole="button" accessibilityLabel="학습 카드 옵션" onPress={e=>{e.stopPropagation();setDetails(true)}} style={{width:44,height:44,justifyContent:'center',alignItems:'center'}}><Icon name="ellipsis-horizontal" size={20}/></Pressable>
     </View>
     <Pressable testID="study-word-anchor" accessible={revealed} accessibilityRole={revealed?"button":undefined} accessibilityLabel={revealed?"단어 영역 듣기":undefined} onPress={e=>{e.stopPropagation();if(revealed)void audio.play(word.kind==='sentence'?'sentence':'word');else if(!details)onReveal();}} style={{alignItems:'center',paddingHorizontal:word.kind==='sentence'?0:38,minHeight:word.kind==='sentence'?82:compact?84:94,justifyContent:'flex-start'}}>
@@ -39,6 +40,7 @@ export function StudyCard({word,revealed,onReveal,fill=false,paused=false}:{word
         <Text testID="study-sentence" style={{color:c.text,fontSize:compact?18:19,lineHeight:compact?26:28,fontWeight:'500'}}>{word.fields.Sentence}</Text>
         <Text testID="study-sentence-meaning" style={{color:c.textMuted,fontSize:14,lineHeight:21}}>{word.fields.Sentence_Meaning}</Text>
       </Pressable>:word.kind==='sentence'?<View style={{alignItems:'center'}}>{audioButton('sentence')}</View>:null}
+      {wordMemoText(word)?<View testID="study-word-memo" style={{borderRadius:14,paddingHorizontal:14,paddingVertical:10,backgroundColor:c.primarySoft,gap:2}}><Copy muted size={11}>내 메모</Copy><Copy size={14}>{wordMemoText(word)}</Copy></View>:null}
       {word.fields?.Sentence_Reading||word.fields?.Grammar_Note||word.fields?.Hint?<Pressable accessibilityRole="button" accessibilityLabel="읽기·학습 메모" onPress={e=>{e.stopPropagation();setExtra(!extra)}} style={{minHeight:44,justifyContent:'center'}}><Copy muted size={12}>{extra?'학습 메모 접기':'읽기·학습 메모'}</Copy></Pressable>:null}
       {extra?<View style={{gap:6}}>{word.fields?.Sentence_Reading?<Copy muted size={13}>{word.fields.Sentence_Reading}</Copy>:null}{word.fields?.Grammar_Note?<Copy muted size={13}>{word.fields.Grammar_Note}</Copy>:null}{word.fields?.Hint?<Copy muted size={13}>{word.fields.Hint}</Copy>:null}</View>:null}
       {audio.sourceLoading?<Copy muted size={12}>음성을 준비하고 있어요…</Copy>:null}

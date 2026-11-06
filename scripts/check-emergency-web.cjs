@@ -1,4 +1,4 @@
-// 긴급 해제 검수: 시간대별 입구, 벌점 표시, 이유와 10초 대기, 횟수별 벌점, 공부 중 차단, 하루 기록을 390x844, 844x390에서 찍고 잰다.
+// 긴급 해제 검수: 시간대별 입구, 내 목표 카드, 벌점 표시, 이유와 10초 대기, 횟수별 벌점, 공부 중 차단, 하루 기록을 390x844, 844x390에서 찍고 잰다.
 // 브라우저 시계를 밤으로 맞추고 예시 데이터만 쓴다. 실제 잠금과 재잠금은 웹에서 확인되지 않는다. iOS 실기기 검증을 대신하지 않는다.
 // 사용: $env:PREVIEW_PORT='8123'; node scripts/check-emergency-web.cjs
 const {previewUrl}=require('./lib/preview-url.cjs');
@@ -108,6 +108,43 @@ async function shots(page,name){
   await p.getByText('가족 연락',{exact:true}).waitFor({timeout:15000});
   check(await p.getByText(/210분/).count()>=1,'하루 기록 벌점 합계가 없다');
   await shots(p,'day-record');
+  await p.context().close();
+ });
+
+ await step('goal card',async()=>{
+  const p=await open(night());
+  const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const due=night();due.setDate(due.getDate()+20);
+  const made=new Date(night().getTime()-30*864e5).toISOString();
+  const g=(id,title,over)=>({id,title,weeklyTargetDays:5,createdAt:made,updatedAt:made,links:{subjects:[],deckIds:[]},...over});
+  // 뒤처진 목표(연결 공부 0일)가 앞선 목표보다 먼저 나와야 한다.
+  await p.evaluate(([k,goals])=>{const s=JSON.parse(localStorage.getItem(k));s.goals=goals;delete s.primaryGoal;localStorage.setItem(k,JSON.stringify(s));},[DEMO,[
+   g('plain','연결 없는 목표',{}),
+   g('behind','자격증 합격',{why:'합격해서 다음 일을 고르려고',dueDate:key(due),links:{subjects:['검수용 과목'],deckIds:[]}}),
+  ]]);
+  await p.reload({waitUntil:'networkidle'});await wallet(p);
+  await btn(p,LINK).click();await p.getByText('제한 앱을 15분 열어요',{exact:true}).waitFor();
+  const card=p.getByTestId('emergency-goal');
+  check(await card.isVisible(),'목표 카드가 없다');
+  check(await card.getByText('자격증 합격',{exact:true}).count()===1,'뒤처진 목표가 먼저 나오지 않았다');
+  check(await card.getByText('합격해서 다음 일을 고르려고',{exact:true}).count()===1,'내가 적은 이유가 없다');
+  check(await card.getByText('내 목표 · D-20',{exact:true}).count()===1,'남은 날이 없다');
+  check(await card.getByText(/^이번 주 0일 \/ 주 5일$/).count()===1,'이번 주 진행이 없다');
+  const cardBox=await card.boundingBox(),priceBox=await p.getByText('제한 앱을 15분 열어요',{exact:true}).boundingBox();
+  check(cardBox&&priceBox&&cardBox.y<priceBox.y,'목표 카드가 벌점 위에 있지 않다');
+  check(await p.getByText(/오늘 1번째 · 벌점 30분/).count()===1,'벌점 표시가 바뀌었다');
+  await shots(p,'goal-card');
+  // 이유가 120자여도 3줄로 줄여서, 390x844 첫 화면에 가격 카드 머리가 보여야 한다.
+  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.goals[1].why='가'.repeat(30)+' '+'나'.repeat(30)+' '+'다'.repeat(30)+' '+'라'.repeat(27);localStorage.setItem(k,JSON.stringify(s));},DEMO);
+  await p.reload({waitUntil:'networkidle'});await wallet(p);
+  await btn(p,LINK).click();await p.getByText('제한 앱을 15분 열어요',{exact:true}).waitFor();
+  const head=await p.getByText(/오늘 1번째 · 벌점 30분/).boundingBox();
+  check(head&&head.y+head.height<=844,'긴 이유 때문에 가격 카드가 첫 화면 밖으로 밀렸다: '+JSON.stringify(head));
+  await p.screenshot({path:`${out}/goal-card-long-390x844.png`});
+  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.goals=[];localStorage.setItem(k,JSON.stringify(s));},DEMO);
+  await p.reload({waitUntil:'networkidle'});await wallet(p);
+  await btn(p,LINK).click();await p.getByText('제한 앱을 15분 열어요',{exact:true}).waitFor();
+  check(await p.getByTestId('emergency-goal').count()===0,'목표가 없는데 카드가 있다');
   await p.context().close();
  });
 

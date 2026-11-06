@@ -26,6 +26,7 @@ export type RootStackParamList = {
   GoalDetail:{goalId:string;open?:'links'};
   WeekCheck:undefined;
   NightReflection:undefined;
+  NextStudy:{id:string};
   BuildCheck:undefined;
   ExperienceSettings:undefined;
   TimeWallet:undefined;
@@ -56,7 +57,7 @@ export type RootStackParamList = {
   JapaneseSample: undefined;
   StudyPreferences:undefined;
   DeckCards:{deckId:string};
-  SavedStudy: undefined;
+  SavedStudy: {filter?:'favorite'|'issue'|'lapse'}|undefined;
   RoutineBackup: undefined;
   AnimalPreview: undefined;
   FocusTimer: undefined;
