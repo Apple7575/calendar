@@ -20,12 +20,12 @@ iOS 오디오 모드는 앱 전체에 하나다. 그래서 단어 음성, 효과
 | 앱 파일 | 원본 | 만든이 | 라이선스 |
 |---|---|---|---|
 | rain.m4a | Rain from Indoors - Perfect loop, https://freesound.org/s/242889/ | samesamesame | CC0 1.0 |
-| white.m4a | ffmpeg anoisesrc 핑크 노이즈(seed 7) | 팀 합성 | 외부 저작물 없음 |
-| cafe.m4a | cafe_recording_take_1, https://freesound.org/s/459573/ | dougbarrett123 | CC0 1.0 |
+| white.m4a | ffmpeg anoisesrc 브라운 노이즈(seed 7) | 팀 합성 | 외부 저작물 없음 |
+| cafe.m4a | MS-STEREO Coffee Shop, 6 People, low chatter, refrigerator, barista movement, https://freesound.org/s/403066/ | AwenAudio | CC0 1.0 |
 
-- 빌드 53은 PM 지시대로 빗소리 c1, 핑크 노이즈, 카페 c1을 쓴다. 팀장님이 다른 후보를 고르면 스크립트 목록만 바꾼다.
+- 팀장님이 고른 소리(2026-11-07): 빗소리 rain-c1, 백색소음 noise-c2(브라운 노이즈), 카페 cafe-c3. 카페 c3은 Ethan 검사에서 말소리 지표가 6.1로 "말이 또렷할 수 있음"이었지만, 팀장님이 들어 보고 골랐다. 바꿀 때는 스크립트 목록만 고친다.
 - Freesound 두 개는 미리듣기 mp3(128kbps)로 만들었다. 원본 WAV는 팀장님이 로그인해야 받을 수 있어서 빌드 53은 mp3로 간다(PM 결정, S2에서 다시 본다). 원본 폴더에 `fs-<id>.wav`를 넣고 스크립트를 다시 돌리면 WAV로 다시 만든다.
-- 화면의 "백색소음" 항목은 실제로는 **핑크 노이즈**다(백색소음보다 덜 날카롭다). 화면 이름은 그대로 둔다(PM 결정 2026-11-07).
+- 화면의 "백색소음" 항목은 실제로는 **브라운 노이즈**다(백색소음보다 낮고 덜 날카롭다). 화면 이름은 그대로 둔다(PM 결정 2026-11-07).
 
 ## 실기기에서만 확인할 수 있는 것
 - 화면을 잠가도 계속 나오는지, 잠금 화면에서 다른 앱 음악과 섞이는지
