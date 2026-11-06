@@ -152,6 +152,17 @@ function settlePromises(data:RoutineData,now:number):RoutineData{
  return next;
 }
 
+export type PromiseOutcomeRow={promiseDay:string;startAt:string;status:'kept'|'missed';minutes:number;won:number;label:string};
+/** Promise results charged or paid on a day, worded for the day record (user decision: no confirm screen, but say it once). */
+export function promiseOutcomesOn(data:RoutineData,day:string):PromiseOutcomeRow[]{
+ return Object.entries(promises(data)).filter(([,r])=>r.outcome?.day===day).sort(([a],[b])=>a.localeCompare(b)).map(([promiseDay,r])=>{
+  const o=r.outcome!,d=toDate(promiseDay),when=promiseDay===day?'오늘':promiseDay===addDays(day,-1)?'어제':`${d.getMonth()+1}월 ${d.getDate()}일`;
+  const sign=o.status==='kept'?'+':'−',amounts=[sign+o.minutes+'분',...(o.won?[o.won.toLocaleString('ko-KR')+'원']:[])];
+  const label=`${when} 약속(${r.startAt})을 ${o.status==='kept'?'지켜서':'놓쳐서'} ${amounts.join('·')}`;
+  return {promiseDay,startAt:r.startAt,status:o.status,minutes:o.minutes,won:o.won,label};
+ });
+}
+
 /* Interest on unused time. */
 const consumedOn=(data:RoutineData,key:string)=>{const v=(data.playLog as {consumed?:Record<string,unknown>}|undefined)?.consumed?.[key];return whole(v)?v:undefined};
 /** What the phone carried into a day: the same rule as its 04:00 rollover, capped at 60. Unknown days carry nothing. */

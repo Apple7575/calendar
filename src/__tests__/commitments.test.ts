@@ -4,7 +4,7 @@ import {moneySummary,PROPOSED_MONEY_RATES,startMoneyRewards} from '../lib/moneyR
 import {penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {dailyTimeline} from '../lib/dailyTimeline';
 import {
- activeWeeklyRules,COMMITMENT_POLICY,dayPromise,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
+ activeWeeklyRules,COMMITMENT_POLICY,dayPromise,promiseOutcomesOn,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
  studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,
 } from '../lib/commitments';
 
@@ -218,6 +218,24 @@ describe('tomorrow\'s promise',()=>{
  });
 });
 
+describe('telling the user once the result is in',()=>{
+ const promised=(d:RoutineData=wallet(0))=>setTomorrowPromise(d,MON,'09:00',t(9,20,30));
+ test('a promise missed and found the next day reads as yesterday, on the day it was charged',()=>{
+  const d=reconcileCommitments(promised(wallet(3000)),t(11,8));
+  expect(promiseOutcomesOn(d,key(11))).toEqual([{promiseDay:key(10),startAt:'09:00',status:'missed',minutes:10,won:1000,label:'어제 약속(09:00)을 놓쳐서 −10분·1,000원'}]);
+  expect(promiseOutcomesOn(d,key(10))).toEqual([]);
+ });
+ test('found the same day it reads as today; without the wallet only minutes',()=>{
+  expect(promiseOutcomesOn(reconcileCommitments(promised(emptyData()),t(10,10)),key(10))[0].label).toBe('오늘 약속(09:00)을 놓쳐서 −10분');
+ });
+ test('a kept one says so too',()=>{
+  const d=reconcileCommitments({...promised(),bookSessions:[{id:'s',subject:'수능',startedAt:new Date(t(10,9,5)).toISOString(),completedAt:new Date(t(10,10)).toISOString(),seconds:3300,note:'',next:''}]},t(10,10));
+  expect(promiseOutcomesOn(d,key(10))[0].label).toBe('오늘 약속(09:00)을 지켜서 +10분·1,000원');
+ });
+ test('older than yesterday names the date',()=>{
+  expect(promiseOutcomesOn(reconcileCommitments(promised(emptyData()),t(13,8)),key(13))[0].label).toBe('11월 10일 약속(09:00)을 놓쳐서 −10분');
+ });
+});
 describe('interest on unused time',()=>{
  const base=()=>wallet(0);
  test('each full 10 minutes left at 04:00 pays 300원; money only',()=>{
