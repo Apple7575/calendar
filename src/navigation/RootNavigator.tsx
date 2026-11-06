@@ -1,6 +1,10 @@
 import {PriorityPauseScreen} from '../features/routine/PriorityPauseScreen';
 import {PriorityPlanScreen} from '../features/routine/PriorityPlanScreen';
 import {GoalDetailScreen} from '../features/routine/GoalDetailScreen';
+import {WeekCheckScreen} from '../features/routine/WeekCheckScreen';
+import {NightReflectionScreen} from '../features/routine/NightReflectionScreen';
+import {BuildCheckScreen} from '../features/routine/BuildCheckScreen';
+import {CommitmentGate} from '../features/routine/CommitmentGate';
 import {EarnedRewardScreen} from '../features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from '../features/routine/AnimalPreviewScreen';
 import {FocusTimerScreen} from '../features/routine/FocusTimerScreen';
@@ -114,6 +118,9 @@ export function RootNavigator() {
           <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
           <Stack.Screen name="PriorityPlan" component={PriorityPlanScreen} options={{headerShown:false}}/>
           <Stack.Screen name="GoalDetail" component={GoalDetailScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="WeekCheck" component={WeekCheckScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="NightReflection" component={NightReflectionScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="BuildCheck" component={BuildCheckScreen} options={{headerShown:false}}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen} options={{headerShown:false}}/>
           <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen} options={{headerShown:false}}/>
           <Stack.Screen name="TimeWallet" component={TimeWalletScreen} options={{headerShown:false}}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen} options={{headerShown:false}}/>
@@ -286,6 +293,7 @@ export function RootNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       )}
     </Stack.Navigator>
+    <CommitmentGate/>
     </RoutineProvider>
   );
 }

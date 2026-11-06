@@ -10,6 +10,7 @@ import {colorRoles} from '../../theme/roles';
 import {koreanTitle,space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
 import {GoalForm} from './GoalForm';
+import {MenuRow} from './experience';
 import {Action,CardView,CharacterPeek,Copy,EmptyState,Icon,LoadingState,Notice,Page,Progress,u} from './ui';
 
 type Nav=NativeStackNavigationProp<RootStackParamList>;
@@ -49,6 +50,15 @@ function FinishedGoals({goals}:{goals:Goal[]}){
  </CardView>;
 }
 
+function ReviewLinks(){
+ const nav=useNavigation<Nav>();
+ return <CardView style={{gap:space.xxs}}>
+  <Copy variant="section">돌아보기</Copy>
+  <MenuRow title="밤 1분 돌아보기" subtitle="오늘 기록 · 내일 첫 공부 약속" icon="moon-outline" onPress={()=>nav.navigate('NightReflection')}/>
+  <MenuRow title="주간 점검" subtitle="지난주 결과 · 예치금 · 다음 주 규칙" icon="calendar-outline" onPress={()=>nav.navigate('WeekCheck')}/>
+ </CardView>;
+}
+
 export function GoalHomeScreen(){
  const {data,dayKey,ready,error}=useRoutine(),{goals,unreadable,canReplaceUnreadable}=readGoals(data),[adding,setAdding]=useState(false);
  const active=activeGoals(goals),finished=goals.filter(goal=>goal.completedAt);
@@ -65,6 +75,7 @@ export function GoalHomeScreen(){
    </View>}
    {active.length?active.length<MAX_ACTIVE_GOALS?<Action secondary label="목표 추가" onPress={()=>setAdding(true)}/>:<Copy variant="caption" muted>{`진행 중인 목표는 ${MAX_ACTIVE_GOALS}개까지 둘 수 있어요.`}</Copy>:null}
    <FinishedGoals goals={finished}/>
+   <ReviewLinks/>
   </>}
  </Page>;
 }

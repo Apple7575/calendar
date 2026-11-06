@@ -2,6 +2,10 @@ import {priorityDemoData} from './src/features/routine/priorityDemo.web';
 import {PriorityPauseScreen} from './src/features/routine/PriorityPauseScreen';
 import {PriorityPlanScreen} from './src/features/routine/PriorityPlanScreen';
 import {GoalDetailScreen} from './src/features/routine/GoalDetailScreen';
+import {WeekCheckScreen} from './src/features/routine/WeekCheckScreen';
+import {NightReflectionScreen} from './src/features/routine/NightReflectionScreen';
+import {BuildCheckScreen} from './src/features/routine/BuildCheckScreen';
+import {CommitmentGate} from './src/features/routine/CommitmentGate';
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -77,6 +81,9 @@ function Preview() {
             <Stack.Screen name="PriorityPause" component={PriorityPauseScreen} options={{headerShown:false}}/>
           <Stack.Screen name="PriorityPlan" component={PriorityPlanScreen} options={{headerShown:false}}/>
           <Stack.Screen name="GoalDetail" component={GoalDetailScreen}/>
+          <Stack.Screen name="WeekCheck" component={WeekCheckScreen}/>
+          <Stack.Screen name="NightReflection" component={NightReflectionScreen}/>
+          <Stack.Screen name="BuildCheck" component={BuildCheckScreen}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
             <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen}/>
             <Stack.Screen name="TimeWallet" component={TimeWalletScreen}/><Stack.Screen name="HabitOrderSettings" component={HabitOrderSettingsScreen}/>
@@ -110,6 +117,7 @@ function Preview() {
             <Stack.Screen name="ConceptLab" component={ConceptLabScreen}/>
             {(["RoutineScreenTime", "LegacyCalendar", "LegacyToday", "LegacyReport", "LegacyInterests", "Gallery", "Camera", "Routines", "Settings", "Workout", "EventEdit"] as const).map(name => <Stack.Screen key={name} name={name} component={DeviceOnly} />)}
           </Stack.Navigator>
+          <CommitmentGate/>
         </NavigationContainer>
       </RoutineProvider>
     </View>
