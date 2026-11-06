@@ -17,6 +17,7 @@ import {RewardResultTiles} from './RewardResultTiles';
 import {AnimalSharedLayer} from './AnimalSharedScene';
 import {useStudyFeedback} from './useStudyFeedback';
 import {focusTheme} from '../../theme/themes';
+import {askNextStudy} from '../../lib/studyReservation';
 
 /** A stack destination, not an overlay. It only displays already committed rewards. */
 export function EarnedRewardScreen(props:RootScreenProps<'EarnedReward'>){
@@ -36,7 +37,7 @@ function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
  /** Leaving by the close button keeps the choice open: the timer screen asks again, with no penalty and no time passing. */
  const choose=(fn:Parameters<typeof update>[0],next:()=>void)=>{if(busy)return;setBusy(true);setError('');void update(fn).then(next).catch(e=>setError(e instanceof Error?e.message:'다시 시도해 주세요.')).finally(()=>setBusy(false))};
  const keepGoing=()=>choose(s=>s.bookTimer?.awaitingChoice===true?startBookTimer(s,Crypto.randomUUID(),s.bookTimer.subject,Date.now(),focusRampStatus(s).required,'output'):s,()=>navigation.popTo('FocusTimer'));
- const finish=()=>choose(s=>({...finishFocusRun(s),outputDraft:undefined}),()=>navigation.popTo('Main',{screen:'Study'}));
+ const finish=()=>choose(s=>askNextStudy({...finishFocusRun(s),outputDraft:undefined},'ask-'+Date.now()),()=>navigation.popTo('Main',{screen:'Study'}));
  useStudyFeedback(!pending?{kind:'complete',id:p.id}:null);
  // 다른 큰 축하와 같게 성공 진동을 한 번 준다(정리안 4절).
  React.useEffect(()=>{if(!pending)tapSuccess();},[p.id,pending]);

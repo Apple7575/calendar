@@ -19,6 +19,7 @@ import {HandwritingStudy} from './HandwritingStudy';
 import {HabitOrderCard} from './HabitOrderCard';
 import {QuitAsk,useQuitQuestion} from './QuitAsk';
 import {useQuitConfirm} from './useQuitConfirm';
+import {askNextStudy} from '../../lib/studyReservation';
 
 function NoteForm({session}:{session:BookSession}){
  const {update,data}=useRoutine(),{colors:c}=useTheme(),[note,setNote]=useState(session.note),[next,setNext]=useState(session.next),[error,setError]=useState(''),[busy,setBusy]=useState(false),prefix=useRef(''),reward=bookNoteRewardPreview(data,session);
@@ -42,7 +43,7 @@ function BookStudyPage({navigation,route}:RootScreenProps<'BookStudy'>){
  const canFinish=!!draft&&!data.handwritingPending&&!working,penalty=penaltyLabel(focusQuitPenalty(data,clock)),askQuit=useQuitQuestion(dayKey),finishConfirm=useQuitConfirm(penalty,askQuit),switchConfirm=useQuitConfirm(penalty,askQuit);
  const rows=<>
   {timer&&timer.phase!=='idle'?<FocusListRow label="큰 타이머로 돌아가기" onPress={()=>navigation.popTo('FocusTimer')}/>:null}<FocusListRow label="타이머 공부 메모·이전 기록" open={notes} last={!canFinish} onPress={()=>setNotes(!notes)}/>
-  {canFinish?<><QuitAsk question={finishConfirm.question} onStay={finishConfirm.stay}/><FocusListRow label={(finishConfirm.question?'마치기 · ':finishConfirm.open?'한 번 더 누르면 마쳐요 · ':'이 과목 공부 마치기 · ')+(penalty||'기록은 유지')} last onPress={()=>finishConfirm.press(()=>run(s=>({...finishFocusRun(s),outputDraft:undefined})))}/></>:null}
+  {canFinish?<><QuitAsk question={finishConfirm.question} onStay={finishConfirm.stay}/><FocusListRow label={(finishConfirm.question?'마치기 · ':finishConfirm.open?'한 번 더 누르면 마쳐요 · ':'이 과목 공부 마치기 · ')+(penalty||'기록은 유지')} last onPress={()=>finishConfirm.press(()=>run(s=>askNextStudy({...finishFocusRun(s),outputDraft:undefined},'ask-'+Date.now())))}/></>:null}
  </>;
  return <Page title={FOCUS_FLOW_TITLES[stage]} right={<View/>}>
   {switchTo?<CardView><Copy>현재 {draft!.subject} 공부를 이어가는 중이에요.</Copy><QuitAsk question={switchConfirm.question} onStay={switchConfirm.stay}/><Action secondary label={`${switchConfirm.open&&!switchConfirm.question?'한 번 더 누르면 ':''}${switchTo} 공부로 전환${penalty?' · '+penalty:''}`} onPress={()=>switchConfirm.press(()=>run(s=>startOutputStudy({...finishFocusRun(s),outputDraft:undefined},Crypto.randomUUID(),switchTo)))}/>{toTimer?<Action label="큰 타이머로 돌아가기" onPress={()=>navigation.replace('FocusTimer')}/>:null}<Copy muted size={12}>{penalty?'지금 바꾸면 이번 단계를 못 채워 벌점이 있어요. 받은 시간과 기록은 유지돼요.':'지금까지 남긴 공부와 적립 시간은 유지돼요.'}</Copy></CardView>:null}

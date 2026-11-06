@@ -6,6 +6,8 @@ import {WeekCheckScreen} from './src/features/routine/WeekCheckScreen';
 import {NightReflectionScreen} from './src/features/routine/NightReflectionScreen';
 import {BuildCheckScreen} from './src/features/routine/BuildCheckScreen';
 import {CommitmentGate} from './src/features/routine/CommitmentGate';
+import {NextStudyGate} from './src/features/routine/NextStudyGate';
+import {NextStudyScreen} from './src/features/routine/NextStudyScreen';
 import { CelebrationHost } from "./src/features/routine/Celebration";
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
@@ -84,6 +86,7 @@ function Preview() {
           <Stack.Screen name="GoalDetail" component={GoalDetailScreen}/>
           <Stack.Screen name="WeekCheck" component={WeekCheckScreen}/>
           <Stack.Screen name="NightReflection" component={NightReflectionScreen}/>
+          <Stack.Screen name="NextStudy" component={NextStudyScreen}/>
           <Stack.Screen name="BuildCheck" component={BuildCheckScreen}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen}/>
             <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen}/>
@@ -119,6 +122,7 @@ function Preview() {
             {(["RoutineScreenTime", "LegacyCalendar", "LegacyToday", "LegacyReport", "LegacyInterests", "Gallery", "Camera", "Routines", "Settings", "Workout", "EventEdit"] as const).map(name => <Stack.Screen key={name} name={name} component={DeviceOnly} />)}
           </Stack.Navigator>
           <CommitmentGate/>
+          <NextStudyGate/>
           <CelebrationHost/>
         </NavigationContainer>
       </RoutineProvider>
