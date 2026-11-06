@@ -11,6 +11,7 @@ import {useIsFocused} from '@react-navigation/native';
 import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
 import {tapLight,tapSuccess} from '../../lib/haptics';
 import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
+import {isNightScreen} from '../../lib/nightScreen';
 import {radii,space,type} from '../../theme/tokens';
 import {useTheme} from '../../theme/ThemeContext';
 import {colorRoles} from '../../theme/roles';
@@ -88,7 +89,7 @@ export function CelebrationHost(){
  const [pill,setPill]=useState<string|null>(null),[queue,setQueue]=useState<PlannedCelebration[]>([]),log=useRef<CelebrationLog>(null),loaded=useRef<Promise<void>|null>(null);
  const load=()=>loaded.current??(loaded.current=AsyncStorage.getItem(LOG_KEY).then(raw=>{try{const v=raw?JSON.parse(raw):null;if(v&&typeof v.day==='string'&&Array.isArray(v.big)&&Array.isArray(v.lines)&&v.last&&typeof v.last==='object')log.current=v;}catch{}}).catch(()=>{}));
  const accept=useCallback((request:CelebrationRequest)=>{void load().then(()=>{
-  const now=Date.now(),{plan,log:next}=planCelebration(request,log.current,localDay(now),now);
+  const now=Date.now(),{plan,log:next}=planCelebration(request,log.current,localDay(now),now,{night:isNightScreen(now)});
   log.current=next;AsyncStorage.setItem(LOG_KEY,JSON.stringify(next)).catch(()=>{});
   if(plan.haptic==='success')tapSuccess();else tapLight();
   if(plan.sound)void playSound(plan.sound);

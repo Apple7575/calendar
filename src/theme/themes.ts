@@ -98,6 +98,39 @@ const dark: Theme = {
   },
 };
 
+/**
+ * 밤 화면: 21:00~04:30(취침 잠금과 같은 시각)에 고른 테마 대신 자동으로 쓴다(팀장 결정 2026-11-07).
+ * 다크보다 덜 밝고 따뜻하다. 강조색은 같은 연두 계열을 낮춰 쓴다(주황은 경고색과 겹친다).
+ * id는 저장된 테마 이름을 바꾸지 않도록 다크와 같다. 설정 목록에는 넣지 않는다.
+ */
+export const nightTheme: Theme = {
+  id: "dark",
+  name: "밤",
+  isDark: true,
+  statusBar: "light",
+  colors: {
+    background: "#0E0C09",
+    surface: "#0E0C09",
+    card: "#1A1611",
+    border: "#2E2820",
+    text: "#E8DECC",
+    textMuted: "#A99D8A",
+    primary: "#A8C47A",
+    primarySoft: "#252B1A",
+    danger: "#E8907F",
+    success: "#A8C47A",
+    successSoft: "#252B1A",
+    dotEvent: "#C9A36A",
+    dotGoogle: "#7FAF97",
+    dotTask: "#D29A4A",
+    dotDiary: "#C97A9E",
+    inputBg: "#211C16",
+    white: "#FFFFFF",
+    gradient: ["#A8C47A", "#86A05C"],
+    shadow: "#000000",
+  },
+};
+
 /** 집중 공부 흐름은 사용자 테마와 상관없이 다크 팔레트로 그린다. 설정의 테마 목록에는 넣지 않는다. */
 export const focusTheme: Theme = { ...dark, name: "집중" };
 

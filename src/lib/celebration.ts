@@ -56,9 +56,12 @@ const fill=(text:string,n?:number)=>text.replace('{n}',n===undefined?'':n.toLoca
 const daySeed=(day:string)=>[...day].reduce((s,ch)=>s*31+ch.charCodeAt(0)|0,7)>>>0;
 
 /** 오늘 이 축하를 어떤 단계로, 어떤 동작·문구로 보여 줄지 정하고, 표시용 기록을 갱신한다. */
-export function planCelebration(request:CelebrationRequest,log:CelebrationLog,day:string,now:number):{plan:PlannedCelebration;log:NonNullable<CelebrationLog>}{
+export function planCelebration(request:CelebrationRequest,log:CelebrationLog,day:string,now:number,options:{night?:boolean}={}):{plan:PlannedCelebration;log:NonNullable<CelebrationLog>}{
  const spec=SPECS[request.kind],today=log&&log.day===day?log:{day,big:[],last:{},lines:[]};
  let tier=spec.tier;
+ // 밤(21:00~04:30)에는 축하를 진동만으로(팀장 결정 2026-11-07). 작은 축하로 낮추되, 원래 큰·중간 축하면 진동은 축하 진동 그대로 둔다.
+ const nightQuiet=!!options.night&&tier!=='small';
+ if(options.night)tier='small';
  if(tier==='big'&&(today.big.includes(request.kind)||today.big.length>=CELEBRATION_LIMITS.bigPerDay))tier='medium';
  const lastAt=today.last[request.kind];
  if(tier==='medium'&&lastAt!==undefined&&now-lastAt<CELEBRATION_LIMITS.mediumGapMs)tier='small';
@@ -68,7 +71,7 @@ export function planCelebration(request:CelebrationRequest,log:CelebrationLog,da
  const title=request.title??fill(line,request.n??request.minutes);
  const detail=spec.detail?fill(pick(spec.detail,seed),request.n):undefined;
  const plan:PlannedCelebration={kind:request.kind,tier,effect:tier==='small'?undefined:spec.effect,action,title,detail:tier==='big'?detail:undefined,
-  sound:tier==='big'?'complete':tier==='medium'?(request.kind==='speakingStep'?null:'milestone'):null,haptic:tier==='small'?'light':'success',minutes:request.minutes,won:request.won,character:request.character};
+  sound:tier==='big'?'complete':tier==='medium'?(request.kind==='speakingStep'?null:'milestone'):null,haptic:tier==='small'&&!nightQuiet?'light':'success',minutes:request.minutes,won:request.won,character:request.character};
  const next={day,big:tier==='big'?[...today.big,request.kind]:today.big,last:{...today.last,[request.kind]:now},lines:[...today.lines,title].slice(-20),action};
  return {plan,log:next};
 }

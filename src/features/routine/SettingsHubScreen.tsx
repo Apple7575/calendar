@@ -21,11 +21,11 @@ export function SettingsHubScreen({navigation}:RootScreenProps<'SettingsHub'>){
  </Page>;
 }
 export function ExperienceSettingsScreen({navigation}:RootScreenProps<'ExperienceSettings'>){
- const preferences=useExperiencePreferences(),{colors:c}=useTheme(),{theme,setThemeId}=useThemeControls(),[error,setError]=React.useState('');
+ const preferences=useExperiencePreferences(),{colors:c}=useTheme(),{themeId,night,setThemeId}=useThemeControls(),[error,setError]=React.useState('');
  return <Page title="소리와 화면">
   <CardView><Copy variant="section">편안한 반응</Copy>{([['sound','축하 효과음','10장 완료와 목표 완료 때만 짧게 들려요.'],['haptics','진동','버튼과 완료를 손끝으로 알려줘요.'],['motion','화면 움직임','기기의 동작 줄이기 설정도 항상 존중해요.']] as const).map(([key,title,description])=><View key={key} style={[u.between,{gap:space.md}]}><View style={{flex:1}}><Copy variant="label">{title}</Copy><Copy muted variant="caption">{description}</Copy></View><Switch accessibilityLabel={title} value={preferences[key]} trackColor={{true:c.primary,false:c.border}} onValueChange={value=>{void setExperiencePreference(key,value).catch(()=>setError('설정을 저장하지 못했어요. 다시 시도해 주세요.'));}}/></View>)}<Copy muted size={12}>단어·예문 음성의 자동 재생과 배속은 학습 카드의 … 메뉴에서 따로 정해요.</Copy></CardView>
   <AnimalCharacterPicker/>
-  <CardView><Copy variant="section">화면 모드</Copy><Segments value={theme.isDark?'dark':'routine'} items={[{id:'dark',label:'다크'},{id:'routine',label:'라이트'}]} onChange={setThemeId}/></CardView>{error?<Notice tone="error">{error}</Notice>:null}
+  <CardView><Copy variant="section">화면 모드</Copy><Segments value={themeId} items={[{id:'dark',label:'다크'},{id:'routine',label:'라이트'}]} onChange={setThemeId}/><Copy variant="caption" muted>{night?'지금은 밤 화면이에요. 밤 9시부터 새벽 4시 30분까지 자동으로 바뀌고, 고른 모드는 4시 30분에 돌아와요.':'밤 9시부터 새벽 4시 30분까지는 자동으로 밤 화면이 돼요.'}</Copy></CardView>{error?<Notice tone="error">{error}</Notice>:null}
  </Page>;
 }
 
