@@ -30,7 +30,16 @@ async function measure(page,name){
   await page.waitForFunction(k=>!!localStorage.getItem(k),DEMO,{timeout:30000});
   if(seed){await page.evaluate(seed);await page.reload({waitUntil:'networkidle'});}
   await page.waitForTimeout(800);
+  await dismissWeekCheck(page);
   return page;
+ };
+ // 그 주 처음 앱을 열면 주간 점검이 자동으로 열린다(Grace, 의도된 동작). 이 검사와 관계없으니 뜨면 닫는다.
+ const dismissWeekCheck=async page=>{
+  const header=page.getByRole('heading',{name:'주간 점검',exact:true});
+  try{await header.waitFor({timeout:3000})}catch{return}
+  await page.getByRole('button',{name:'닫기',exact:true}).last().click();
+  await header.waitFor({state:'detached',timeout:10000}).catch(()=>{});
+  await page.waitForTimeout(400);
  };
  const step=async(name,fn)=>{try{await fn()}catch(e){errors.push(name+': '+String(e.message).split('\n')[0])}};
 
