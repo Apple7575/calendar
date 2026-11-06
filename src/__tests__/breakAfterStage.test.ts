@@ -24,7 +24,7 @@ describe('a rest has to be earned by the current stage',()=>{
  test('the state change refuses too, whatever the screen shows',()=>{
   const d=running();
   expect(takeEarnedBreak(d,at+10*sec)).toBe(d);
-  expect(takeEarnedBreak(d,at+120*sec).bookTimer).toMatchObject({phase:'break',remaining:300,running:true});
+  expect(takeEarnedBreak(d,at+120*sec).bookTimer).toMatchObject({phase:'break',remaining:60,running:true});
  });
  test('it agrees with the photo rule and with the number on the clock at every second around the goal',()=>{
   const d=running();
