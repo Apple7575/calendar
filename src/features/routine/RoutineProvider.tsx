@@ -24,6 +24,7 @@ import {reconcileEmergency} from '../../lib/emergencyUnlock';
 import {reconcileCommitments,repairSavedData} from '../../lib/commitments';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
+import {useRestAlarmSetting} from './useRestAlarmSetting';
 import {streakWidgetPayload} from '../../lib/streakWidget';
 import {writeStreakWidget} from '../../lib/streakWidgetStorage';
 import {appIconSlot} from '../../lib/appIcon';
@@ -203,8 +204,8 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   // Promises, interest and stakes settle as soon as they are due: on open, on a new day, and whenever the saved data changes.
   useEffect(()=>{if(ready&&reconcileCommitments(data)!==data)void update(s=>reconcileCommitments(s)).catch(e=>setError(e.message));},[ready,data,dayKey,Math.floor(now.getTime()/60000)]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(ready&&native?.supportsEmergencyUnlock&&reconcileEmergency(data,native.emergencyLog)!==data)void update(s=>reconcileEmergency(s,native.emergencyLog)).catch(e=>setError(e.message));},[ready,native?.supportsEmergencyUnlock,native?.emergencyLog?.length,data.emergencyPending?.id,data.emergencyUnlocks?.length]);
-  const breakAlarm=breakAlarmAt(t);
-  useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm).catch(e=>setError(e.message));},[ready,breakAlarm]);
+  const breakAlarm=breakAlarmAt(t),[ringAlarm]=useRestAlarmSetting();
+  useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm,ringAlarm).catch(e=>setError(e.message));},[ready,breakAlarm,ringAlarm]);
   useEffect(() => {
     let active = true;
       if (ready && !adjustment && native?.enabled && native.rewardMode) {

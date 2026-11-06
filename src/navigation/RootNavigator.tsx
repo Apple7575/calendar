@@ -7,6 +7,7 @@ import {BuildCheckScreen} from '../features/routine/BuildCheckScreen';
 import {CommitmentGate} from '../features/routine/CommitmentGate';
 import {NextStudyGate} from '../features/routine/NextStudyGate';
 import {NextStudyScreen} from '../features/routine/NextStudyScreen';
+import {RestAlarmGate} from '../features/routine/RestAlarmGate';
 import {CelebrationHost} from '../features/routine/Celebration';
 import {EarnedRewardScreen} from '../features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from '../features/routine/AnimalPreviewScreen';
@@ -299,6 +300,7 @@ export function RootNavigator() {
     </Stack.Navigator>
     <CommitmentGate/>
     <NextStudyGate/>
+    <RestAlarmGate/>
     <CelebrationHost/>
     </RoutineProvider>
   );
