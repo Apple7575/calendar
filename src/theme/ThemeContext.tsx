@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Appearance, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { DEFAULT_THEME_ID, focusTheme, getTheme, Theme, ThemeId } from "./themes";
+import { DEFAULT_THEME_ID, focusTheme, getTheme, restoreThemeId, Theme, ThemeId } from "./themes";
 
 const STORAGE_KEY = "theme.id.v2";
 
@@ -22,7 +22,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     Promise.all([AsyncStorage.getItem(STORAGE_KEY), AsyncStorage.getItem("theme.id")]).then(([saved, old]) => {
-      if (active) setThemeIdState(getTheme(saved ?? (old === "dark" ? "dark" : DEFAULT_THEME_ID)).id);
+      if (!active) return;
+      const id = restoreThemeId(saved, old);
+      setThemeIdState(id);
+      // 옛 테마를 저장해 둔 경우 다크로 바꿔 저장해 둔다.
+      if (saved && saved !== id) AsyncStorage.setItem(STORAGE_KEY, id).catch(() => {});
     }).catch(() => {});
     return () => { active = false; };
   }, []);

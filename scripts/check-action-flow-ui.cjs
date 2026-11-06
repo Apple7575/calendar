@@ -51,11 +51,11 @@ fs.mkdirSync(out, {recursive:true});
    await page.getByTestId('focus-clock').waitFor();
   };
   await meetStudyTime();
-  await button('필기 사진 제출').click();
+  await button('다 했어요 · 사진으로 끝내기').click();
   await inViewport('노트 사진 찍기');
   await button('큰 타이머로 돌아가기').click();
   await page.getByTestId('focus-clock').waitFor();
-  await button('필기 사진 제출').click();
+  await button('다 했어요 · 사진으로 끝내기').click();
   await inViewport('노트 사진 찍기');
   await capture('submit-empty-390');
   // Exercise picker loading and local authentication failure without uploading a photo.
@@ -126,10 +126,11 @@ fs.mkdirSync(out, {recursive:true});
   assert(/^\+00:\d\d$/.test(overtime), `Rest overtime must count up: ${overtime}`);
   await capture('rest-ended-360');
   await inViewport('이 과목 공부 마치기');
-  await button('5분 집중 시작').click();
+  await button('3분 집중 시작').click();
   await page.getByText('집중 시간',{exact:true}).waitFor();
   const restarted = await page.getByRole('timer').innerText();
-  assert(/^00:0\d$/.test(restarted), `The whole stage must restart: ${restarted}`);
+  // The clock is one 25-minute round, so after the paid 2-minute stage it counts on from 02:00 (rounds, 2026-11-06).
+  assert(/^02:0\d$/.test(restarted), `The round clock must count on from the paid 2 minutes: ${restarted}`);
   assert.deepEqual(errors,[]);
   fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({measurements,errors},null,2));
   console.log(JSON.stringify({primaryActionsVisible:true,secondaryControlsWork:true,rewardContinuesToTimer:true,noDuplicateReceipt:true,errors}));

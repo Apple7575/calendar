@@ -15,6 +15,7 @@ import {CardView,Copy,Icon,Link,Page} from './ui';
 import {SpeakingDayRecords} from './SpeakingDayRecords';
 import {ContentDayRecords} from './ContentDayRecords';
 import {EmergencyDayRecords} from './EmergencyDayRecords';
+import {PromiseDayRecords} from './PromiseDayRecords';
 
 const clock=(n:number)=>new Date(n).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
 const dateLabel=(key:string)=>Number(key.slice(5,7))+'월 '+Number(key.slice(8,10))+'일';
@@ -80,6 +81,7 @@ export function DailyTimelineScreen({route,navigation}:RootScreenProps<'DailyTim
   <SpeakingDayRecords data={data} day={selected}/>
   <ContentDayRecords data={data} day={selected}/>
   <EmergencyDayRecords data={data} day={selected}/>
+  <PromiseDayRecords data={data} day={selected}/>
   {t.totals.untimedResponses?<Copy variant="caption" muted>{'단어 응답 '+t.totals.untimedResponses+'회는 시각 기록이 없어 목록에 넣지 못했어요.'}</Copy>:null}
  </Page>;
 }

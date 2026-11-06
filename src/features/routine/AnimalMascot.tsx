@@ -1,5 +1,6 @@
 import {characterForAction} from './animalCast';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
+import {MascotVisible} from './mascotVisibility';
 import {AppState,Pressable,Text,View} from 'react-native';
 import {useIsFocused} from '@react-navigation/native';
 import {useReducedMotion} from './motion';
@@ -28,7 +29,8 @@ export function BoriMascot({size=85,happy=false,mood,state,frame,action,characte
  const settledAction=!animalClip(id,requested).loop&&completed===id+':'+requested+':'+retry;
  const current=transient??(settledAction?'A01':requested),clip=animalClip(id,current),source=loadAnimalClip(id,current),key=id+':'+current+':'+retry;
  const still=frame??(staticPose||reduced?clip.poster_frame:undefined);
- const active=focused&&foreground&&still===undefined&&completed!==key&&failed!==key;
+ const visible=React.useContext(MascotVisible);
+ const active=visible&&focused&&foreground&&still===undefined&&completed!==key&&failed!==key;
  const finish=useCallback(()=>{setCompleted(key);if(transient)setTransient(null)},[key,transient]);
  const fail=useCallback(()=>setFailed(key),[key]);
  const name=animalCharacters.find(c=>c.id===id)!.name;

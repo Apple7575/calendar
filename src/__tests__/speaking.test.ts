@@ -319,7 +319,7 @@ describe('every path that adds up time includes it',()=>{
   }
  });
  test('the provider sends it again when it changes',()=>{
-  expect(read('src/features/routine/RoutineProvider.tsx')).toMatch(/bonus\?\.handwriting,bonus\?\.speaking/);
+  expect(read('src/features/routine/RoutineProvider.tsx')).toMatch(/bonus\?\.handwriting,(bonus\?\.focusBreak,)?bonus\?\.speaking/);
   expect(read('src/features/routine/RoutineProvider.tsx')).toContain('native?.supportsSpeakingRewards');
  });
  test('Swift: the balance is the sum of every ledger entry, so it counts',()=>{

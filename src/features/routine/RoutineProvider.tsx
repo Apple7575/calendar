@@ -7,7 +7,7 @@ import { AppState } from "react-native";
 import { mergePlayLog } from "../../lib/playLog";
 import { getScreenTimeStatus, ScreenTimeStatus, syncRoutineRewards,syncFocusWindow,adjustStudyRewards } from "../../lib/screenTime";
 import { studyLedger,undoStudyAnswer,validateStudyState } from '../../lib/studyHistory';
-import { emptyData, getDay, reconcileStudyExclusions, RoutineData, routineDay } from "../../lib/routineModel";
+import { emptyData, getDay, reconcileStudyExclusions, RoutineData, routineDay, settleMorningWords } from "../../lib/routineModel";
 import { migrateDailyPlan } from "../../lib/dailyPlan";
 import { reconcileAdditionalRewards } from "../../lib/studyRewards";
 import { receiveLearningSummaries } from "../../lib/learningCloud";
@@ -21,10 +21,13 @@ import {advanceHabitOrder,initializeHabitOrder} from '../../lib/habitOrder';
 import {wordDailyCap} from '../../lib/studyRewards';
 import {reconcileMoneyRewards} from '../../lib/moneyRewards';
 import {reconcileEmergency} from '../../lib/emergencyUnlock';
+import {reconcileCommitments} from '../../lib/commitments';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
 import {streakWidgetPayload} from '../../lib/streakWidget';
 import {writeStreakWidget} from '../../lib/streakWidgetStorage';
+import {appIconSlot} from '../../lib/appIcon';
+import {syncAppIcon} from '../../lib/appIconSync';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -73,7 +76,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
       if (migrated !== saved && raw && !await AsyncStorage.getItem(`${key}.backup.n3-unified.v1`)) {
         await AsyncStorage.setItem(`${key}.backup.n3-unified.v1`, raw);
       }
-      const grown = initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(settleBookTimer(migrateDailyPlan(advanceBoriGrowth(migrated, routineDay()))),routineDay()),routineDay()),routineDay());
+      const grown = initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(settleMorningWords(settleBookTimer(migrateDailyPlan(advanceBoriGrowth(migrated, routineDay()))),routineDay()),routineDay()),routineDay()),routineDay());
       if (recovered||grown !== saved) await AsyncStorage.setItem(key, JSON.stringify(grown));
       if (!alive.current||!live) return;
       if(recovered){lastBackedUp.current=grown;setBackupState({busy:false,lastAt:recovered.createdAt,error:null});}
@@ -93,7 +96,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
         throw new Error("새 하루가 시작됐어요. 화면을 확인하고 다시 시도해 주세요.");
       }
       const before=initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(current.current,expectedDay),expectedDay),expectedDay);
-      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(reconcilePriorityPlans(settleHandwritingRewards(fn(before)),expectedDay),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
+      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(reconcilePriorityPlans(settleHandwritingRewards(settleMorningWords(fn(before),expectedDay)),expectedDay),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
       await AsyncStorage.setItem(key, JSON.stringify(next));
       if (alive.current&&identity.current===userId) { current.current = next; setData(next); setError(null); }
     });
@@ -172,6 +175,9 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   }, [ready, syncDecks]);
   // 기록이 저장되거나 04시에 하루가 바뀌면 연속 실천 위젯에 같은 값을 넘긴다. 홈의 연속 실천과 같은 계산이다.
   useEffect(()=>{if(ready)writeStreakWidget(streakWidgetPayload(data,dayKey));},[ready,data,dayKey]);
+  // 앱 아이콘: 12시 기준 오전·오후 칸마다 그날 동물의 표정으로 바꾼다(appIcon.ts). 앱이 열려 있을 때만 바뀐다.
+  const iconSlot=appIconSlot(now.getHours());
+  useEffect(()=>{if(ready)void syncAppIcon(dayKey,now.getHours(),streakWidgetPayload(data,dayKey).todayDone);},[ready,data,dayKey,iconSlot]);// eslint-disable-line react-hooks/exhaustive-deps
   const today=getDay(data,dayKey),paid=today.paid;
   const bonus=today.bonus;
   const adjustment=data.pendingStudyAdjustment;
@@ -192,6 +198,8 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   useEffect(()=>{
     if(ready&&native?.policyVersion&&native.policyVersion>=2)void syncFocusWindow(focusUntil).then(refreshNative).catch(e=>setError(e.message));
   },[ready,native?.policyVersion,focusUntil,refreshNative]);
+  // Promises, interest and stakes settle as soon as they are due: on open, on a new day, and whenever the saved data changes.
+  useEffect(()=>{if(ready&&reconcileCommitments(data)!==data)void update(s=>reconcileCommitments(s)).catch(e=>setError(e.message));},[ready,data,dayKey,Math.floor(now.getTime()/60000)]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(ready&&native?.supportsEmergencyUnlock&&reconcileEmergency(data,native.emergencyLog)!==data)void update(s=>reconcileEmergency(s,native.emergencyLog)).catch(e=>setError(e.message));},[ready,native?.supportsEmergencyUnlock,native?.emergencyLog?.length,data.emergencyPending?.id,data.emergencyUnlocks?.length]);
   const breakAlarm=breakAlarmAt(t);
   useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm).catch(e=>setError(e.message));},[ready,breakAlarm]);
@@ -203,7 +211,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
       });
     }
     return () => { active = false; };
-    }, [ready, adjustment,dayKey, paid.morning, paid.words, paid.gym,bonus?.book,bonus?.words,bonus?.quick,bonus?.order,bonus?.freeStudy,bonus?.handwriting,bonus?.speaking,bonus?.content,penaltyMinutesOnDay(data,dayKey),native?.supportsMinuteHandwriting,native?.supportsSpeakingRewards,native?.supportsContentRewards,wordDailyCap(data,dayKey),native?.supportsOrderBonus,native?.supportsFreeStudyRewards,native?.supportsHandwritingRewards,native?.policyVersion, native?.enabled, native?.rewardMode, refreshNative]);
+    }, [ready, adjustment,dayKey, paid.morning, paid.words, paid.gym,bonus?.book,bonus?.words,bonus?.quick,bonus?.order,bonus?.freeStudy,bonus?.handwriting,bonus?.focusBreak,bonus?.speaking,bonus?.content,bonus?.promise,penaltyMinutesOnDay(data,dayKey),native?.supportsMinuteHandwriting,native?.supportsSpeakingRewards,native?.supportsContentRewards,native?.supportsPromiseRewards,wordDailyCap(data,dayKey),native?.supportsOrderBonus,native?.supportsFreeStudyRewards,native?.supportsHandwritingRewards,native?.policyVersion, native?.enabled, native?.rewardMode, refreshNative]);
   return <Context.Provider value={{accountId:userId, data, ready, error, native, refreshNative, dayKey, now, update,undoStudy,retryStudyAdjustment:()=>setAdjustmentAttempt(n=>n+1), syncingDecks, deckError, syncDecks,backupState,backupNow,restoreBackup }}>{children}</Context.Provider>;
 }
 export function useRoutine() {

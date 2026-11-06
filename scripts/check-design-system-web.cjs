@@ -65,7 +65,7 @@ const step=async(name,fn)=>{try{await fn();}catch(e){errors.push(`${name}: ${Str
    await p.setViewportSize({width:844,height:390});await p.waitForTimeout(300);await p.screenshot({path:`${out}/09-timer-landscape.png`});await audit(p,'09-timer-landscape',844);
    await p.setViewportSize({width:390,height:844});
    await p.evaluate(key=>{const s=JSON.parse(localStorage.getItem(key)),now=Date.now();s.bookTimer={...s.bookTimer,focusElapsed:121,focusResumedAt:now};localStorage.setItem(key,JSON.stringify(s));},'routine.v1.web-priority-demo');await p.reload({waitUntil:'networkidle'});await btn(p,'집중 공부로 시간 모으기').click();await p.getByTestId('focus-clock').waitFor();
-   await btn(p,'필기 사진 제출').click();await btn(p,'노트 사진 찍기').waitFor();await shot(p,'10-submit');
+   await btn(p,'다 했어요 · 사진으로 끝내기').click();await btn(p,'노트 사진 찍기').waitFor();await shot(p,'10-submit');
    await p.evaluate(key=>{const s=JSON.parse(localStorage.getItem(key)),now=Date.now();s.bookTimer={...s.bookTimer,focusElapsed:121,focusResumedAt:now,running:false,remaining:0,endsAt:now};s.handwritingPending={id:'design-qa',imageHash:'c'.repeat(64),subject:s.bookTimer.subject,analysis:{lines:['검수용 필기 전압과 전류의 관계를 공부하고 풀이 과정을 정리했습니다.'.repeat(6)],languages:['ko'],quality:'readable',message:''}};localStorage.setItem(key,JSON.stringify(s));},DEMO);
    await p.reload({waitUntil:'networkidle'});
    await btn(p,'집중 공부로 시간 모으기').click();await p.getByText('읽은 내용을 확인해 주세요',{exact:true}).waitFor();await shot(p,'11-submit-ready');

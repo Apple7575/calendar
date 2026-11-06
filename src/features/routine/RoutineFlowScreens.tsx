@@ -28,14 +28,17 @@ function LegacyRoutineMorningScreen({ navigation }: RootScreenProps<"RoutineMorn
     if (saving.current) return;
     saving.current = true;
     setBusy(true);
-    let previous = 0;
+    let previous = 0, paid = 0;
     try {
       await update(state => {
         const old = getDay(state, dayKey); previous = old.paid.morning;
-        return checkMorning(state, dayKey, level, current);
+        const next = checkMorning(state, dayKey, level, current); paid = getDay(next, dayKey).paid.morning;
+        return next;
       });
       if (count + (current === undefined ? 0 : 1) >= required.length) {
-        navigation.replace("RoutineReward", { unit: "morning", level, added: Math.max(0, (level === "full" ? 10 : 5) - previous) });
+        // 행동을 다 해도 아침 단어가 남았으면 단어 안내가 있는 아침 루틴 화면으로 보낸다.
+        if (!paid) navigation.replace("GuidedRoutine", { slot: "morning" });
+        else navigation.replace("RoutineReward", { unit: "morning", level, added: Math.max(0, paid - previous) });
       }
       else tapLight();
     } catch (e) { Alert.alert("저장하지 못했어요", e instanceof Error ? e.message : "다시 시도해 주세요."); }

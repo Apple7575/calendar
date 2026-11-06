@@ -1,4 +1,5 @@
 import {emergencyUnlocksOn} from './emergencyUnlock';
+import {promisePenalties} from './focusPenalty';
 import {earned,getDay,routineDay,type RoutineData} from './routineModel';
 import {bookFocusSeconds} from './bookTimerTime';
 import {playDayState,readPlayLog,type PlayDayState} from './playLog';
@@ -76,7 +77,7 @@ export function dailyTimeline(data:RoutineData,key:string,status:ScreenTimeStatu
  const day=getDay(data,key),study=studyRows(data,key,now),decks=deckRows(data,key),plays=playRows(data,key,status,now);
  const items=[...study,...decks,...plays].sort((a,b)=>a.start-b.start);
  const answered=decks.reduce((n,r)=>n+r.seconds,0),untimed=!decks.length&&day.responses>0;
- const penalties=(Array.isArray(data.focusPenalties)?data.focusPenalties:[]).filter(p=>p?.day===key),emergency=emergencyUnlocksOn(data,key);
+ const penalties=[...(Array.isArray(data.focusPenalties)?data.focusPenalties:[]).filter(p=>p?.day===key),...promisePenalties(data,key)],emergency=emergencyUnlocksOn(data,key);
  const play=playDayState(data,key,now,status),playSeconds=plays.reduce((n,r)=>n+r.seconds,0);
  return {items,play,totals:{
   studySeconds:study.reduce((n,r)=>n+r.seconds,0)+(untimed?(Number.isFinite(day.studySeconds)?day.studySeconds:0):answered),

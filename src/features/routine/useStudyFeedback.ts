@@ -3,6 +3,7 @@ import {Audio} from 'expo-av';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {AppState} from 'react-native';
 import {claimStudyAudio,registerStudyAudio} from '../../lib/studyAudioFocus';
+import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
 import {useExperiencePreferences,loadExperiencePreferences,experiencePreferences} from '../../lib/experiencePreferences';
 
 export type StudyFeedback={kind:'milestone'|'complete'|'timer';id:string};
@@ -38,7 +39,8 @@ export function useStudyFeedback(event:StudyFeedback|null){
       await claimStudyAudio(owner);
       const sound=await prepared.current.get(event.kind);
       if(!sound||ticket!==sequence.current)return;
-      playing.current=sound;await sound.replayAsync({rate:1,volume:0.65});
+      // 축하음은 무음 스위치를 따른다(팀장 결정 B안). 학습 음성 모드는 끝난 뒤 되돌린다.
+      playing.current=sound;await withCelebrationAudio(async()=>{await sound.replayAsync({rate:1,volume:0.65});await untilFinished(sound,1500);});
     })().catch(()=>{});
     return()=>{void stop();};
   },[event?.id,event?.kind,focused,foreground,owner,stop,preferences.sound]);

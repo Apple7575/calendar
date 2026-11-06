@@ -7,7 +7,7 @@ import {RootStackParamList} from '../../navigation/types';
 import {SUBJECTS,skipBookBreak,startBookTimer,saveFocusPlan,StudyRewardMode} from '../../lib/bookStudy';
 import {bookDisplaySeconds} from '../../lib/bookTimerTime';
 import {startOutputStudy} from '../../lib/handwriting';
-import {FOCUS_STAGE_MINUTES,FOCUS_STEPS,focusPlanMinutesDue,focusRampStatus} from '../../lib/focusRamp';
+import {FOCUS_MARKS,FOCUS_STAGE_MINUTES,focusPlanMinutesDue,focusRampStatus} from '../../lib/focusRamp';
 import {focusSubject,habitOrderPolicy} from '../../lib/habitOrder';
 import {useTheme} from '../../theme/ThemeContext';
 import {useRoutine} from './RoutineProvider';
@@ -15,7 +15,7 @@ import {Action,CardView,CharacterPeek,Choice,Copy,Field,Link,Notice} from './ui'
 import {rewardChange} from '../../lib/rewardChange';
 import {loadFocusQuestions,takeFocusQuestion} from '../../lib/focusQuestions';
 import {MascotBubble} from './MascotBubble';
-const STAGE_MINUTES=FOCUS_STEPS.slice(1).map(s=>s/60);
+const STAGE_MINUTES=FOCUS_MARKS.slice(1).map(s=>s/60);
 /** The art fills only the middle of its canvas, so the canvas is oversized and cropped by the panel overlapping its feet. */
 const HERO_MAX=480;
 export function FocusStart({initialSubject,compact=false,secondary=false}:{initialSubject?:string;initialRewardMode?:StudyRewardMode;compact?:boolean;secondary?:boolean}){
@@ -56,7 +56,7 @@ export function FocusStart({initialSubject,compact=false,secondary=false}:{initi
    </>:<>
     {active?<Action label="큰 타이머 열기" onPress={openTimer}/>:<Action label={minutes+'분 집중 시작'} disabled={!ready||busy||!subject.trim()} onPress={()=>void start()}/>}
     <View accessibilityLabel={'집중 단계 '+status.level+'/5, 이번 단계 '+minutes+'분'} style={{flexDirection:'row',gap:6}}>{STAGE_MINUTES.map((m,i)=><View key={m} style={{flex:1,gap:5}}><View style={{height:5,borderRadius:3,backgroundColor:i<status.level?c.primary:c.border}}/><Copy size={12} muted={i!==status.level-1} weight={i===status.level-1?'700':'500'}>{m}분</Copy></View>)}</View>
-    <Copy muted size={13}>{minutes}분 실제 공부 후 새 필기 사진을 확인하면 +{(FOCUS_STAGE_MINUTES[status.level]??0)+focusPlanMinutesDue(data)}분. 집중 공부를 2시간 쉬면 계획부터 다시 시작해요.{data.outputDraft?'':' 필기 돈 보상은 100자당 500원이에요.'}</Copy>
+    <Copy muted size={13}>{STAGE_MINUTES[Math.max(0,status.level-1)]}분까지 채우고 휴식을 누르면 +{(FOCUS_STAGE_MINUTES[status.level]??0)+focusPlanMinutesDue(data)}분. 25분을 채우면 다시 2분부터 시작해요. 집중 공부를 2시간 쉬면 계획부터 다시 시작해요.{data.outputDraft?'':' 필기 돈 보상은 100자당 500원이에요.'}</Copy>
    </>}
    {error?<Notice tone="error">{error}</Notice>:null}
   </CardView>

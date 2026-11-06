@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { addDays, monthWeeks, parseDateKey, todayKey } from "../../lib/dateUtils";
 import { earned, getDay } from "../../lib/routineModel";
 import { RootStackParamList } from "../../navigation/types";
@@ -12,6 +12,21 @@ import { Action, CardView, Copy, Icon, Link, Mascot, Page, u } from "./ui";
 import { MotionSwap } from "./motion";
 import { AccountConnection } from "./AccountConnection";
 import {activityDays,isActivityComplete,routineActivities} from '../../lib/routineActivity';
+import {stickerFor} from '../../lib/calendarSticker';
+
+const STICKERS={
+  'done1-otter':require('../../../assets/stickers/done1-otter.png'),'done1-cat':require('../../../assets/stickers/done1-cat.png'),'done1-bear':require('../../../assets/stickers/done1-bear.png'),'done1-hedgehog':require('../../../assets/stickers/done1-hedgehog.png'),
+  'done2-otter':require('../../../assets/stickers/done2-otter.png'),'done2-cat':require('../../../assets/stickers/done2-cat.png'),'done2-bear':require('../../../assets/stickers/done2-bear.png'),'done2-hedgehog':require('../../../assets/stickers/done2-hedgehog.png'),
+} as const;
+const ANIMAL_NAME={otter:'수달',cat:'고양이',bear:'북극곰',hedgehog:'고슴도치'} as const;
+/** 실천한 날의 친구 스티커(팀장 결정 2026-11-06). 동물·포즈는 연속 실천 위젯과 같은 날짜 순서다. */
+function DaySticker({dayKey,today}:{dayKey:string;today:boolean}){
+  const { colors: c } = useTheme(),{animal,pose}=stickerFor(dayKey);
+  return <View style={{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center',backgroundColor:c.primarySoft,borderWidth:today?1.5:0,borderColor:c.primary}}>
+    <Image source={STICKERS[`done${pose}-${animal}`]} style={{width:34,height:34}} resizeMode="contain" accessibilityIgnoresInvertColors/>
+    <View style={{position:'absolute',right:-4,bottom:-4,minWidth:18,height:18,paddingHorizontal:3,borderRadius:9,alignItems:'center',justifyContent:'center',backgroundColor:c.card}}><Copy variant="caption" weight="800" style={{fontSize:11,lineHeight:14}}>{Number(dayKey.slice(-2))}</Copy></View>
+  </View>;
+}
 
 /** 달력 칸에 실천 수를 점으로 보여 준다. 정확한 수는 접근성 설명에 있다. */
 function DayDots({count,partial}:{count:number;partial:boolean}){
@@ -38,11 +53,12 @@ export function RoutineCalendarScreen({embedded=false}:{embedded?:boolean}={}) {
       <View style={{ flexDirection: "row" }}>{["월", "화", "수", "목", "금", "토", "일"].map(d => <View style={{ width: `${100 / 7}%`, alignItems: "center" }} key={d}><Copy variant="caption" muted>{d}</Copy></View>)}</View>
       <MotionSwap transitionKey={month} direction={direction}>{monthWeeks(month).map((week, i) => <View key={i} style={{ flexDirection: "row" }}>{week.map(key => {
         const activities=routineActivities(data,key),count=activities.filter(isActivityComplete).length,partial=activities.some(a=>a.status==='progress'),inMonth = key.startsWith(month);
-        return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${key}, ${count}개 실천${partial?' · 진행 중 기록 있음':''}`} onPress={() => navigation.navigate('DayDetail',{date:key})}
+        const sticker=count>0&&key<=dayKey;
+        return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`${key}, ${count}개 실천${partial?' · 진행 중 기록 있음':''}${sticker?' · '+ANIMAL_NAME[stickerFor(key).animal]+' 스티커':''}`} onPress={() => navigation.navigate('DayDetail',{date:key})}
           style={{ width: `${100 / 7}%`, minHeight: control.touch, alignItems: "center", justifyContent: "center", gap: 2, opacity: inMonth ? 1 : 0.35 }}>
-          <View style={{ minWidth: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: count ? c.primarySoft : "transparent",
+          {sticker?<DaySticker dayKey={key} today={key===dayKey}/>:<><View style={{ minWidth: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: count ? c.primarySoft : "transparent",
             borderWidth: key === dayKey ? 1.5 : 0, borderColor: c.primary }}><Copy variant="caption" weight={key === dayKey ? "800" : "600"}>{Number(key.slice(-2))}</Copy></View>
-          <DayDots count={count} partial={partial}/>
+          <DayDots count={count} partial={partial}/></>}
         </Pressable>;
       })}</View>)}</MotionSwap>
       <Copy variant="caption" muted>간단한 완료도 실천 1개. 날짜를 누르면 자세히 봐요.</Copy>

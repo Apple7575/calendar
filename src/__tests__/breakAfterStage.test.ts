@@ -1,11 +1,14 @@
 import {emptyData} from '../lib/routineModel';
 import {finishFocusRun,pauseBookTimer,skipBookBreak,startBookBreak,startBookTimer,takeEarnedBreak} from '../lib/bookStudy';
 import {canStartBreak,claimFocusPlan,focusRampStatus,focusRunCredit} from '../lib/focusRamp';
-import {canTakeHandwritingPhoto} from '../lib/focusFlow';
+import {focusStageMet} from '../lib/focusFlow';
 import {focusJourney} from '../lib/focusJourney';
 import {startOutputStudy} from '../lib/handwriting';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
+// This suite pins a cycle started before rounds (2026-11-06): its ramp has no round, so it keeps the old stage lengths and
+// tables until it ends. Rounds themselves are covered in focusRounds.test.ts and breakReward.test.ts.
+jest.mock('../lib/focusRamp',()=>{const actual=jest.requireActual('../lib/focusRamp');return {...actual,claimFocusPlan:(...args:unknown[])=>{const d=actual.claimFocusPlan(...args);if(!d?.focusRamp)return d;const {round:_round,...ramp}=d.focusRamp;return {...d,focusRamp:ramp};}};});
 const fs=require('fs'),path=require('path');
 const at=new Date(2026,10,1,9).getTime(),sec=1000,subject='전기기사 실기';
 const planned=()=>startOutputStudy(claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at),'draft',subject,new Date(at));
@@ -27,7 +30,7 @@ describe('a rest has to be earned by the current stage',()=>{
   const d=running();
   for(const s of [0,1,60,119,120,121,600]){
    const now=at+s*sec,credit=focusRunCredit(d,now),required=focusRampStatus(d,now).required;
-   expect(canStartBreak(d,now)).toBe(canTakeHandwritingPhoto(d,now));
+   expect(canStartBreak(d,now)).toBe(focusStageMet(d,now));
    expect(canStartBreak(d,now)).toBe(focusJourney(credit,required).studied>=required);
   }
  });

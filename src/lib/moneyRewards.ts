@@ -1,5 +1,5 @@
 import type {HandwritingReceipt} from './handwriting';
-import {FOCUS_MONEY_MINUTES,FOCUS_STEPS} from './focusRamp';
+import {FOCUS_MONEY_MINUTES,FOCUS_STEPS,LEGACY_FOCUS_STEPS,LEGACY_STAGE_TABLES,stageSpan} from './focusRamp';
 import {SPEAKING_POLICY,speakingRecords} from './speaking';
 import {contentUploads} from './content';
 import type {RoutineData} from './routineModel';
@@ -48,7 +48,13 @@ export function reconcileMoneyRewards(before:RoutineData,after:RoutineData,key:s
  */
 const FIXED={perMinute:100,order:3000} as const;
 /** A stage's money follows its own table, at the share studied when finished early. */
-const stageMoneyMinutes=(r:HandwritingReceipt)=>r.focusStage&&r.focusSeconds?Math.floor(FOCUS_MONEY_MINUTES[r.focusStage]*r.focusSeconds/FOCUS_STEPS[r.focusStage]):0;
+/** Rounds: the span's money, or a cut-short stage's share. Before rounds (no round on the receipt): the old table and lengths. */
+const stageMoneyMinutes=(r:HandwritingReceipt)=>{
+ if(!r.focusStage||!r.focusSeconds)return 0;
+ if(r.focusStageFrom!==undefined)return stageSpan(r.focusStageFrom,r.focusStage).money;
+ const [steps,money]=r.focusRound?[FOCUS_STEPS,FOCUS_MONEY_MINUTES]:[LEGACY_FOCUS_STEPS,LEGACY_STAGE_TABLES[1]];
+ return Math.floor(money[r.focusStage]*r.focusSeconds/steps[r.focusStage]);
+};
 function reconcileFixedRewards(before:RoutineData,after:RoutineData,key:string,now:Date):RoutineData{
  const wallet=after.money;if(!wallet)return after;
  const entries=[...wallet.entries],at=now.toISOString(),a=getDay(before,key).bonus,b=getDay(after,key).bonus,earlier=new Set((before.handwritingReceipts??[]).filter(r=>r.rewardStatus==='earned').map(r=>r.id));

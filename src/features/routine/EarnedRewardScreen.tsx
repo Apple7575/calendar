@@ -4,7 +4,9 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
 import {RootScreenProps} from '../../navigation/types';
 import {useRoutine} from './RoutineProvider';
-import {getDay} from '../../lib/routineModel';
+import {getDay,routineDay} from '../../lib/routineModel';
+import {dailyPick} from '../../lib/celebrationTriggers';
+import {tapSuccess} from '../../lib/haptics';
 import {timeWallet} from '../../lib/timeWallet';
 import {finishFocusRun,startBookTimer} from '../../lib/bookStudy';
 import {focusRampStatus} from '../../lib/focusRamp';
@@ -36,12 +38,14 @@ function EarnedRewardPage({route,navigation}:RootScreenProps<'EarnedReward'>){
  const keepGoing=()=>choose(s=>s.bookTimer?.awaitingChoice===true?startBookTimer(s,Crypto.randomUUID(),s.bookTimer.subject,Date.now(),focusRampStatus(s).required,'output'):s,()=>navigation.popTo('FocusTimer'));
  const finish=()=>choose(s=>({...finishFocusRun(s),outputDraft:undefined}),()=>navigation.popTo('Main',{screen:'Study'}));
  useStudyFeedback(!pending?{kind:'complete',id:p.id}:null);
+ // 다른 큰 축하와 같게 성공 진동을 한 번 준다(정리안 4절).
+ React.useEffect(()=>{if(!pending)tapSuccess();},[p.id,pending]);
  return <View testID="earned-reward-page" style={{flex:1,backgroundColor:focusTheme.colors.background}}>
   <StatusBar style="light"/><AnimalSharedLayer id="celebration_effects" animated/>
   <SafeAreaView style={{flex:1}} edges={['top','bottom']}>
    <Pressable accessibilityRole="button" accessibilityLabel="축하 화면 닫기" onPress={continueStudy} hitSlop={8} style={{margin:12,width:44,height:44,alignItems:'center',justifyContent:'center'}}><Icon name="close" color="#CEE1E8" size={27}/></Pressable>
    <ScrollView contentContainerStyle={{flexGrow:1,alignItems:'center',justifyContent:'center',paddingHorizontal:22,paddingBottom:20,gap:small?12:20}}>
-    <Mascot character="C03" action={pending?'A21':p.kind==='plan'?'A24':'A26'} size={Math.min(width-44,small?160:220)}/>
+    <Mascot character="C03" action={pending?'A21':p.kind==='plan'?dailyPick(['A24','A23','A22'] as const,routineDay(),'plan'):dailyPick(['A26','A23','A27'] as const,routineDay(),p.kind)} size={Math.min(width-44,small?160:220)}/>
     <Text accessibilityRole="header" style={{fontSize:small?27:32,fontWeight:'900',color:focusTheme.colors.primary,textAlign:'center'}}>{pending?'필기를 저장했어요!':p.kind==='content'?'업로드 인증 완료!':p.kind==='speaking'?'말로 설명했어요!':p.kind==='plan'?'시작할 준비 완료!':'한 단계 해냈어요!'}</Text>
     <View style={{width:'100%',maxWidth:500}}><RewardResultTiles minutes={minutes} cash={cash} cashEnabled={p.cashEnabled} pending={pending} quantity={p.quantity+(p.kind==='plan'||p.kind==='content'?'개':'자')} quantityLabel={p.kind==='content'?'인증한 영상':p.kind==='speaking'?'인정 글자':p.kind==='plan'?'저장한 계획':'인정 필기'}/></View>
     <Text style={{color:'#FFFFFF',fontSize:18,fontWeight:'700'}}>지금 사용 가능 {wallet.available}분</Text>

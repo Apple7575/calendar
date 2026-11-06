@@ -1,4 +1,4 @@
-import {FOCUS_STEPS} from './focusRamp';
+import {FOCUS_MARKS as FOCUS_STEPS} from './focusRamp';
 
 const LAST=FOCUS_STEPS[FOCUS_STEPS.length-1];
 const clock=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');

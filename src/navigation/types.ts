@@ -24,6 +24,9 @@ export type RootStackParamList = {
   PriorityPlan:{day?:string}|undefined;
   PriorityPause:undefined;
   GoalDetail:{goalId:string;open?:'links'};
+  WeekCheck:undefined;
+  NightReflection:undefined;
+  BuildCheck:undefined;
   ExperienceSettings:undefined;
   TimeWallet:undefined;
   MoneyWallet:undefined;
