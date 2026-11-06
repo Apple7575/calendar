@@ -80,7 +80,7 @@ export type RoutineData = {
   freeStudyPolicy?:{unlockAfter:import('./freeStudy').FreeStudyUnlock};
   handwritingReceipts?:import('./handwriting').HandwritingReceipt[];
   outputDraft?:import('./handwriting').OutputDraft;
-  handwritingPending?:{id:string;imageHash:string;subject:string;analysis:import('./handwriting').HandwritingAnalysis;declared?:boolean};
+  handwritingPending?:{id:string;imageHash:string;subject:string;analysis:import('./handwriting').HandwritingAnalysis;declared?:boolean;pages?:import('./handwriting').PendingPage[]};
   reviewHistory?:import('./studyHistory').ReviewEvent[];studyUndo?:import('./studyHistory').StudyUndo;pendingStudyAdjustment?:import('./studyHistory').StudyAdjustment;
 };
 export const scheduler = fsrs({ request_retention: 0.9, enable_fuzz: false });

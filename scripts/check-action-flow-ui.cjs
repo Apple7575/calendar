@@ -93,15 +93,15 @@ fs.mkdirSync(out, {recursive:true});
    await button('집중 공부로 시간 모으기').click();
   };
   await fixture(0);
-  await page.getByText('읽은 내용을 확인해 주세요',{exact:true}).waitFor();
+  await page.getByText(/^읽은 내용을 확인해 주세요/).waitFor();
   await capture('submit-waiting-390');
   await fixture(121);
   for (const [width,height] of [[390,844],[360,740]]) {
    await page.setViewportSize({width,height});
-   await inViewport(/이번 단계 완료 · \+\d+분 받기/);
+   await inViewport(/다 찍었어요 · \+\d+분 받기/);
    await capture(`submit-ready-${width}`);
   }
-  await button(/이번 단계 완료 · \+\d+분 받기/).click();
+  await button(/다 찍었어요 · \+\d+분 받기/).click();
   await page.getByTestId('earned-reward-page').waitFor();
   await inViewport('계속 공부');
   await inViewport('마치기');

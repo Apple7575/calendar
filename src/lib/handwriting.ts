@@ -114,18 +114,83 @@ export function startOutputStudy(data:RoutineData,id:string,subject:string,now=n
  if(data.outputDraft)return data;
  return {...data,outputDraft:{id,subject:clean,startedAt:now.toISOString()}};
 }
-export function acceptHandwriting(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now=new Date(),policy:'legacy25'|'ramp-v1'|'ramp-v2'=data.focusRamp?'ramp-v2':'legacy25',declared=false):RoutineData{
+type ReceiptPolicy='legacy25'|'ramp-v1'|'ramp-v2';
+/** One photo's receipt, checked the same way whether it comes alone or as one page of several. */
+function buildReceipt(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now:Date,policy:ReceiptPolicy,page?:number):HandwritingReceipt{
  if(!/^[a-f0-9]{64}$/.test(hash)||!id||id.length>100||!subject.trim()||subject.trim().length>80)throw new Error('공부 사진 정보를 확인해 주세요.');
- if(data.handwritingReceipts?.some(r=>r.id===id))return data;
- const p=outputPreview(data,hash,analysis);
- if(analysis.quality!=='readable')throw new Error(analysis.message||'글씨가 잘 보이도록 다시 찍어 주세요.');
- if(!p.units)throw new Error(p.duplicate?'이미 기록한 내용이에요. 새로 쓴 부분만 찍어 주세요.':'읽을 수 있는 손글씨가 없어요.');
+ const p=outputPreview(data,hash,analysis),which=page===undefined?'':page+'번째 장은 ';
+ if(analysis.quality!=='readable')throw new Error(which+(analysis.message||'글씨가 잘 보이도록 다시 찍어 주세요.'));
+ if(!p.units)throw new Error(page===undefined?(p.duplicate?'이미 기록한 내용이에요. 새로 쓴 부분만 찍어 주세요.':'읽을 수 있는 손글씨가 없어요.'):which+(p.duplicate?'이미 기록한 내용이에요. 그 장을 빼고 제출해 주세요.':'읽을 수 있는 손글씨가 없어요. 그 장을 빼고 제출해 주세요.'));
  if(!data.outputDraft||data.outputDraft.subject!==subject)throw new Error('이 과목의 공부를 먼저 시작해 주세요.');
- if(declared&&p.units<OUTPUT_POLICY.units)throw new Error('새로 쓴 글자가 100자 이상이면 공부를 끝낼 수 있어요.');
- const day=routineDay(now),receipt:HandwritingReceipt={id,imageHash:hash,subject:subject.trim(),at:now.toISOString(),day,lines:[...analysis.lines],languages:[...analysis.languages],units:p.units,duplicateUnits:p.duplicateUnits,minutes:0,policyVersion:1,rewardStatus:'pending',...(policy!=='legacy25'?{rewardPolicy:policy,focusCycle:focusRampStatus(data,now.getTime()).needsPlan?'awaiting-plan':data.focusRamp!.cycleId}:{})};
- const saved=settleHandwritingRewards(withDay({...data,handwritingPending:undefined,handwritingReceipts:[...(data.handwritingReceipts??[]),receipt]},day,d=>d),now.getTime());
+ const day=routineDay(now);
+ return {id,imageHash:hash,subject:subject.trim(),at:now.toISOString(),day,lines:[...analysis.lines],languages:[...analysis.languages],units:p.units,duplicateUnits:p.duplicateUnits,minutes:0,policyVersion:1,rewardStatus:'pending',...(policy!=='legacy25'?{rewardPolicy:policy,focusCycle:focusRampStatus(data,now.getTime()).needsPlan?'awaiting-plan':data.focusRamp!.cycleId}:{})};
+}
+export function acceptHandwriting(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now=new Date(),policy:ReceiptPolicy=data.focusRamp?'ramp-v2':'legacy25',declared=false):RoutineData{
+ if(data.handwritingReceipts?.some(r=>r.id===id))return data;
+ const receipt=buildReceipt(data,id,hash,subject,analysis,now,policy);
+ if(declared&&receipt.units<OUTPUT_POLICY.units)throw new Error('새로 쓴 글자가 100자 이상이면 공부를 끝낼 수 있어요.');
+ const saved=settleHandwritingRewards(withDay({...data,handwritingPending:undefined,handwritingReceipts:[...(data.handwritingReceipts??[]),receipt]},receipt.day,d=>d),now.getTime());
  if(!declared||saved.handwritingReceipts!.find(r=>r.id===id)?.rewardStatus!=='pending')return saved;
  return payDeclared(saved,subject.trim(),now.getTime());
+}
+
+/*
+ * Several pages in one submission (user decision 2026-11-06: 5 a submission, 50 a day, app side only). Each page is read by
+ * the existing server call as it is taken. On saving, all pages become receipts of one batch and settle together, so the
+ * stage pays once, on the first page, and letters add up in order. Duplicates are checked against earlier pages too.
+ */
+export const MULTI_PAGE_POLICY={pagesPerSubmit:5,pagesPerDay:50} as const;
+export type PendingPage={imageHash:string;analysis:HandwritingAnalysis};
+type Pending=NonNullable<RoutineData['handwritingPending']>;
+/** A pending saved before pages is one page. */
+export const pendingPages=(p:Pending|undefined):PendingPage[]=>!p?[]:Array.isArray(p.pages)&&p.pages.length?p.pages:[{imageHash:p.imageHash,analysis:p.analysis}];
+/** Photos saved on a day, by the day they were taken. */
+export const pagesToday=(data:RoutineData,day:string)=>(data.handwritingReceipts??[]).filter(r=>r.day===day).length;
+const withPages=(data:RoutineData,base:{id:string;subject:string;declared?:boolean},pages:PendingPage[]):RoutineData=>pages.length?{...data,handwritingPending:{id:base.id,subject:base.subject,imageHash:pages[0].imageHash,analysis:pages[0].analysis,pages,...(base.declared?{declared:true}:{})}}:{...data,handwritingPending:undefined};
+export function addPendingPage(data:RoutineData,id:string,subject:string,page:PendingPage,declared:boolean,now=Date.now()):RoutineData{
+ const current=data.handwritingPending,pages=pendingPages(current);
+ if(current&&current.subject!==subject)throw new Error('다른 과목의 사진이 기다리고 있어요. 먼저 제출하거나 빼 주세요.');
+ if(pages.length>=MULTI_PAGE_POLICY.pagesPerSubmit)throw new Error('한 번에 5장까지 낼 수 있어요. 먼저 제출해 주세요.');
+ if(pagesToday(data,routineDay(new Date(now)))+pages.length>=MULTI_PAGE_POLICY.pagesPerDay)throw new Error('오늘은 50장까지 찍을 수 있어요. 내일 다시 찍어 주세요.');
+ if(!/^[a-f0-9]{64}$/.test(page.imageHash))throw new Error('공부 사진 정보를 확인해 주세요.');
+ validateHandwritingAnalysis(page.analysis);
+ if(pages.some(p=>p.imageHash===page.imageHash))throw new Error('같은 사진을 두 번 넣었어요. 다른 쪽을 찍어 주세요.');
+ if(data.handwritingReceipts?.some(r=>r.imageHash===page.imageHash))throw new Error('이미 기록한 사진이에요. 새로 쓴 내용을 찍어 주세요.');
+ if(page.analysis.quality!=='readable')throw new Error(page.analysis.message||'글씨가 잘 보이도록 다시 찍어 주세요.');
+ if(!page.analysis.lines.length)throw new Error(page.analysis.message||'손으로 쓴 내용을 찾지 못했어요.');
+ return withPages(data,{id:current?.id??id,subject,declared:current?.declared??declared},[...pages,{imageHash:page.imageHash,analysis:page.analysis}]);
+}
+export function removePendingPage(data:RoutineData,index:number):RoutineData{
+ const current=data.handwritingPending;if(!current)return data;
+ return withPages(data,current,pendingPages(current).filter((_,i)=>i!==index));
+}
+/** What each page adds, each checked against saved writing and the pages before it. */
+export function pagesPreview(data:RoutineData){
+ let seen=data;const pages:{units:number;duplicateUnits:number;duplicate:boolean}[]=[];
+ for(const page of pendingPages(data.handwritingPending)){
+  const p=outputPreview(seen,page.imageHash,page.analysis);
+  pages.push({units:p.units,duplicateUnits:p.duplicateUnits,duplicate:p.duplicate||!p.units});
+  seen={...seen,handwritingReceipts:[...(seen.handwritingReceipts??[]),{imageHash:page.imageHash,lines:page.analysis.lines} as HandwritingReceipt]};
+ }
+ return {pages,total:pages.reduce((n,p)=>n+p.units,0)};
+}
+/** Saves every pending page as one batch. A finish (declared) needs 100 new letters over all pages. */
+export function acceptHandwritingPages(data:RoutineData,now=new Date(),declared=!!data.handwritingPending?.declared):RoutineData{
+ const pending=data.handwritingPending;if(!pending)throw new Error('제출할 사진이 없어요.');
+ const pages=pendingPages(pending),policy:ReceiptPolicy=data.focusRamp?'ramp-v2':'legacy25',subject=pending.subject.trim();
+ if(pages.length>MULTI_PAGE_POLICY.pagesPerSubmit)throw new Error('한 번에 5장까지 낼 수 있어요.');
+ let next:RoutineData={...data,handwritingPending:undefined};const ids:string[]=[];
+ for(const [i,page] of pages.entries()){
+  const id=i?`${pending.id}:${i+1}`:pending.id;ids.push(id);
+  if(next.handwritingReceipts?.some(r=>r.id===id))continue;
+  const receipt=buildReceipt(next,id,page.imageHash,subject,page.analysis,now,policy,pages.length>1?i+1:undefined);
+  next=withDay({...next,handwritingReceipts:[...(next.handwritingReceipts??[]),receipt]},receipt.day,d=>d);
+ }
+ const total=(next.handwritingReceipts??[]).filter(r=>ids.includes(r.id)).reduce((n,r)=>n+r.units,0);
+ if(declared&&total<OUTPUT_POLICY.units)throw new Error('새로 쓴 글자가 모두 합쳐 100자 이상이면 공부를 끝낼 수 있어요.');
+ const saved=settleHandwritingRewards(next,now.getTime());
+ if(!declared||saved.handwritingReceipts!.find(r=>r.id===ids[0])?.rewardStatus!=='pending')return saved;
+ return payDeclared(saved,subject,now.getTime());
 }
 /** A receipt pays one stage, or the consecutive list one photo finished. */
 function validPaidStages(r:HandwritingReceipt){
@@ -156,7 +221,8 @@ export function validateHandwritingState(data:RoutineData){
  if(rows!==undefined&&(!Array.isArray(rows)||rows.length>50000||new Set(rows.map(r=>r?.id)).size!==rows.length||new Set(rows.map(r=>r?.imageHash)).size!==rows.length||rows.some(r=>!r||typeof r.id!=='string'||typeof r.subject!=='string'||!r.subject.trim()||r.subject.length>80||!/^[a-f0-9]{64}$/.test(r.imageHash)||!Number.isFinite(Date.parse(r.at))||!/^\d{4}-\d{2}-\d{2}$/.test(r.day)||r.policyVersion!==1||![r.units,r.duplicateUnits,r.minutes].every(n=>Number.isSafeInteger(n)&&n>=0)||r.units<1||r.units+r.duplicateUnits>16000||r.rewardPolicy!=='ramp-v2'&&r.minutes%5!==0)))throw new Error('손글씨 공부 기록 형식을 확인해 주세요.');
  if(rows){let carry=0;const ordered=rows.map((r,i)=>({r,order:r.rewardOrder??i})).sort((a,b)=>a.order-b.order);for(const {r} of ordered){validateHandwritingAnalysis({...r,quality:'readable',message:''});const length=Array.from(normalizeHandwriting(r.lines.join(''))).length;if(length!==r.units+r.duplicateUnits||r.rewardStatus!==undefined&&!['pending','earned'].includes(r.rewardStatus)||r.rewardOrder!==undefined&&(!Number.isSafeInteger(r.rewardOrder)||r.rewardOrder<0)||r.rewardDay!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(r.rewardDay))throw new Error('손글씨 적립 내역을 확인해 주세요.');if(r.rewardStatus==='pending'){if(r.minutes!==0||r.focusSeconds!==undefined||r.rewardDay!==undefined)throw new Error('대기 중인 보상을 확인해 주세요.');continue;}if(r.rewardPolicy==='ramp-v1'){if(!r.focusCycle||!data.focusPlans?.some(p=>p.cycleId===r.focusCycle)||!r.focusBatch||!r.focusStage||r.focusStage<1||r.focusStage>5||!Number.isInteger(r.focusStage)||!validPaidStages(r))throw new Error('집중 단계 적립 내역을 확인해 주세요.');}else if(r.rewardPolicy==='ramp-v2'){if(!r.focusCycle||!data.focusPlans?.some(p=>p.cycleId===r.focusCycle)||!r.focusBatch||!Number.isInteger(r.focusStage)||r.focusStage!<1||r.focusStage!>5||!validStagePay(r,carry))throw new Error('집중 단계 적립 내역을 확인해 주세요.');}else if(r.minutes!==Math.floor((carry+r.units)/100)*5)throw new Error('손글씨 적립 내역을 확인해 주세요.');carry=(carry+r.units)%100;}}
  if(data.outputDraft&&(!data.outputDraft.id||!data.outputDraft.subject?.trim()||data.outputDraft.subject.length>80||!Number.isFinite(Date.parse(data.outputDraft.startedAt))))throw new Error('진행 중인 손글씨 공부를 확인해 주세요.');
- if(data.handwritingPending){const p=data.handwritingPending;if(!p.id||!p.subject?.trim()||p.subject.length>80||!/^[a-f0-9]{64}$/.test(p.imageHash))throw new Error('대기 중인 공부 사진을 확인해 주세요.');validateHandwritingAnalysis(p.analysis);}
+ if(data.handwritingPending){const p=data.handwritingPending;if(!p.id||!p.subject?.trim()||p.subject.length>80||!/^[a-f0-9]{64}$/.test(p.imageHash))throw new Error('대기 중인 공부 사진을 확인해 주세요.');validateHandwritingAnalysis(p.analysis);
+  if(p.pages!==undefined){if(!Array.isArray(p.pages)||p.pages.length<1||p.pages.length>MULTI_PAGE_POLICY.pagesPerSubmit||new Set(p.pages.map(x=>x?.imageHash)).size!==p.pages.length||p.pages.some(x=>!x||!/^[a-f0-9]{64}$/.test(x.imageHash)))throw new Error('대기 중인 공부 사진을 확인해 주세요.');for(const x of p.pages)validateHandwritingAnalysis(x.analysis);}}
  const daily=new Map<string,number>();for(const plan of data.focusPlans??[])daily.set(plan.day,(daily.get(plan.day)??0)+plan.minutes);for(const r of rows??[])daily.set(r.rewardDay??r.day,(daily.get(r.rewardDay??r.day)??0)+r.minutes);
  for(const [key,day]of Object.entries(data.days)){const value=day.bonus?.handwriting??0;if(!Number.isSafeInteger(value)||value<0||value!==(daily.get(key)??0))throw new Error('손글씨 보상 원장을 확인해 주세요.');}
  if(rows?.some(r=>!data.days[r.day]))throw new Error('손글씨 공부 날짜를 확인해 주세요.');
