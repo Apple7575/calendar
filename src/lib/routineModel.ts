@@ -115,8 +115,20 @@ export function checkMorning(data: RoutineData, key: string, level: Level, index
   const steps = morningSteps(data, key);
   const required = steps.map((s, i) => level === "full" || s.minimum ? i : -1).filter(i => i >= 0);
   let next = withDay(data, key, day => ({ ...day, morningPlan: steps.map(s => ({ ...s })), morning: steps.map((_, i) => !!day.morning[i] || i === index) }));
-  if (required.length && required.every(i => getDay(next, key).morning[i])) next = earn(next, key, "morning", level);
+  if (required.length && required.every(i => getDay(next, key).morning[i]) && morningWords(next, key).met) next = earn(next, key, "morning", level);
   return next;
+}
+/** 아침 루틴의 마지막 필수 항목인 단어 장수. 주간 점검에서 10·15·20 중 고르게 되면 이 값만 바꾼다. */
+export const MORNING_WORD_TARGET = 10;
+export function morningWordTarget(_data: RoutineData): number { return MORNING_WORD_TARGET; }
+/** 오늘 끝낸 카드(오늘 학습·추가 학습에서 '다시'가 아닌 답으로 내일 이후로 넘긴 카드). */
+export function completedStudyIds(day: Day): string[] { return [...new Set([...day.complete, ...(day.additional?.completedIds ?? []), ...Object.values(day.additionalByDeck ?? {}).flatMap(p => p.completedIds)])]; }
+/** 오늘 끝낸 카드 수와 필요한 장수. 학습할 카드가 모자라면 필요한 장수를 줄여서, 카드가 없어도 아침 루틴이 막히지 않는다. */
+export function morningWords(data: RoutineData, key: string) {
+  const finished = new Set(completedStudyIds(getDay(data, key))), active = new Set(data.decks.filter(d => d.active).map(d => d.id));
+  const available = data.words.filter(w => active.has(w.deckId) && canStudyWord(w, key) && !finished.has(w.id)).length;
+  const target = morningWordTarget(data), done = finished.size, required = Math.min(target, done + available);
+  return { target, done, required, available, met: done >= required, reduced: required < target };
 }
 export function earn(data: RoutineData, key: string, unit: Unit, level: Level): RoutineData {
   if(unit==='words')return data;
