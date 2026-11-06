@@ -67,7 +67,7 @@ export type RoutineData = {
   speakingRecords?:import('./speaking').SpeakingRecord[];speakingConsentAt?:string;
   emergencyUnlocks?:import('./emergencyUnlock').EmergencyUnlock[];emergencyPending?:import('./emergencyUnlock').EmergencyPending;
   weeklyStakes?:Record<string,import('./commitments').WeeklyStakeRow>;dayPromises?:Record<string,import('./commitments').DayPromiseRow>;
-  interestDays?:Record<string,import('./commitments').InterestDay>;interestSince?:string;weeklyReviews?:Record<string,import('./commitments').WeeklyReview>;
+  interestDays?:Record<string,import('./commitments').InterestDay>;interestSince?:string;weeklyReviews?:Record<string,import('./commitments').WeeklyReview>;weeklyNotes?:Record<string,import('./commitments').WeeklyNote>;
   contentUploads?:import('./content').ContentUpload[];contentSeenLinks?:string[];contentIdeas?:import('./content').ContentIdea[];
   focusBreakPayouts?:import('./focusBreakReward').FocusBreakPayout[];
   money?:import('./moneyRewards').MoneyWallet;playLog?:import('./playLog').PlayLog;

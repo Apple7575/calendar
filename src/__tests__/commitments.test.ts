@@ -5,7 +5,7 @@ import {penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {dailyTimeline} from '../lib/dailyTimeline';
 import {
  activeWeeklyRules,COMMITMENT_POLICY,dayPromise,promiseOutcomesOn,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
- studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,
+ studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,saveWeeklyNote,weeklyNote,
 } from '../lib/commitments';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
@@ -298,5 +298,34 @@ describe('saved values',()=>{
  });
  test('policy numbers live in one place',()=>{
   expect(COMMITMENT_POLICY).toMatchObject({stake:{amounts:[5000,10000,20000],bonusRate:0.1},promise:{windowMinutes:15,minutes:10,won:1000},interest:{perMinutes:10,won:300,weeklyCapWon:5000}});
+ });
+});
+
+describe('a one-line note for the week',()=>{
+ test('saved trimmed, with the time it was written',()=>{
+  const d=saveWeeklyNote(emptyData(),MON,'  집중이 잘 된 주  ',t(9,9));
+  expect(weeklyNote(d,MON)).toEqual({text:'집중이 잘 된 주',at:new Date(t(9,9)).toISOString()});
+ });
+ test('40 characters at most',()=>{
+  expect(weeklyNote(saveWeeklyNote(emptyData(),MON,'가'.repeat(40),t(9,9)),MON)?.text).toHaveLength(40);
+  expect(()=>saveWeeklyNote(emptyData(),MON,'가'.repeat(41),t(9,9))).toThrow(/40자/);
+ });
+ test('an empty note removes it',()=>{
+  const d=saveWeeklyNote(saveWeeklyNote(emptyData(),MON,'메모',t(9,9)),MON,'   ',t(9,10));
+  expect(weeklyNote(d,MON)).toBeUndefined();
+  expect(d.weeklyNotes?.[MON]).toBeUndefined();
+  expect(saveWeeklyNote(emptyData(),MON,'',t(9,9)).weeklyNotes).toBeUndefined();
+ });
+ test('can be rewritten, and only under a Monday key',()=>{
+  const d=saveWeeklyNote(saveWeeklyNote(emptyData(),MON,'처음',t(9,9)),MON,'다시',t(10,9));
+  expect(weeklyNote(d,MON)?.text).toBe('다시');
+  expect(()=>saveWeeklyNote(emptyData(),key(10),'메모',t(10,9))).toThrow();
+ });
+ test('broken saved notes are dropped, never thrown, and the review stays',()=>{
+  const d={...saveWeeklyReview(emptyData(),MON,undefined,t(9,9)),weeklyNotes:{[MON]:{text:'가'.repeat(41),at:'x'},'2026-11-16':{text:7},bad:null}} as unknown as RoutineData;
+  expect(weeklyNote(d,MON)).toBeUndefined();
+  expect(weeklyNote(d,'2026-11-16')).toBeUndefined();
+  expect(d.weeklyReviews?.[MON]).toBeDefined();
+  expect(weeklyNote(saveWeeklyNote(d,'2026-11-16','새로',t(16,9)),'2026-11-16')?.text).toBe('새로');
  });
 });
