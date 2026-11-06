@@ -2,12 +2,13 @@ import React,{useState} from 'react';
 import {View} from 'react-native';
 import {addDays,parseDateKey} from '../../lib/dateUtils';
 import {durationLabel} from '../../lib/dailyTimeline';
-import {COMMITMENT_POLICY,activeWeeklyRules,placeWeeklyStake,saveWeeklyReview,weekKeyOf,weeklyStake,type StakeAmount,type WeeklyRule} from '../../lib/weeklyCommitments';
+import {COMMITMENT_POLICY,WEEKLY_NOTE_CHARS,activeWeeklyRules,placeWeeklyStake,saveWeeklyNote,saveWeeklyReview,weekKeyOf,weeklyNote,weeklyStake,type StakeAmount,type WeeklyRule} from '../../lib/weeklyCommitments';
 import {RULE_OPTIONS,ruleLabel,weeklyReviews,weeklySummary,wonLabel} from '../../lib/weeklyReview';
+import {clockLabel,weekTrends} from '../../lib/weeklyTrends';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
-import {Action,CardView,Choice,Copy,Link,LoadingState,Notice,Page,u} from './ui';
+import {Action,CardView,Choice,Copy,Field,Link,LoadingState,Notice,Page,u} from './ui';
 
 const shortDate=(key:string)=>{const d=parseDateKey(key);return `${d.getMonth()+1}월 ${d.getDate()}일`;};
 
@@ -15,14 +16,24 @@ function Row({label,value,testID}:{label:string;value:string;testID?:string}){
  return <View testID={testID} style={[u.between,{gap:space.sm,minHeight:28}]}><Copy muted>{label}</Copy><View style={{flexShrink:1}}><Copy variant="label">{value}</Copy></View></View>;
 }
 
+/** 4주 공부한 날. 오래된 주부터 쓰고 지난주만 굵게 한다. */
+function Trend({values}:{values:number[]}){
+ return <View testID="week-trend" accessible accessibilityLabel={`최근 4주 공부한 날 ${values.join(', ')}일, 지난주 ${values[values.length-1]}일`} style={{flexDirection:'row',alignItems:'baseline'}}>
+  {values.map((n,i)=><Copy key={i} variant={i===values.length-1?'label':'body'} muted={i!==values.length-1}>{`${n}${i<values.length-1?' · ':'일'}`}</Copy>)}
+ </View>;
+}
+
 function LastWeek({weekKey}:{weekKey:string}){
- const {data}=useRoutine(),s=weeklySummary(data,weekKey);
+ const {data}=useRoutine(),s=weeklySummary(data,weekKey),t=weekTrends(data,weekKey);
  const stake=!s.stake?'걸지 않음':s.stake.status==='won'?`${s.stake.studyDays}/${s.stake.targetDays}일 · ${wonLabel(s.stake.payoutWon??0)} 돌려받음`:s.stake.status==='lost'?`${s.stake.studyDays}/${s.stake.targetDays}일 · ${wonLabel(s.stake.amount)} 잃음`:'정산 전';
  return <CardView>
   <Copy variant="section">{`지난주 · ${shortDate(weekKey)}~${shortDate(addDays(weekKey,6))}`}</Copy>
   {s.empty?<Copy muted>지난주에는 남은 기록이 없어요. 이번 주부터 쌓아 봐요.</Copy>:<View testID="week-summary" style={{gap:space.xxs}}>
    <Row label="공부 시간" value={durationLabel(s.studySeconds)}/>
    <Row label="공부한 날" value={`${s.studyDays}일 / 7일`}/>
+   <View style={[u.between,{gap:space.sm,minHeight:28}]}><Copy muted>최근 4주</Copy><Trend values={t.studyDays4w}/></View>
+   <Row testID="week-first-start" label="첫 공부 시작" value={t.firstStartMedian===null?'—':`보통 ${clockLabel(t.firstStartMedian)}에 시작했어요 (${t.firstStartDays}일)`}/>
+   <Row testID="week-saved-ten" label="10분 이상 남긴 날" value={t.savedKnownDays?`남긴 날 ${t.savedTenDays} / ${t.savedKnownDays}일`:'—'}/>
    <Row label="받은 시간" value={`${s.earnedMinutes}분`}/>
    <Row label="받은 돈" value={wonLabel(s.earnedWon)}/>
    <Row label="벌점" value={s.penaltyMinutes||s.penaltyWon?`${s.penaltyMinutes}분 · ${wonLabel(s.penaltyWon)}`:'없음'}/>
@@ -36,12 +47,12 @@ function LastWeek({weekKey}:{weekKey:string}){
 
 export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
  const {data,dayKey,ready,error,update}=useRoutine(),week=weekKeyOf(dayKey),lastWeek=addDays(week,-7);
- const [amount,setAmount]=useState<StakeAmount|0>(0),[rule,setRule]=useState<WeeklyRule|null>(null),[busy,setBusy]=useState(false),[saveError,setSaveError]=useState('');
+ const [amount,setAmount]=useState<StakeAmount|0>(0),[rule,setRule]=useState<WeeklyRule|null>(null),[busy,setBusy]=useState(false),[saveError,setSaveError]=useState(''),[note,setNote]=useState(()=>weeklyNote(data,addDays(weekKeyOf(dayKey),-7))?.text??'');
  const done=weeklyReviews(data)[week],stake=weeklyStake(data,dayKey),rules=activeWeeklyRules(data,dayKey),targetDays=rules.stakeDays;
  const close=()=>navigation.canGoBack()?navigation.goBack():navigation.navigate('Main');
  const save=async()=>{
   setBusy(true);setSaveError('');
-  try{await update(current=>saveWeeklyReview(amount?placeWeeklyStake(current,dayKey,amount):current,week,rule??undefined));close();}
+  try{await update(current=>saveWeeklyReview(saveWeeklyNote(amount?placeWeeklyStake(current,dayKey,amount):current,lastWeek,note),week,rule??undefined));close();}
   catch(e){setSaveError(e instanceof Error?e.message:'저장하지 못했어요. 다시 시도해 주세요.');setBusy(false);}
  };
  return <Page title="주간 점검" right={<Link label="닫기" onPress={close}/>} footer={ready&&!done?<Action label="이번 주 시작하기" loading={busy} onPress={()=>void save()}/>:undefined}>
@@ -51,6 +62,7 @@ export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
     <Copy variant="section">이번 주 점검을 마쳤어요</Copy>
     <Copy>{stake.stake?`예치금 ${wonLabel(stake.stake.amount)}을 걸었어요. ${stake.stake.targetDays}일 중 ${stake.stake.studyDays}일 공부했어요.`:'이번 주에는 예치금을 걸지 않았어요.'}</Copy>
     <Copy muted>{done.rule?`다음 주부터 ${ruleLabel(done.rule)}로 바뀌어요.`:'다음 주 규칙은 그대로예요.'}</Copy>
+    {weeklyNote(data,lastWeek)?<Copy>{`지난주 메모: ${weeklyNote(data,lastWeek)!.text}`}</Copy>:null}
    </CardView>:<>
     <CardView>
      <Copy variant="section">이번 주 예치금</Copy>
@@ -67,6 +79,9 @@ export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
       <Copy variant="caption" weight="700" muted>{`${option.title} · 지금 ${option.label(rules[option.kind])}`}</Copy>
       <View style={{flexDirection:'row',gap:space.xs}}>{option.values.filter(v=>v!==rules[option.kind]).map(value=><View key={value} style={{flex:1}}><Choice fill label={option.label(value)} accessibilityLabel={`${option.title} ${option.label(value)}로 바꾸기`} selected={rule?.kind===option.kind&&rule.value===value} onPress={()=>setRule({kind:option.kind,value})}/></View>)}</View>
      </View>)}
+    </CardView>
+    <CardView>
+     <Field label="지난주는 어떤 주였나요? (선택)" placeholder="예: 시험 주" value={note} onChangeText={setNote} maxLength={WEEKLY_NOTE_CHARS} helper={`한 줄, ${WEEKLY_NOTE_CHARS}자까지 적을 수 있어요.`}/>
     </CardView>
     {saveError?<Notice tone="error">{saveError}</Notice>:null}
    </>}

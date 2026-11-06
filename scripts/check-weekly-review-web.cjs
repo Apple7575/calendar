@@ -74,17 +74,22 @@ async function open(browser,{data=null,time}={}){
    await page.waitForTimeout(2000); // 앱을 열자마자 주간 점검이 떠야 한다.
    let t=await text(page);
    assert.ok(t.includes('주간 점검')&&t.includes('지난주'),'월요일 아침 루틴 뒤 주간 점검이 자동으로 열려야 함');
-   for(const s of ['공부 시간','1시간 5분','공부한 날','2일 / 7일','긴급 해제','1번','택배 기사님 연락','30분 · 3,000원','받은 돈','1,500원','안 쓴 시간 이자','걸지 않음'])assert.ok(t.includes(s),s);
+   for(const s of ['공부 시간','1시간 5분','공부한 날','2일 / 7일','긴급 해제','1번','택배 기사님 연락','30분 · 3,000원','받은 돈','1,500원','안 쓴 시간 이자','걸지 않음','최근 4주','보통 14:30에 시작했어요 (2일)','10분 이상 남긴 날'])assert.ok(t.includes(s),s);
+   assert.equal(await page.getByTestId('week-trend').getAttribute('aria-label'),'최근 4주 공부한 날 0, 0, 0, 2일, 지난주 2일');
+   assert.ok((await page.getByTestId('week-saved-ten').innerText()).includes('—'),'이자 기록 전 주는 —');
    await page.screenshot({path:`${out}/week-check-390.png`,fullPage:true});
    await noOverflow(page);
    ok('월요일 아침 루틴 뒤 자동으로 열림, 지난주 요약');
    await press(page,'10,000원',200);
    await press(page,'밤 돌아보기 알림 20:50로 바꾸기',200);
+   await page.getByLabel('지난주는 어떤 주였나요? (선택)').fill('  시험 주  ');
    await press(page,'이번 주 시작하기',1200);
    const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
    assert.ok(saved.weeklyReviews[MON].doneAt);
    assert.deepEqual(saved.weeklyReviews[MON].rule,{kind:'reflectTime',value:2050});
    assert.equal(saved.weeklyStakes[MON].amount,10000);
+   assert.equal(saved.weeklyNotes[LAST].text,'시험 주','메모는 점검한 주(지난주)에 앞뒤 공백을 자르고 저장');
+   assert.ok(!saved.weeklyNotes[MON],'이번 주에는 붙이지 않음');
    assert.ok(saved.money.entries.some(e=>e.id==='stake:'+MON&&e.amount===-10000),'건 돈이 지갑에서 빠짐');
    await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(17000);
    assert.ok(!(await text(page)).includes('다음 주에 바꿀 규칙'),'같은 주에는 다시 열리지 않음');
@@ -93,7 +98,7 @@ async function open(browser,{data=null,time}={}){
    await page.screenshot({path:`${out}/goal-home-390.png`,fullPage:true});
    await press(page,'주간 점검',1000);
    t=await text(page);
-   assert.ok(t.includes('이번 주 점검을 마쳤어요')&&t.includes('밤 돌아보기 알림 20:50'),'마친 상태');
+   assert.ok(t.includes('이번 주 점검을 마쳤어요')&&t.includes('밤 돌아보기 알림 20:50')&&t.includes('지난주 메모: 시험 주'),'마친 상태');
    await page.screenshot({path:`${out}/week-check-done-390.png`,fullPage:true});
    ok('마친 주는 결과만 보여 줌');
   }
@@ -112,6 +117,7 @@ async function open(browser,{data=null,time}={}){
   const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
   assert.deepEqual(saved.weeklyReviews[MON].rule,{kind:'morningWords',value:15});
   assert.ok(!saved.weeklyStakes?.[MON],'월요일이 아니면 예치금 없음');
+  assert.ok(!saved.weeklyNotes?.[LAST]&&!saved.weeklyNotes?.[MON],'빈 메모는 저장하지 않음');
   ok('월요일을 놓친 주: 화요일 첫 열기에 열림, 예치금 대신 안내, 규칙은 고를 수 있음');
   assert.deepEqual(errors,[]);await context.close();
  }

@@ -26,6 +26,8 @@ export type WeeklyStakeRow={amount:StakeAmount;targetDays:number;placedAt:string
 export type PromiseOutcome={status:'kept'|'missed';at:string;day:string;minutes:number;won:number};
 export type DayPromiseRow={startAt:string;setAt:string;outcome?:PromiseOutcome};
 export type InterestDay={unusedMinutes:number;won:number;emergency:boolean};
+export type WeeklyNote={text:string;at:string};
+export const WEEKLY_NOTE_CHARS=40;
 
 const P=COMMITMENT_POLICY,MIN=60000;
 const obj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -81,6 +83,24 @@ export function saveWeeklyReview(data:RoutineData,weekKey:string,rule?:WeeklyRul
  if(rule!==undefined&&!validRule(rule))throw new Error('고를 수 있는 규칙이 아니에요.');
  if(reviews(data)[weekKey])return data;
  return {...data,weeklyReviews:{...reviews(data),[weekKey]:{doneAt:new Date(now).toISOString(),...(rule?{rule:{kind:rule.kind,value:rule.value}}:{})}}};
+}
+
+/* A one-line note for the week, written in the Monday review (Grace, build 51). */
+const validNote=(n:unknown):n is WeeklyNote=>obj(n)&&typeof n.text==='string'&&!!n.text.trim()&&[...n.text].length<=WEEKLY_NOTE_CHARS&&typeof n.at==='string'&&Number.isFinite(Date.parse(n.at));
+function notes(data:RoutineData):Record<string,WeeklyNote>{
+ const out:Record<string,WeeklyNote>={},raw=data.weeklyNotes;if(!obj(raw))return out;
+ for(const [k,v] of Object.entries(raw))if(DAY_KEY.test(k)&&validNote(v))out[k]={text:v.text,at:v.at};
+ return out;
+}
+export const weeklyNote=(data:RoutineData,weekKey:string):WeeklyNote|undefined=>notes(data)[weekKey];
+/** Saves the week's note trimmed, up to 40 characters. An empty note removes it. It can be rewritten. */
+export function saveWeeklyNote(data:RoutineData,weekKey:string,text:string,now=Date.now()):RoutineData{
+ if(!DAY_KEY.test(weekKey)||weekKeyOf(weekKey)!==weekKey)throw new Error('주간 메모는 월요일 기준으로 저장해요.');
+ const clean=String(text??'').trim();
+ if([...clean].length>WEEKLY_NOTE_CHARS)throw new Error('한 줄 메모는 40자까지 적을 수 있어요.');
+ const {[weekKey]:_old,...rest}=notes(data);
+ if(!clean){const {weeklyNotes:_gone,...base}=data;return Object.keys(rest).length?{...base,weeklyNotes:rest}:base}
+ return {...data,weeklyNotes:{...rest,[weekKey]:{text:clean,at:new Date(now).toISOString()}}};
 }
 
 /* Studied days: the same rule as the calendar's 집중 공부 완료. */
