@@ -4,7 +4,7 @@ import {moneySummary,PROPOSED_MONEY_RATES,startMoneyRewards} from '../lib/moneyR
 import {penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {dailyTimeline} from '../lib/dailyTimeline';
 import {
- activeWeeklyRules,COMMITMENT_POLICY,dayPromise,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
+ activeWeeklyRules,COMMITMENT_POLICY,dayPromise,promiseOutcomesOn,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
  studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,
 } from '../lib/commitments';
 
@@ -104,13 +104,13 @@ describe('weekly stake',()=>{
 
 describe('weekly rules',()=>{
  test('defaults',()=>{
-  expect(activeWeeklyRules(emptyData(),MON)).toEqual({stakeDays:5,morningWords:10,reflectTime:2030});
+  expect(activeWeeklyRules(emptyData(),MON)).toEqual({stakeDays:5,morningWords:10,reflectTime:2040});
  });
  test('a rule applies from the next Monday, and the latest of each kind carries on',()=>{
   let d=saveWeeklyReview(emptyData(),'2026-11-02',{kind:'morningWords',value:15},t(2,9));
   d=saveWeeklyReview(d,MON,{kind:'reflectTime',value:2050},t(9,9));
-  expect(activeWeeklyRules(d,key(8))).toEqual({stakeDays:5,morningWords:10,reflectTime:2030});
-  expect(activeWeeklyRules(d,MON)).toEqual({stakeDays:5,morningWords:15,reflectTime:2030});
+  expect(activeWeeklyRules(d,key(8))).toEqual({stakeDays:5,morningWords:10,reflectTime:2040});
+  expect(activeWeeklyRules(d,MON)).toEqual({stakeDays:5,morningWords:15,reflectTime:2040});
   expect(activeWeeklyRules(d,'2026-11-16')).toEqual({stakeDays:5,morningWords:15,reflectTime:2050});
  });
  test('a review is saved once; values outside the list are refused',()=>{
@@ -120,9 +120,14 @@ describe('weekly rules',()=>{
   expect(()=>saveWeeklyReview(emptyData(),MON,{kind:'stakeDays',value:7},t(9,9))).toThrow();
   expect(()=>saveWeeklyReview(emptyData(),key(10),undefined,t(10,9))).toThrow();
  });
+ test('a reflect time saved under the old 20:30 choice is ignored and falls back to 20:40',()=>{
+  const d={...emptyData(),weeklyReviews:{[MON]:{doneAt:'x',rule:{kind:'reflectTime',value:2030}}}} as unknown as RoutineData;
+  expect(activeWeeklyRules(d,'2026-11-16').reflectTime).toBe(2040);
+  expect(()=>saveWeeklyReview(emptyData(),MON,{kind:'reflectTime',value:2030},t(9,9))).toThrow();
+ });
  test('broken saved reviews are ignored, never thrown',()=>{
   const d={...emptyData(),weeklyReviews:{[MON]:{doneAt:'x',rule:{kind:'stakeDays',value:99}},bad:null}} as unknown as RoutineData;
-  expect(activeWeeklyRules(d,'2026-11-16')).toEqual({stakeDays:5,morningWords:10,reflectTime:2030});
+  expect(activeWeeklyRules(d,'2026-11-16')).toEqual({stakeDays:5,morningWords:10,reflectTime:2040});
  });
 });
 
@@ -185,14 +190,52 @@ describe('tomorrow\'s promise',()=>{
   expect(penaltyMinutesOnDay(d,key(10))).toBe(0);
   expect(penaltyMinutesOnDay(d,key(11))).toBe(10);
  });
- test('the kept minutes reach the phone on a 5-minute key it already accepts',()=>{
+ const native={supportsHandwritingRewards:true,supportsMinuteHandwriting:true,supportsSpeakingRewards:true,supportsPromiseRewards:true};
+ test('the kept minutes reach the phone on their own promise key, apart from speaking',()=>{
   const d=reconcileCommitments(startAt(promised(),t(10,9)),t(10,9,1));
-  expect(rewardSyncExtras(d,key(10),{supportsHandwritingRewards:true,supportsMinuteHandwriting:true,supportsSpeakingRewards:true})).toMatchObject({speaking:10});
+  expect(rewardSyncExtras(d,key(10),native)).toMatchObject({promise:10,speaking:0});
   const missed=reconcileCommitments(promised(),t(10,10));
-  expect(rewardSyncExtras(missed,key(10),{supportsHandwritingRewards:true,supportsMinuteHandwriting:true})).toMatchObject({penalty:10});
+  expect(rewardSyncExtras(missed,key(10),native)).toMatchObject({promise:0,penalty:10});
+ });
+ test('a build without the promise key is never sent it, which would fail the whole sync',()=>{
+  const d=reconcileCommitments(startAt(promised(),t(10,9)),t(10,9,1));
+  const sent=rewardSyncExtras(d,key(10),{...native,supportsPromiseRewards:false});
+  expect(sent).not.toHaveProperty('promise');
+  expect(sent).toMatchObject({speaking:0});
+ });
+ test('a broken saved value sends 0, never a value the phone refuses',()=>{
+  const d=withDay(emptyData(),key(10),day=>({...day,bonus:{promise:7}}));
+  expect(rewardSyncExtras(d,key(10),native)).toMatchObject({promise:0});
+ });
+ test('Swift accepts only 0 or 10, says it can, and both copies match; the provider re-sends on change',()=>{
+  const fs=require('fs'),path=require('path'),read=(f:string)=>(fs.readFileSync(path.join(__dirname,'../..',f),'utf8') as string).replace(/\r/g,'');
+  expect(read('modules/routine-screen-time/ios/RoutineScreenTimeModule.swift')).toContain('"promise": [0, 10]');
+  expect(read('modules/routine-screen-time/ios/ScreenTimeState.swift')).toContain('"supportsPromiseRewards": true');
+  expect(read('targets/screentime/ScreenTimeState.swift')).toBe(read('modules/routine-screen-time/ios/ScreenTimeState.swift'));
+  const provider=read('src/features/routine/RoutineProvider.tsx');
+  expect(provider).toContain('bonus?.promise,');
+  expect(provider).toContain('native?.supportsPromiseRewards');
  });
 });
 
+describe('telling the user once the result is in',()=>{
+ const promised=(d:RoutineData=wallet(0))=>setTomorrowPromise(d,MON,'09:00',t(9,20,30));
+ test('a promise missed and found the next day reads as yesterday, on the day it was charged',()=>{
+  const d=reconcileCommitments(promised(wallet(3000)),t(11,8));
+  expect(promiseOutcomesOn(d,key(11))).toEqual([{promiseDay:key(10),startAt:'09:00',status:'missed',minutes:10,won:1000,label:'어제 약속(09:00)을 놓쳐서 −10분·1,000원'}]);
+  expect(promiseOutcomesOn(d,key(10))).toEqual([]);
+ });
+ test('found the same day it reads as today; without the wallet only minutes',()=>{
+  expect(promiseOutcomesOn(reconcileCommitments(promised(emptyData()),t(10,10)),key(10))[0].label).toBe('오늘 약속(09:00)을 놓쳐서 −10분');
+ });
+ test('a kept one says so too',()=>{
+  const d=reconcileCommitments({...promised(),bookSessions:[{id:'s',subject:'수능',startedAt:new Date(t(10,9,5)).toISOString(),completedAt:new Date(t(10,10)).toISOString(),seconds:3300,note:'',next:''}]},t(10,10));
+  expect(promiseOutcomesOn(d,key(10))[0].label).toBe('오늘 약속(09:00)을 지켜서 +10분·1,000원');
+ });
+ test('older than yesterday names the date',()=>{
+  expect(promiseOutcomesOn(reconcileCommitments(promised(emptyData()),t(13,8)),key(13))[0].label).toBe('11월 10일 약속(09:00)을 놓쳐서 −10분');
+ });
+});
 describe('interest on unused time',()=>{
  const base=()=>wallet(0);
  test('each full 10 minutes left at 04:00 pays 300원; money only',()=>{

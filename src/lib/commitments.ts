@@ -13,8 +13,8 @@ export const COMMITMENT_POLICY={
  stake:{amounts:[5000,10000,20000],bonusRate:0.1},
  promise:{windowMinutes:15,minutes:10,won:1000,earliest:'04:15',latest:'23:45'},
  interest:{perMinutes:10,won:300,weeklyCapWon:5000,lookbackDays:14},
- rules:{stakeDays:[4,5,6],morningWords:[10,15,20],reflectTime:[2000,2030,2050]},
- defaults:{stakeDays:5,morningWords:10,reflectTime:2030},
+ rules:{stakeDays:[4,5,6],morningWords:[10,15,20],reflectTime:[2000,2040,2050]},
+ defaults:{stakeDays:5,morningWords:10,reflectTime:2040},
 } as const;
 
 export type StakeAmount=typeof COMMITMENT_POLICY.stake.amounts[number];
@@ -150,6 +150,17 @@ function settlePromises(data:RoutineData,now:number):RoutineData{
   next=addMoney(next,'promise:'+dayKey,kept?won:-won,now,kept?'내일 약속 지킴':'내일 약속 놓침');
  }
  return next;
+}
+
+export type PromiseOutcomeRow={promiseDay:string;startAt:string;status:'kept'|'missed';minutes:number;won:number;label:string};
+/** Promise results charged or paid on a day, worded for the day record (user decision: no confirm screen, but say it once). */
+export function promiseOutcomesOn(data:RoutineData,day:string):PromiseOutcomeRow[]{
+ return Object.entries(promises(data)).filter(([,r])=>r.outcome?.day===day).sort(([a],[b])=>a.localeCompare(b)).map(([promiseDay,r])=>{
+  const o=r.outcome!,d=toDate(promiseDay),when=promiseDay===day?'오늘':promiseDay===addDays(day,-1)?'어제':`${d.getMonth()+1}월 ${d.getDate()}일`;
+  const sign=o.status==='kept'?'+':'−',amounts=[sign+o.minutes+'분',...(o.won?[o.won.toLocaleString('ko-KR')+'원']:[])];
+  const label=`${when} 약속(${r.startAt})을 ${o.status==='kept'?'지켜서':'놓쳐서'} ${amounts.join('·')}`;
+  return {promiseDay,startAt:r.startAt,status:o.status,minutes:o.minutes,won:o.won,label};
+ });
 }
 
 /* Interest on unused time. */

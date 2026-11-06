@@ -50,10 +50,10 @@ export function focusLockUntil(t:BookTimer|undefined,now=Date.now()){
  return until.getTime()>now?until.getTime():0;
 }
 /** The fields only a matching build understands. An older build rejects minutes off the 5-minute step and would fail its whole sync. */
-export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean;supportsContentRewards?:boolean}|null|undefined):{handwriting?:number;penalty?:number;speaking?:number;content?:number}{
+export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHandwritingRewards?:boolean;supportsMinuteHandwriting?:boolean;supportsSpeakingRewards?:boolean;supportsContentRewards?:boolean;supportsPromiseRewards?:boolean}|null|undefined):{handwriting?:number;penalty?:number;speaking?:number;content?:number;promise?:number}{
  if(!native?.supportsHandwritingRewards)return {};
- // A kept promise has no key of its own on the phone yet, so its 10 minutes ride on the speaking key, which takes any 5-minute step.
- const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5+promiseBonus(data.days[key])}:{},content=native.supportsContentRewards?{content:contentBonus(data.days[key])}:{};
+ // A kept promise has its own key (0 or 10). An older build without it is never sent one, since an unknown value fails its whole sync.
+ const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5}:{},promise=native.supportsPromiseRewards?{promise:promiseBonus(data.days[key])}:{},content=native.supportsContentRewards?{content:contentBonus(data.days[key])}:{};
  const value=data.days[key]?.bonus?.handwriting??0;
- return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking,...content}:{handwriting:value-value%5};
+ return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking,...content,...promise}:{handwriting:value-value%5};
 }

@@ -275,6 +275,7 @@ enum ScreenTimeStorage {
       "supportsMinuteHandwriting": true,
       "supportsSpeakingRewards": true,
       "supportsContentRewards": true,
+      "supportsPromiseRewards": true,
       "supportsEmergencyUnlock": true,
       "emergencyUntil": emergencyOpen(state) ? (state.emergencyUntil ?? 0) * 1000 : 0,
       "emergencyLog": (state.emergencyLog ?? []).map { row -> [String: Any] in

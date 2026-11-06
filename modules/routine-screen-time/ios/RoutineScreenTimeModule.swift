@@ -134,7 +134,7 @@ private enum ScreenTimeService {
     try requireAuthorization()
     try ScreenTimeStorage.update { state in
       guard day == state.day, state.enabled, state.rewardMode == true else { return }
-      let allowed = ["morning": [0, 5, 10], "gym": [0, 10, 30], "book": [0, 5, 10, 15, 20], "quick": [0, 2, 4], "order": [0, 60], "content": [0, 60, 120, 180]]
+      let allowed = ["morning": [0, 5, 10], "gym": [0, 10, 30], "book": [0, 5, 10, 15, 20], "quick": [0, 2, 4], "order": [0, 60], "content": [0, 60, 120, 180], "promise": [0, 10]]
       var ledger = state.paid ?? [:]
       let words = paid["words"] ?? 0
       guard words >= 0, words % 5 == 0 else { throw ScreenTimeStorage.failure("단어 보상 값을 확인해 주세요.") }
