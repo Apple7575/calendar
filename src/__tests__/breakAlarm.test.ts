@@ -33,6 +33,12 @@ describe('keeping one alarm on the phone',()=>{
   expect(request.trigger).toEqual({type:'date',date:new Date(NOW+60000)});
   expect(request.content.title).toBe('쉬는 시간이 끝났어요');
  });
+ test('the bell on rings with our alarm sound; off is a silent notification (S1-21)',async()=>{
+  await syncBreakAlarm(NOW+60000);
+  expect(N.scheduleNotificationAsync.mock.calls[0][0].content.sound).toBe('rest_alarm.wav');
+  await syncBreakAlarm(NOW+60000,false);
+  expect(N.scheduleNotificationAsync.mock.calls[1][0].content.sound).toBe(false);
+ });
  test('leaving the rest only cancels and never asks for permission',async()=>{
   await syncBreakAlarm(null);
   expect(N.cancelScheduledNotificationAsync).toHaveBeenCalledWith(BREAK_ALARM_ID);

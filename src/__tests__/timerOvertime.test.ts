@@ -21,7 +21,14 @@ test('break overtime stays inverted for as long as it runs',()=>{
  expect(focusClockInverted('idle',0,12)).toBe(true);
  expect(focusClockInverted('idle',0,6000)).toBe(true);
  expect(focusClockInverted('idle',0,null)).toBe(false);
- expect(focusClockInverted('break',0,null)).toBe(false);
+});
+
+test('a rest uses the inverted screen for its whole length, paused or not (build 53)',()=>{
+ expect(focusClockInverted('break',300,null)).toBe(true);
+ expect(focusClockInverted('break',1,null)).toBe(true);
+ expect(focusClockInverted('break',0,null)).toBe(true);
+ expect(focusClockInverted('break',120,null,true)).toBe(true);
+ expect(focusClockInverted('focus',120,null)).toBe(false);
 });
 
 test('overtime theme is black on the timer green',()=>{

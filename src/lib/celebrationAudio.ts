@@ -1,20 +1,27 @@
 import {Audio} from 'expo-av';
+import {isNightScreen} from './nightScreen';
+import {playbackAudioMode} from './focusNoise';
+import {duckFocusNoise} from './focusNoisePlayer';
 
 /**
  * 축하음과 학습 음성의 소리 모드 (팀장 결정 2026-11-06, B안).
  * iOS의 소리 모드는 앱 전체에 하나라서, 축하음을 내는 동안만 무음 스위치를 따르는 모드로 바꾸고 끝나면 되돌린다.
  * - 축하음(complete·milestone): 무음 모드면 소리 없이 진동만.
  * - 학습 음성(단어·예문 발음): 지금처럼 무음 모드에서도 들린다.
+ * - 밤(21:00~04:30, 취침 잠금과 같은 시각)에는 축하음을 아예 내지 않는다(팀장 결정 2026-11-07). 진동은 부르는 쪽에서 그대로 낸다.
  */
 export const PLAYBACK_AUDIO_MODE={allowsRecordingIOS:false,playsInSilentModeIOS:true,staysActiveInBackground:false,shouldDuckAndroid:true} as const;
-export const CELEBRATION_AUDIO_MODE={...PLAYBACK_AUDIO_MODE,playsInSilentModeIOS:false} as const;
+// iOS refuses a mode that follows the silent switch and also stays active in the background, so the celebration mode turns that off for its 1–2 s.
+export const CELEBRATION_AUDIO_MODE={...PLAYBACK_AUDIO_MODE,playsInSilentModeIOS:false,staysActiveInBackground:false} as const;
 
 let chain:Promise<void>=Promise.resolve();
 /** play는 소리가 끝날 때 끝나는 약속을 돌려준다. 실패해도 학습 음성 모드로 되돌린다. */
-export function withCelebrationAudio(play:()=>Promise<void>):Promise<void>{
+export function withCelebrationAudio(play:()=>Promise<void>,now=Date.now()):Promise<void>{
+ if(isNightScreen(now))return Promise.resolve();
  const run=chain.catch(()=>{}).then(async()=>{
+  const release=duckFocusNoise();
   try{await Audio.setAudioModeAsync(CELEBRATION_AUDIO_MODE);await play();}
-  finally{await Audio.setAudioModeAsync(PLAYBACK_AUDIO_MODE).catch(()=>{});}
+  finally{await Audio.setAudioModeAsync(playbackAudioMode()).catch(()=>{});release();}
  });
  chain=run.catch(()=>{});
  return run;

@@ -5,7 +5,11 @@ import {WeekCheckScreen} from '../features/routine/WeekCheckScreen';
 import {NightReflectionScreen} from '../features/routine/NightReflectionScreen';
 import {BuildCheckScreen} from '../features/routine/BuildCheckScreen';
 import {CommitmentGate} from '../features/routine/CommitmentGate';
+import {NextStudyGate} from '../features/routine/NextStudyGate';
+import {NextStudyScreen} from '../features/routine/NextStudyScreen';
+import {RestAlarmGate} from '../features/routine/RestAlarmGate';
 import {CelebrationHost} from '../features/routine/Celebration';
+import {FocusNoiseHost} from '../features/routine/FocusNoise';
 import {EarnedRewardScreen} from '../features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from '../features/routine/AnimalPreviewScreen';
 import {FocusTimerScreen} from '../features/routine/FocusTimerScreen';
@@ -121,6 +125,7 @@ export function RootNavigator() {
           <Stack.Screen name="GoalDetail" component={GoalDetailScreen} options={{headerShown:false}}/>
           <Stack.Screen name="WeekCheck" component={WeekCheckScreen} options={{headerShown:false}}/>
           <Stack.Screen name="NightReflection" component={NightReflectionScreen} options={{headerShown:false}}/>
+          <Stack.Screen name="NextStudy" component={NextStudyScreen} options={{headerShown:false,presentation:"modal"}}/>
           <Stack.Screen name="BuildCheck" component={BuildCheckScreen} options={{headerShown:false}}/>
           <Stack.Screen name="SettingsHub" component={SettingsHubScreen} options={{headerShown:false}}/>
           <Stack.Screen name="ExperienceSettings" component={ExperienceSettingsScreen} options={{headerShown:false}}/>
@@ -295,7 +300,10 @@ export function RootNavigator() {
       )}
     </Stack.Navigator>
     <CommitmentGate/>
+    <NextStudyGate/>
+    <RestAlarmGate/>
     <CelebrationHost/>
+    <FocusNoiseHost/>
     </RoutineProvider>
   );
 }

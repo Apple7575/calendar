@@ -7,6 +7,7 @@ import {dayPromise,setTomorrowPromise} from '../../lib/weeklyCommitments';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
 import {Segments} from './experience';
+import {StartTimeMap} from './StartTimeMap';
 import {celebrate} from './Celebration';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,Choice,Copy,Link,LoadingState,Notice,Page,Progress,u} from './ui';
@@ -65,9 +66,11 @@ export function NightReflectionScreen({navigation}:RootScreenProps<'NightReflect
     {promised?<View testID="reflect-promised" style={{gap:space.xs}}>
      <Copy variant="lead">{`내일 ${tomorrow.startAt}에 첫 공부를 시작해요.`}</Copy>
      <Copy muted>약속 시각 앞뒤 15분 안에 집중을 시작하면 +10분·1,000원, 놓치면 −10분·1,000원이에요. 놓쳐도 시간 사용은 막지 않아요.</Copy>
+     <StartTimeMap data={data} day={addDays(dayKey,1)} compact/>
      <Link label="시각 바꾸기" onPress={()=>setEditing(true)}/>
     </View>:<View testID="reflect-pick" style={{gap:space.sm}}>
      <Copy muted>약속 시각 앞뒤 15분 안에 집중을 시작하면 +10분·1,000원, 놓치면 −10분·1,000원이에요. 놓쳐도 시간 사용은 막지 않아요.</Copy>
+     <StartTimeMap data={data} day={addDays(dayKey,1)}/>
      <View style={{flexDirection:'row',flexWrap:'wrap',gap:space.xs}}>{HOURS.map(h=><View key={h} style={{flexBasis:'30%',flexGrow:1}}><Choice fill label={hourLabel(h)} selected={hour===h} onPress={()=>setHour(h)}/></View>)}</View>
      <Segments value={minute} onChange={setMinute} items={MINUTES.map(id=>({id,label:`${id}분`}))}/>
     </View>}

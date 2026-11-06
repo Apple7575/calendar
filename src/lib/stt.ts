@@ -42,6 +42,15 @@ async function askSpeechPermission() {
   if (!perm.granted) throw new Error("마이크·음성인식 권한이 필요해요. 설정에서 허용해 주세요.");
 }
 
+/** Functions the app calls on the module (speechCall names). Kept in one place so the build self-check can look for them. */
+export const SPEECH_FUNCTIONS = ["addListener", "requestPermissionsAsync", "start", "stop"] as const;
+/** Read-only: whether the module is linked and which of the app's functions it lacks. Never asks for permission. */
+export function speechModuleCheck(): { present: boolean; missing: string[] } {
+  const module = speech?.ExpoSpeechRecognitionModule as unknown as Record<string, unknown> | undefined;
+  if (!module) return { present: false, missing: [] };
+  return { present: true, missing: SPEECH_FUNCTIONS.filter((name) => typeof module[name] !== "function") };
+}
+
 /** 실시간(부분 결과) 음성인식 가능 여부 */
 export function isLiveSttAvailable(): boolean {
   return !!speech?.ExpoSpeechRecognitionModule;

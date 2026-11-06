@@ -10,6 +10,24 @@ export type BuildCheckMark={ok?:boolean;note:string};
 export type BuildCheckState=Record<string,BuildCheckMark>;
 
 export const BUILD_CHECKS:BuildChecklist[]=[
+ {build:53,items:[
+  {id:'self-check',title:'앱이 스스로 확인한 칸',how:'이 화면 맨 위 자동 확인 5칸이 모두 "됨"인가요? 캐릭터가 움직이는데 애니메이션 칸만 안 됨이면 오탐이니 알려 주세요.'},
+  {id:'close-53',title:'큰 타이머 닫기',how:'가로·세로 큰 타이머에서 "닫기"와 "공부 마치기"를 누르면 멈추지 않고 바로 메인으로 가나요? 루틴 타이머 닫기도요.'},
+  {id:'rest-alarm',title:'휴식 끝 알람',how:'화면을 켜 둔 채 휴식이 끝나면 무음 스위치를 켜도 소리가 반복되고 진동하나요? 링 안 "알람 끄기"나 집중 시작으로 멈추나요?'},
+  {id:'rest-alarm-closed',title:'앱 닫았을 때 휴식 끝 알림',how:'앱을 닫고 휴식이 끝나면 우리 알람 소리로 알림이 오나요(무음이면 진동만)? 종을 끄면 소리 없는 알림만 오나요?'},
+  {id:'rest-screen',title:'휴식 화면은 연두색',how:'휴식 중에는 연두 반전 화면이고, 휴식이 끝난 화면과 구분되나요?'},
+  {id:'noise',title:'공부 소리',how:'소리 버튼에서 빗소리·백색소음·카페를 고르면 집중 중에만 나오고, 화면을 잠가도 이어지나요? 휴식이 되면 멈추나요? 반복될 때 "툭" 소리가 없나요? 단어 발음보다 작나요?'},
+  {id:'landscape-row',title:'가로 타이머 버튼',how:'가로에서 오른쪽 위 [소리][종][돌리기] 세 버튼이 노치에 가리지 않나요?'},
+  {id:'next-study',title:'다음 공부 예약',how:'공부를 마치면 "다음 공부는 언제?"가 뜨고, 30분 뒤를 고르면 알림이 오나요? 알림을 누르면 같은 과목 2분부터 시작하나요? 먼저 시작하면 알림이 안 오나요?'},
+  {id:'night',title:'밤 9시 밤 화면',how:'앱을 켜 둔 채 21시가 되면 따뜻한 밤 색으로 바뀌나요? 밤 축하는 소리 없이 진동만 나나요? 04:30 뒤에는 원래대로인가요?'},
+  {id:'emergency-goal',title:'긴급 해제 화면의 내 목표',how:'긴급 해제를 열면 위에 목표·이유·이번 주 n일이 보이고, 키보드가 이유 칸을 가리지 않나요?'},
+  {id:'goal-time',title:'목표에 공부 시간',how:'목표 상세에 이번 주·지난주 공부 시간 막대가 보이나요?'},
+  {id:'start-map',title:'시작 시각 지도',how:'밤 돌아보기에서 내일 약속을 정할 때 요일별 평소 시작 시각 줄이 보이나요?'},
+  {id:'lapse-words',title:'자꾸 잊는 단어',how:'모아둔 단어에 "자꾸 잊는" 탭이 있고(지금은 비어 있을 수 있어요), 카드 메뉴에서 메모를 쓰면 다음 복습 때 뒷면에 보이나요?'},
+  {id:'content-refs',title:'콘텐츠 참고 링크',how:'아이디어에 인스타 링크를 붙이고 누르면 인스타 앱에서 열리나요? "복사한 링크 붙이기"를 처음 누를 때 붙여넣기 허용을 묻나요?'},
+  {id:'tab-top',title:'탭 다시 누르면 맨 위로',how:'보던 탭을 한 번 더 누르면 맨 위로 올라가나요?'},
+  {id:'polish-53',title:'작은 다듬기',how:'일기를 쓰다 밀어서 나가면 물어보나요? 오늘 탭·기록 일기를 당기면 새로고침되나요? 글자 버튼을 누르면 살짝 진동하나요? 단어 검색칸에 X가 있나요? 시간 사용 스위치 옆을 눌러도 켜지나요?'},
+ ]},
  {build:52,items:[
   {id:'speaking-live',title:'말하기 음성 인식',how:'"말로 답하기"를 누르면 오류 없이 말한 내용이 글자로 나오고, 1분 넘게 말해도 계속 받아 적나요?'},
   {id:'diary-voice-52',title:'일기 음성 입력',how:'일기 마이크 버튼으로 말하면 글자로 바뀌나요?'},
@@ -57,11 +75,12 @@ export async function loadBuildCheck(build:number):Promise<BuildCheckState>{
 }
 export async function saveBuildCheck(build:number,state:BuildCheckState){await AsyncStorage.setItem(storageKey(build),JSON.stringify(state));}
 
-/** PM에게 붙여 넣을 글. 확인하지 않은 항목도 빠짐없이 적는다. */
-export function buildCheckReport(list:BuildChecklist,state:BuildCheckState,now=new Date()){
+/** PM에게 붙여 넣을 글. 확인하지 않은 항목도 빠짐없이 적는다.
+ * auto: 앱이 스스로 확인한 줄(selfCheckLines). 사람이 확인한 항목보다 앞에 둔다. */
+export function buildCheckReport(list:BuildChecklist,state:BuildCheckState,now=new Date(),auto:string[]=[]){
  const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
  const marks=list.items.map(item=>({item,mark:state[item.id]}));
  const count=(ok:boolean|undefined)=>marks.filter(m=>m.mark?.ok===ok).length;
  const line=({item,mark}:{item:BuildCheckItem;mark?:BuildCheckMark})=>`${mark?.ok===true?'✓':mark?.ok===false?'✗':'·'} ${item.title}${mark?.note.trim()?` — ${mark.note.trim()}`:''}`;
- return [`[빌드 ${list.build} 확인] ${date}`,`됨 ${count(true)} · 안 됨 ${count(false)} · 미확인 ${count(undefined)}`,...marks.map(line)].join('\n');
+ return [`[빌드 ${list.build} 확인] ${date}`,...auto,`됨 ${count(true)} · 안 됨 ${count(false)} · 미확인 ${count(undefined)}`,...marks.map(line)].join('\n');
 }

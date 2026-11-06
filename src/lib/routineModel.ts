@@ -16,7 +16,7 @@ export const DEFAULT_MORNING: MorningStep[] = [
 ];
 export type StoredCard = Omit<Card, "due" | "last_review"> & { due: string; last_review?: string };
 export type StudyIssue = 'audio' | 'wordAudio' | 'sentenceAudio' | 'example' | 'meaning' | 'other';
-export type Word = { id: string; deckId: string; front: string; back: string; card: StoredCard; fields?: JapaneseNote; kind?: "word" | "sentence"; active?: boolean;suspended?:boolean;buriedOn?:string;localFields?:Partial<JapaneseNote>; favorite?: boolean; issue?: {categories:StudyIssue[];note:string;updatedAt:string} };
+export type Word = { id: string; deckId: string; front: string; back: string; card: StoredCard; fields?: JapaneseNote; kind?: "word" | "sentence"; active?: boolean;suspended?:boolean;buriedOn?:string;localFields?:Partial<JapaneseNote>; favorite?: boolean; memo?: import('./lapseWords').WordMemo; issue?: {categories:StudyIssue[];note:string;updatedAt:string} };
 export const STUDY_ISSUES: Record<StudyIssue,string> = {audio:'음성',wordAudio:'단어 음성',sentenceAudio:'예문 음성',example:'예문 내용·번역',meaning:'단어 뜻·읽기',other:'기타·직접 입력'};
 export const REPORT_TYPES:StudyIssue[]=['wordAudio','sentenceAudio','example','meaning','other'];
 export function favoriteWord(data:RoutineData,id:string):RoutineData {
@@ -67,7 +67,7 @@ export type RoutineData = {
   speakingRecords?:import('./speaking').SpeakingRecord[];speakingConsentAt?:string;
   emergencyUnlocks?:import('./emergencyUnlock').EmergencyUnlock[];emergencyPending?:import('./emergencyUnlock').EmergencyPending;
   weeklyStakes?:Record<string,import('./commitments').WeeklyStakeRow>;dayPromises?:Record<string,import('./commitments').DayPromiseRow>;
-  interestDays?:Record<string,import('./commitments').InterestDay>;interestSince?:string;weeklyReviews?:Record<string,import('./commitments').WeeklyReview>;weeklyNotes?:Record<string,import('./commitments').WeeklyNote>;
+  studyReservations?:import('./studyReservation').StudyReservation[];interestDays?:Record<string,import('./commitments').InterestDay>;interestSince?:string;weeklyReviews?:Record<string,import('./commitments').WeeklyReview>;weeklyNotes?:Record<string,import('./commitments').WeeklyNote>;
   contentUploads?:import('./content').ContentUpload[];contentSeenLinks?:string[];contentIdeas?:import('./content').ContentIdea[];
   focusBreakPayouts?:import('./focusBreakReward').FocusBreakPayout[];
   money?:import('./moneyRewards').MoneyWallet;playLog?:import('./playLog').PlayLog;

@@ -4,6 +4,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {AppState} from 'react-native';
 import {claimStudyAudio,registerStudyAudio} from '../../lib/studyAudioFocus';
 import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
+import {playbackAudioMode} from '../../lib/focusNoise';
 import {useExperiencePreferences,loadExperiencePreferences,experiencePreferences} from '../../lib/experiencePreferences';
 
 export type StudyFeedback={kind:'milestone'|'complete'|'timer';id:string};
@@ -22,7 +23,7 @@ export function useStudyFeedback(event:StudyFeedback|null){
   useEffect(()=>{
     if(!focused||!foreground||!preferences.sound)return;
     let active=true;const players=new Set<Audio.Sound>(),pending=new Map<StudyFeedback['kind'],Promise<Audio.Sound|null>>();
-    const mode=Audio.setAudioModeAsync({allowsRecordingIOS:false,playsInSilentModeIOS:true,staysActiveInBackground:false,shouldDuckAndroid:true});
+    const mode=Audio.setAudioModeAsync(playbackAudioMode());
     for(const kind of ['milestone','complete','timer'] as const){
       pending.set(kind,mode.then(()=>Audio.Sound.createAsync(sources[kind],{shouldPlay:false,volume:0.65})).then(async({sound})=>{
         if(!active){await sound.unloadAsync();return null;}players.add(sound);return sound;

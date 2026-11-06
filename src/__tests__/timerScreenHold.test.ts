@@ -54,3 +54,57 @@ test('focus and routine remember their own direction',async()=>{
  await act(async()=>{renderer.create(React.createElement(FocusProbe))});await flush();
  expect(mockOrientation.lock).toHaveBeenLastCalledWith(1);
 });
+
+describe('leaving the screen (build 53: 닫기 froze the big timer)',()=>{
+ let leave:(go:()=>void)=>void;
+ function LeaveProbe(){leave=useTimerScreenHold(true,'focus').leave;return null}
+ const mountLeave=async()=>{let tree:any;await act(async()=>{tree=renderer.create(React.createElement(LeaveProbe))});await flush();return tree};
+ test('turns the screen back before navigating, so the pop never runs mid-rotation',async()=>{
+  await mountLeave();
+  let finishRotation:()=>void=()=>{};
+  mockOrientation.lock.mockImplementationOnce(()=>new Promise<void>(r=>{finishRotation=r}));
+  const go=jest.fn();
+  await act(async()=>{leave(go)});
+  expect(mockOrientation.lock).toHaveBeenLastCalledWith(mockOrientation.previous);
+  expect(go).not.toHaveBeenCalled();
+  await act(async()=>{finishRotation()});await flush();
+  expect(go).toHaveBeenCalledTimes(1);
+ });
+ test('a second tap while turning does not navigate twice',async()=>{
+  await mountLeave();
+  const go=jest.fn();
+  await act(async()=>{leave(go);leave(go)});await flush();
+  expect(go).toHaveBeenCalledTimes(1);
+ });
+ test('still leaves when the rotation never answers',async()=>{
+  jest.useFakeTimers();
+  try{
+   await act(async()=>{renderer.create(React.createElement(LeaveProbe))});
+   await act(async()=>{await Promise.resolve();await Promise.resolve()});
+   mockOrientation.lock.mockImplementationOnce(()=>new Promise<void>(()=>{}));
+   const go=jest.fn();
+   await act(async()=>{leave(go)});
+   expect(go).not.toHaveBeenCalled();
+   await act(async()=>{jest.advanceTimersByTime(1000)});
+   expect(go).toHaveBeenCalledTimes(1);
+  }finally{jest.useRealTimers()}
+ });
+ test('still leaves when the rotation fails',async()=>{
+  await mountLeave();
+  mockOrientation.lock.mockImplementationOnce(async()=>{throw new Error('no')});
+  const go=jest.fn();
+  await act(async()=>{leave(go)});await flush();
+  expect(go).toHaveBeenCalledTimes(1);
+ });
+});
+
+test('an inactive hold (routine not started) leaves at once, every time, without turning',async()=>{
+ let leave:(go:()=>void)=>void=()=>{};
+ function Idle(){leave=useTimerScreenHold(false,'routine').leave;return null}
+ await act(async()=>{renderer.create(React.createElement(Idle))});await flush();
+ const go=jest.fn();
+ await act(async()=>{leave(go)});
+ await act(async()=>{leave(go)});
+ expect(go).toHaveBeenCalledTimes(2);
+ expect(mockOrientation.lock).not.toHaveBeenCalled();
+});

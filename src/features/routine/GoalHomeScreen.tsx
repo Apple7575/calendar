@@ -5,6 +5,8 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/types';
 import {Goal,MAX_ACTIVE_GOALS,activeGoals,goalBrokenLinks,goalWeek,hasGoalLinks,readGoals} from '../../lib/routineGoals';
 import {goalDueInfo,readableGoalDate} from '../../lib/primaryGoal';
+import {durationLabel} from '../../lib/dailyTimeline';
+import {goalWeekTime} from '../../lib/goalTime';
 import {useTheme} from '../../theme/ThemeContext';
 import {colorRoles} from '../../theme/roles';
 import {koreanTitle,space} from '../../theme/tokens';
@@ -16,7 +18,7 @@ import {Action,CardView,CharacterPeek,Copy,EmptyState,Icon,LoadingState,Notice,P
 type Nav=NativeStackNavigationProp<RootStackParamList>;
 
 function GoalCard({goal,today}:{goal:Goal;today:string}){
- const {data}=useRoutine(),theme=useTheme(),nav=useNavigation<Nav>(),due=goalDueInfo(goal,today),linked=hasGoalLinks(goal),week=goalWeek(data,goal,today),broken=goalBrokenLinks(data,goal);
+ const {data}=useRoutine(),theme=useTheme(),nav=useNavigation<Nav>(),due=goalDueInfo(goal,today),linked=hasGoalLinks(goal),week=goalWeek(data,goal,today),time=linked?goalWeekTime(data,goal,today):undefined,broken=goalBrokenLinks(data,goal);
  return <CardView>
   <Pressable accessibilityRole="button" accessibilityLabel={`${goal.title} 목표 자세히 보기`} onPress={()=>nav.navigate('GoalDetail',{goalId:goal.id})} style={({pressed})=>({gap:space.sm,opacity:pressed?.6:1})}>
    <View style={[u.between,{gap:space.sm}]}>
@@ -30,6 +32,7 @@ function GoalCard({goal,today}:{goal:Goal;today:string}){
    {linked?<View style={{gap:space.xxs}}>
     <View style={u.between}><Copy variant="caption" muted>이번 주 공부한 날</Copy><Copy variant="label" muted>{`${week.count}일 / 주 ${week.target}일`}</Copy></View>
     <Progress value={week.count/week.target} label={`${goal.title} 이번 주 공부한 날 ${week.count}일, 목표 ${week.target}일`}/>
+    {time&&time.seconds+time.lastWeekSeconds?<Copy variant="caption" muted>{`공부 시간 이번 주 ${durationLabel(time.seconds)} · 지난주 ${durationLabel(time.lastWeekSeconds)}`}</Copy>:null}
    </View>:null}
    {broken.subjects.length+broken.deckIds.length?<Notice tone="warning">연결이 끊긴 공부가 있어요. 눌러서 확인해 보세요.</Notice>:null}
    {due?.passed?<Notice tone="warning">정한 날짜가 지났어요. 눌러서 날짜를 고치거나 목표를 끝내 보세요.</Notice>:null}

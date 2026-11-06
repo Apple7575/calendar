@@ -19,6 +19,7 @@
       "appleTeamId": "NR4Y2WD2S7",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"],
         "NSHealthShareUsageDescription": "수면 시간을 일기에 자동으로 기록하기 위해 건강 데이터를 읽습니다.",
         "NSHealthUpdateUsageDescription": "건강 데이터를 수정하지 않습니다.",
         "NSSpeechRecognitionUsageDescription": "말하는 내용을 실시간으로 글로 바꾸기 위해 음성 인식을 사용합니다.",
@@ -32,7 +33,7 @@
           "group.com.newblueday.mycalendar"
         ]
       },
-      "buildNumber": "52"
+      "buildNumber": "53"
     },
     "android": {
       "adaptiveIcon": {
@@ -204,6 +205,14 @@
             }
           }
         ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/rest_alarm.wav"
+          ]
+        }
       ],
       [
         "expo-screen-orientation",
