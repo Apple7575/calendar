@@ -11,6 +11,7 @@ import {overtimeTheme} from '../../theme/themes';
 import {TimerFace} from './TimerFace';
 import {useTimerScreenHold} from './useTimerScreenHold';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useIsFocused} from '@react-navigation/native';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,CharacterPeek,Copy,IconAction,Link,Notice,Page,Progress,u} from './ui';
 import {Segments} from './experience';
@@ -53,13 +54,18 @@ export function GuidedRoutineScreen({route,navigation}:RootScreenProps<'GuidedRo
  const skip=()=>{if(!step||!others.length)return;const remaining=[...skipped.filter(id=>id!==step.id),step.id],nextIndex=currentGuidedIndex(required,done,remaining,stepIds);setSkipped(remaining);if(nextIndex!==undefined)void run(s=>startGuidedStep(s,dayKey,slot,steps[nextIndex].id));};
  const hold=useTimerScreenHold(started&&current!==undefined&&identity.current===dayKey,'routine');
  const levelChoice=<Segments value={level} onChange={choose} items={[{id:'full',label:'전체 목표'},{id:'min',label:isReturnDay(data,dayKey)?'다시 시작 · 작게':'오늘은 작게'}]}/>;
- const words=slot==='morning'?morningWords(data,dayKey):null,settling=useRef(false);
+ const focused=useIsFocused();
+ const words=slot==='morning'?morningWords(data,dayKey,level):null,settling=useRef(false),owedReward=useRef(false);
  const complete=current===undefined,waitingWords=slot==='morning'&&complete&&!day.paid.morning&&!!words&&!words.met,wordsReady=slot==='morning'&&complete&&!day.paid.morning&&!!words?.met;
+ // 지급은 데이터 쪽(settleMorningWords)이 한다. 이 화면은 단어를 기다리는 모습을 보여 줬다면, 지급된 뒤 다시 보일 때 보상 화면을 한 번 띄운다.
+ useEffect(()=>{if(waitingWords)owedReward.current=true;},[waitingWords]);
  useEffect(()=>{
-  if(!wordsReady||!ready||busy||settling.current||identity.current!==dayKey)return;
+  if(!focused||slot!=='morning'||identity.current!==dayKey)return;
+  if(owedReward.current&&day.paid.morning>0){owedReward.current=false;navigation.replace('RoutineReward',{unit:'morning',level,added:day.paid.morning});return;}
+  if(!wordsReady||!ready||busy||settling.current)return;
   settling.current=true;let added=0;
-  void run(s=>{const before=getDay(s,dayKey).paid.morning,next=checkMorning(s,dayKey,level);added=getDay(next,dayKey).paid.morning-before;return next;}).then(saved=>{if(saved&&added>0)navigation.replace('RoutineReward',{unit:'morning',level,added});}).finally(()=>{settling.current=false;});
- },[wordsReady,ready,busy,dayKey,level]);
+  void run(s=>{const before=getDay(s,dayKey).paid.morning,next=checkMorning(s,dayKey,level);added=getDay(next,dayKey).paid.morning-before;return next;}).then(saved=>{if(saved&&added>0){owedReward.current=false;navigation.replace('RoutineReward',{unit:'morning',level,added});}}).finally(()=>{settling.current=false;});
+ },[focused,wordsReady,ready,busy,dayKey,level,day.paid.morning]);
  const totalMinutes=required.reduce((sum,i)=>sum+(steps[i].minutes??5),0),count=required.filter(i=>done[i]).length;
  const footer=identity.current!==dayKey?<Action label="새로운 오늘로 돌아가기" onPress={()=>navigation.popTo('Main',{screen:'Today'})}/>:waitingWords&&words?<View style={{gap:5}}><Action label={`단어 ${words.required-words.done}장 하러 가기`} disabled={!ready||busy} onPress={()=>navigation.navigate('RoutineStudySession',{level:'full'})}/><Link muted label="오늘로 돌아가기" onPress={()=>navigation.popTo('Main',{screen:'Today'})}/></View>:complete?<View style={{gap:5}}><Action label="오늘로 돌아가기" onPress={()=>navigation.popTo('Main',{screen:'Today'})}/>{slot==='evening'&&previous!==undefined?<Link muted label="마지막 행동 되돌리기" onPress={goBack}/>:null}{slot==='morning'&&level==='min'?<Link label="전체 목표도 이어가기" onPress={()=>{choose('full');setCelebrate(false);setStarted(true)}}/>:null}{slot==='morning'&&native?.enabled&&native.rewardMode?<Link label="모은 시간 사용하기" onPress={()=>{void syncRoutineRewards(dayKey,{...day.paid,book:day.bonus?.book??0,extra:day.bonus?.words??0,quick:day.bonus?.quick??0}).then(()=>runScreenTimeAction('startRewardUse')).then(refreshNative).catch(e=>setError(e.message))}}/>:null}</View>:!started?<Action label={`${level==='min'?'작은':'오늘'} 루틴 시작 · 약 ${totalMinutes}분`} disabled={!ready||busy} onPress={()=>{setStarted(true);if(step)void run(s=>startGuidedStep(s,dayKey,slot,step.id))}}/>:<Action label={busy?'기록하고 있어요…':'이 행동 마쳤어요'} disabled={!ready||busy||identity.current!==dayKey} onPress={()=>void finish()}/>;
  const rotateButton=<IconAction icon="reload-outline" label={landscape?'세로로 돌리기':'가로로 돌리기'} onPress={hold.rotate}/>;

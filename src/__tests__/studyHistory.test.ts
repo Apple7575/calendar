@@ -1,6 +1,7 @@
 import { Rating } from 'ts-fsrs';
 import { addDeck,answerAdditionalWord,answerWord,checkMorning,earn,emptyData,getDay,nextAdditionalWord,planStudy,routineDay,startAdditionalStudy } from '../lib/routineModel';
-import { canUndoStudy,completedStudyIds,reviewEvents,undoStudyAnswer,validateStudyState } from '../lib/studyHistory';
+import { canUndoStudy,reviewEvents,undoStudyAnswer,validateStudyState } from '../lib/studyHistory';
+import { completedStudyIds } from '../lib/routineModel';
 import { reconcileAdditionalRewards } from '../lib/studyRewards';
 const now=new Date(2026,9,30,9),key=routineDay(now);
 function seed(count=1){return planStudy(addDeck(emptyData(),'test',Array.from({length:count},(_,i)=>({front:`w${i}`,back:'뜻'})),'d',now),key);}

@@ -114,21 +114,49 @@ export function saveMorningSteps(data: RoutineData, steps: MorningStep[]): Routi
 export function checkMorning(data: RoutineData, key: string, level: Level, index?: number): RoutineData {
   const steps = morningSteps(data, key);
   const required = steps.map((s, i) => level === "full" || s.minimum ? i : -1).filter(i => i >= 0);
-  let next = withDay(data, key, day => ({ ...day, morningPlan: steps.map(s => ({ ...s })), morning: steps.map((_, i) => !!day.morning[i] || i === index) }));
-  if (required.length && required.every(i => getDay(next, key).morning[i]) && morningWords(next, key).met) next = earn(next, key, "morning", level);
+  // 행동을 마친 단계(전체·작게)를 남겨 둔다. 단어를 다른 화면에서 끝내도 같은 단계로 지급하기 위해서다.
+  let next = withDay(data, key, day => ({ ...day, ...(index !== undefined && !day.guidedLevels?.morning ? { guidedLevels: { ...day.guidedLevels, morning: level } } : {}), morningPlan: steps.map(s => ({ ...s })), morning: steps.map((_, i) => !!day.morning[i] || i === index) }));
+  if (required.length && required.every(i => getDay(next, key).morning[i]) && morningWords(next, key, level).met) next = earn(next, key, "morning", level);
   return next;
 }
-/** 아침 루틴의 마지막 필수 항목인 단어 장수. 주간 점검에서 10·15·20 중 고르게 되면 이 값만 바꾼다. */
+/** 아침 루틴의 마지막 필수 항목인 단어 장수. 기본 10장, '오늘은 작게'는 5장(2026-11-06 팀장 결정). */
 export const MORNING_WORD_TARGET = 10;
-export function morningWordTarget(_data: RoutineData): number { return MORNING_WORD_TARGET; }
+export const MORNING_WORD_SMALL = 5;
+const MORNING_WORD_CHOICES = [10, 15, 20];
+/** 주간 점검에서 고른 장수. commitments.activeWeeklyRules와 같은 규칙(그 주보다 앞선 주의 마지막 선택)을, 순환 import 없이 저장값에서 직접 읽는다. */
+function weeklyMorningWords(data: RoutineData, key: string): number {
+  const raw: unknown = data.weeklyReviews; if (!raw || typeof raw !== "object" || Array.isArray(raw)) return MORNING_WORD_TARGET;
+  const [y, m, d] = key.split("-").map(Number), monday = new Date(y, m - 1, d); monday.setDate(monday.getDate() - (monday.getDay() + 6) % 7);
+  const week = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+  let value = MORNING_WORD_TARGET;
+  for (const [k, r] of Object.entries(raw as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b))) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || k >= week || !r || typeof r !== "object" || typeof (r as { doneAt?: unknown }).doneAt !== "string") continue;
+    const rule = (r as { rule?: { kind?: unknown; value?: unknown } }).rule;
+    if (rule?.kind === "morningWords" && MORNING_WORD_CHOICES.includes(rule.value as number)) value = rule.value as number;
+  }
+  return value;
+}
+/** 그날의 장수. level을 주지 않으면 그날 고른 단계를 쓰고, 고르지 않았으면 전체(주간 규칙)로 본다. */
+export function morningWordTarget(data: RoutineData, key: string, level?: Level): number {
+  return (level ?? getDay(data, key).guidedLevels?.morning) === "min" ? MORNING_WORD_SMALL : weeklyMorningWords(data, key);
+}
 /** 오늘 끝낸 카드(오늘 학습·추가 학습에서 '다시'가 아닌 답으로 내일 이후로 넘긴 카드). */
 export function completedStudyIds(day: Day): string[] { return [...new Set([...day.complete, ...(day.additional?.completedIds ?? []), ...Object.values(day.additionalByDeck ?? {}).flatMap(p => p.completedIds)])]; }
 /** 오늘 끝낸 카드 수와 필요한 장수. 학습할 카드가 모자라면 필요한 장수를 줄여서, 카드가 없어도 아침 루틴이 막히지 않는다. */
-export function morningWords(data: RoutineData, key: string) {
+export function morningWords(data: RoutineData, key: string, level?: Level) {
   const finished = new Set(completedStudyIds(getDay(data, key))), active = new Set(data.decks.filter(d => d.active).map(d => d.id));
   const available = data.words.filter(w => active.has(w.deckId) && canStudyWord(w, key) && !finished.has(w.id)).length;
-  const target = morningWordTarget(data), done = finished.size, required = Math.min(target, done + available);
+  const target = morningWordTarget(data, key, level), done = finished.size, required = Math.min(target, done + available);
   return { target, done, required, available, met: done >= required, reduced: required < target };
+}
+/** 화면과 상관없이 아침 보상을 맞춘다: 필수 행동을 다 했고 단어도 채웠는데 아직 지급 전이면, 그날 단계(없으면 작게)로 지급한다. 바뀔 것이 없으면 같은 객체를 돌려준다. */
+export function settleMorningWords(data: RoutineData, key: string): RoutineData {
+  const day = data.days[key];
+  if (!day || day.paid.morning > 0 || !day.morningPlan) return data;
+  const level: Level = day.guidedLevels?.morning ?? "min", steps = morningSteps(data, key);
+  const required = steps.map((s, i) => level === "full" || s.minimum ? i : -1).filter(i => i >= 0);
+  if (!required.length || !required.every(i => day.morning[i]) || !morningWords(data, key, level).met) return data;
+  return earn(data, key, "morning", level);
 }
 export function earn(data: RoutineData, key: string, unit: Unit, level: Level): RoutineData {
   if(unit==='words')return data;

@@ -34,7 +34,7 @@ export function undoStudyAnswer(data:RoutineData,key:string,now=new Date()):Rout
  const next=withDay(data,key,d=>({...d,plan:s.plan,complete:s.complete,responses:s.responses,studySeconds:s.studySeconds,lastStudyWordId:s.lastStudyWordId,additional:s.additional,additionalByDeck:s.additionalByDeck,rewardedStudyIds:s.rewardedStudyIds,extraPendingIds:s.extraPendingIds,wordRewards:s.wordRewards,orderProgress:s.orderProgress,paid:{...d.paid,words:s.paidWords},bonus:{...d.bonus,words:s.bonusWords,quick:s.bonusQuick,order:s.bonusOrder??0}}));
  return {...next,studyUndo:undefined,words:next.words.map(w=>w.id===u.wordId?{...w,card:u.cardBefore}:w),reviewHistory:next.reviewHistory?.map(e=>e.id===u.eventId?{...e,voidedAt:now.toISOString()}:e)};
 }
-export {completedStudyIds};
+// completedStudyIds는 routineModel에 있다(서로 import하지 않도록).
 export function reviewEvents(data:RoutineData,filter:{deckId?:string;wordId?:string;day?:string;includeVoided?:boolean}={}){
  return (data.reviewHistory??[]).filter(e=>(filter.includeVoided||!e.voidedAt)&&(!filter.deckId||e.deckId===filter.deckId)&&(!filter.wordId||e.wordId===filter.wordId)&&(!filter.day||e.day===filter.day));
 }
