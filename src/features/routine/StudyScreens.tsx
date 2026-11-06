@@ -19,8 +19,7 @@ import { canUndoStudy } from '../../lib/studyHistory';
 import { DeckRow } from "../../lib/japaneseDeck";
 import { AccountConnection } from "./AccountConnection";
 import { AdditionalStudyChooser } from './AdditionalStudyChooser';
-import { StudyCelebration } from './StudyCelebration';
-import { MotionEnter } from './motion';
+import { celebrate } from './Celebration';
 import { tapSuccess } from '../../lib/haptics';
 import {StudyFeedback,useStudyFeedback} from './useStudyFeedback';
 import {AdditionalCompletionCard} from './AdditionalCompletionCard';
@@ -42,7 +41,6 @@ export function RoutineStudySessionScreen({ route, navigation }: RootScreenProps
   const [error, setError] = useState<string | null>(null);
   const [addedMinutes,setAddedMinutes]=useState(0);
   const [encouragement,setEncouragement]=useState('');
-  const [milestone,setMilestone]=useState<number|null>(null);
   const [finishedCelebration,setFinishedCelebration]=useState(false);
   const [feedback,setFeedback]=useState<StudyFeedback|null>(null);
   useStudyFeedback(feedback);
@@ -60,7 +58,7 @@ export function RoutineStudySessionScreen({ route, navigation }: RootScreenProps
   const word=usePresentedStudyWord(`${dayKey}:${additional}:${level}:${deckId??'all'}`,pending,candidate,restored);
   const startMore = async (kind:'new'|'review'|'quick',count=10) => {
     if(busy)return;setBusy(true);setError(null);setFeedback(null);
-    try {await update(s=>startAdditionalStudy(s,dayKey,kind,count,new Date(),deckId));navigation.setParams({mode:'additional',level:'full'});setAddedMinutes(0);setMilestone(null);setRevealedKey(null);setClock(new Date());}
+    try {await update(s=>startAdditionalStudy(s,dayKey,kind,count,new Date(),deckId));navigation.setParams({mode:'additional',level:'full'});setAddedMinutes(0);setRevealedKey(null);setClock(new Date());}
     catch(e){setError(e instanceof Error?e.message:'학습을 준비하지 못했어요.');}finally{setBusy(false);}
   };
   const wordKey = word ? `${word.id}:${word.card.reps}` : "waiting";
@@ -108,12 +106,14 @@ export function RoutineStudySessionScreen({ route, navigation }: RootScreenProps
       });
       setRevealedKey(null); startedAt.current = Date.now(); setClock(new Date());
       setEncouragement(grade===Rating.Again?'다시 만나는 것도 공부예요. 편하게 기억을 확인해요.':'');
-      setAddedMinutes(value=>value+Math.max(0,target-previous));
+      const gained=Math.max(0,target-previous);
+      setAddedMinutes(value=>value+gained);
       const celebrationKey=`${dayKey}:${additional}:${deckId??'all'}:${batch}:${completed}`;
-      if(completed>previousDone&&completed%10===0&&completed<total&&!celebrated.current.has(celebrationKey)){
-        celebrated.current.add(celebrationKey);setMilestone(completed);setFeedback({kind:'milestone',id:celebrationKey});tapSuccess();
-      }else if(completed>previousDone&&completed===total&&!celebrated.current.has(celebrationKey)){
+      if(completed>previousDone&&completed===total&&!celebrated.current.has(celebrationKey)){
         celebrated.current.add(celebrationKey);setFeedback({kind:'complete',id:celebrationKey});tapSuccess();setFinishedCelebration(true);
+      }else if(gained>0){
+        // 저장이 끝난 뒤, 단어 보상 구간이 실제로 올라간 만큼만 보여 준다(G4). 분량 완료와 겹치면 큰 축하가 +분을 이미 보여 주므로 생략한다.
+        celebrate({kind:'wordStep',minutes:gained,character:'C02'});
       }
     } catch (e) { setError(e instanceof Error ? e.message : "응답을 저장하지 못했어요."); }
     finally { setBusy(false); }
@@ -123,8 +123,8 @@ export function RoutineStudySessionScreen({ route, navigation }: RootScreenProps
     const minutes = Math.max(1, Math.ceil((due.getTime() - clock.getTime()) / 60000));
     return minutes < 60 ? `${minutes}분 후` : minutes < 1440 ? `${Math.round(minutes / 60)}시간 후` : `${Math.round(minutes / 1440)}일 후`;
   };
-  const grading = !word || sessionDay.current !== dayKey ? undefined : <StudyRatingBar revealed={revealed} busy={busy||milestone!==null||!!data.pendingStudyAdjustment} onReveal={()=>setRevealedKey(wordKey)} onAnswer={grade=>void answer(grade)} interval={grade=>previews?intervalLabel(previews[grade].card.due):''}/>;
-  const undo=async()=>{if(busy)return;const event=data.reviewHistory?.find(e=>e.id===data.studyUndo?.eventId);setBusy(true);setFeedback(null);try{await undoStudy();if(event)navigation.setParams({level:event.level??'full',deckId:event.deckId,mode:event.mode==='additional'?'additional':undefined});setRevealedKey(null);setAddedMinutes(0);setMilestone(null);setFinishedCelebration(false);setClock(new Date());}catch(e){setError(e instanceof Error?e.message:'채점을 취소하지 못했어요.');}finally{setBusy(false);}};
+  const grading = !word || sessionDay.current !== dayKey ? undefined : <StudyRatingBar revealed={revealed} busy={busy||!!data.pendingStudyAdjustment} onReveal={()=>setRevealedKey(wordKey)} onAnswer={grade=>void answer(grade)} interval={grade=>previews?intervalLabel(previews[grade].card.due):''}/>;
+  const undo=async()=>{if(busy)return;const event=data.reviewHistory?.find(e=>e.id===data.studyUndo?.eventId);setBusy(true);setFeedback(null);try{await undoStudy();if(event)navigation.setParams({level:event.level??'full',deckId:event.deckId,mode:event.mode==='additional'?'additional':undefined});setRevealedKey(null);setAddedMinutes(0);setFinishedCelebration(false);setClock(new Date());}catch(e){setError(e instanceof Error?e.message:'채점을 취소하지 못했어요.');}finally{setBusy(false);}};
   return <Page title={additional ? "추가 학습" : level === "min" ? "작게 복습하기" : "오늘의 학습"} right={<View style={u.row}>{canUndoStudy(data,dayKey)?<Link label="채점 취소" onPress={()=>void undo()}/>:null}<Link label="닫기" onPress={() => navigation.goBack()} /></View>} footer={grading} floatingFooter fillContent={!!word}>
     {deckId?<Copy muted size={12}>{data.decks.find(d=>d.id===deckId)?.name} · 이 덱만 학습 중</Copy>:null}
     <Progress value={progress.total ? progress.done / progress.total : 0} label="학습 진행률" />
@@ -134,12 +134,11 @@ export function RoutineStudySessionScreen({ route, navigation }: RootScreenProps
     {data.pendingStudyAdjustment?<CardView><Copy>채점을 취소했어요. 기기의 학습 보상을 되돌리는 중이에요.</Copy><Link label="보상 복원 다시 시도" onPress={retryStudyAdjustment}/></CardView>:null}
     <Copy size={13} weight="700">이번 구간 {reward.pending}/{reward.required}장 · {reward.untilNext}장 더 완료하면 +5분</Copy>
     <Copy muted size={12}>다음 구간은 {reward.required+5}장에 +5분 · 오늘 단어 적립 합계 {reward.earned}분</Copy>
-    <StudyCelebration count={milestone} onContinue={()=>{setFeedback(null);setMilestone(null);startedAt.current=Date.now();}}/>
     <StudyFinishedCelebration visible={finishedCelebration} granted={additional?extra?.reward?.granted:addedMinutes} excluded={progress.excluded} additional={additional} plan={additional?extra:undefined} count={progress.total} onClose={()=>{setFinishedCelebration(false);setFeedback(null)}}/>
-    {sessionDay.current !== dayKey ? <CardView><Copy>새 하루가 시작됐어요. 기록은 저장했어요.</Copy><Action label="오늘 학습으로 돌아가기" onPress={() => navigation.goBack()} /></CardView> : word ? <StudyCard fill key={wordKey} word={word} revealed={revealed} paused={milestone!==null} onReveal={()=>setRevealedKey(wordKey)}/> : <CardView>
+    {sessionDay.current !== dayKey ? <CardView><Copy>새 하루가 시작됐어요. 기록은 저장했어요.</Copy><Action label="오늘 학습으로 돌아가기" onPress={() => navigation.goBack()} /></CardView> : word ? <StudyCard fill key={wordKey} word={word} revealed={revealed} onReveal={()=>setRevealedKey(wordKey)}/> : <CardView>
       <Copy size={23} weight="800">{!ready || !day.plan ? "오늘 카드를 준비하고 있어요" : additional ? "추가 분량을 마쳤어요" : progress.full ? "오늘 분량을 마쳤어요" : "계속 공부할 수 있어요"}</Copy>
       {!additional&&pendingAdditionalWords(data,dayKey,deckId).length?<Action label="하던 추가 학습 이어하기" disabled={busy} onPress={()=>navigation.setParams({mode:'additional',level:'full'})}/>:<AdditionalStudyChooser newCount={additionalCandidates(data,dayKey,'new',deckId).length} reviewCount={additionalCandidates(data,dayKey,'review',deckId).length} busy={busy||!ready} onStart={(kind,count)=>void startMore(kind,count)}/>}
-      {ready&&progress.full?(additional?<AdditionalCompletionCard plan={extra} count={progress.total} excluded={progress.excluded}/>:<View testID="study-batch-complete" style={{alignItems:'center',gap:4,paddingBottom:10}}><MotionEnter celebration><Mascot size={160} action="A26"/></MotionEnter><Copy size={13} muted>{progress.total}장, 끝까지 해냈어요!</Copy><WordRewardProgress excluded={progress.excluded}/></View>):null}
+      {ready&&progress.full?(additional?<AdditionalCompletionCard plan={extra} count={progress.total} excluded={progress.excluded}/>:<View testID="study-batch-complete" style={{gap:6,paddingBottom:10}}><View style={[u.row,{gap:8}]}><Mascot size={36} action="A26"/><Copy size={14} weight="700">오늘 분량 {progress.total}장 완료</Copy></View><WordRewardProgress excluded={progress.excluded}/></View>):null}
       {level === "min" && progress.min ? <Link label="작은 목표 보상 보기" onPress={() => void finishMinimum()} /> : null}
       {data.studyRewardPolicy?.quickEnabled?<Action secondary label="짧은 복습 3장 · 완료 수에 합산" disabled={busy||!ready} onPress={()=>void startMore('quick')}/>:null}
       {deckId?<Link label="다른 덱의 오늘 학습 이어가기" onPress={()=>navigation.setParams({deckId:undefined,mode:undefined})}/>:null}
