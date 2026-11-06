@@ -72,9 +72,15 @@ describe('the rest keeps its length',()=>{
   expect(breakLength(old)).toBe(300);
   expect(breakLength({...old,breakSeconds:120})).toBe(120);
  });
- test('backups keep the length, and refuse one that is not in the table',()=>{
-  const d=rest(running(),120);
-  expect(()=>validateBackup(makeBackup(d,user),user)).not.toThrow();
-  expect(()=>validateBackup(makeBackup({...d,bookTimer:{...d.bookTimer!,breakSeconds:999}},user),user)).toThrow();
+ test('a length the screen cannot use reads as 5 minutes',()=>{
+  const t=rest(running(),120).bookTimer!;
+  for(const bad of [0,-60,1.5,NaN,3601,'60'])expect(breakLength({...t,breakSeconds:bad as number})).toBe(300);
+  expect(breakLength({...t,breakSeconds:90})).toBe(90);
+ });
+ // Build 50: one shape check blocked the whole backup. A range, not the table, so a later table (say 90 s) never blocks one.
+ test('backups take any whole length from 1 second to an hour, and refuse only broken ones',()=>{
+  const d=rest(running(),120),with_=(v:unknown)=>()=>validateBackup(makeBackup({...d,bookTimer:{...d.bookTimer!,breakSeconds:v as number}},user),user);
+  for(const ok of [60,90,1,3600])expect(with_(ok)).not.toThrow();
+  for(const bad of [0,3601,1.5,'60'])expect(with_(bad)).toThrow();
  });
 });

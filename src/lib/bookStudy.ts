@@ -17,8 +17,10 @@ export type BookTimer={id:string;subject:string;startedAt:string;phase:'focus'|'
  * Index 0 is a timer outside the stages (the plain 25-minute timer), which keeps 5 minutes.
  */
 export const BREAK_SECONDS=[300,60,60,120,180,300] as const;
-/** How long this rest is. A rest saved before S2-14 has no length and was 5 minutes. */
-export const breakLength=(t:BookTimer|undefined)=>t?.breakSeconds??BREAK_SECONDS[0];
+/** A rest length a saved timer may hold: whole seconds, up to an hour. Wider than the table so a later table never breaks old saves. */
+export const validBreakSeconds=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=1&&n<=3600;
+/** How long this rest is. A rest saved before S2-14 has no length and was 5 minutes; a length that cannot be used reads as 5 too. */
+export const breakLength=(t:BookTimer|undefined)=>validBreakSeconds(t?.breakSeconds)?t!.breakSeconds!:BREAK_SECONDS[0];
 export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const timer=data.bookTimer;if(!timer||!timer.running||now<timer.endsAt)return data;
  // Reaching the target is a cue, not consent to stop studying or start a break.
