@@ -1,3 +1,7 @@
+// 빌드 확인표는 맨 위(가장 새 빌드)의 앞 두 항목으로 검사한다. 빌드마다 항목이 바뀌어도 이 검사는 그대로 쓴다.
+const CHECK_SRC=require('fs').readFileSync(require('path').join(__dirname,'..','src','lib','buildChecklist.ts'),'utf8');
+const CHECK_BUILD=Number(/\{build:(\d+),items:\[/.exec(CHECK_SRC)[1]);
+const [CHECK_A,CHECK_B]=[...CHECK_SRC.slice(CHECK_SRC.indexOf('{build:'+CHECK_BUILD)).matchAll(/title:'([^']+)'/g)].slice(0,2).map(m=>m[1]);
 // 주간 점검·밤 돌아보기·빌드 확인표 검수(웹 미리보기, iPhone 13 Pro 390x844).
 // 격리된 브라우저 컨텍스트와 예시 데이터만 쓴다. 알림·클립보드·실제 예치금 정산은 실기기와 Felix 함수로 따로 확인한다.
 // 사용: $env:PREVIEW_PORT='8093'; node scripts/check-weekly-review-web.cjs [before|after]
@@ -47,19 +51,19 @@ async function open(browser,{data=null,time}={}){
   await page.screenshot({path:`${out}/settings-390.png`,fullPage:true});
   if(stage==='after'){
    await press(page,'이번 빌드 확인',1000);
-   assert.ok((await text(page)).includes('빌드 50'));
-   await press(page,'주간 점검 됨',200);
-   await press(page,'밤 돌아보기 알림 안 됨',200);
-   await page.getByLabel('밤 돌아보기 알림 메모').fill('알림이 안 와요');
+   assert.ok((await text(page)).includes('빌드 '+CHECK_BUILD));
+   await press(page,CHECK_A+' 됨',200);
+   await press(page,CHECK_B+' 안 됨',200);
+   await page.getByLabel(CHECK_B+' 메모').fill('알림이 안 와요');
    await page.waitForTimeout(300);
    await page.screenshot({path:`${out}/build-check-390.png`});
    await page.getByRole('button',{name:/PM에게 보낼 글 복사/}).last().click();await page.waitForTimeout(600);
    const copied=await page.evaluate(()=>navigator.clipboard.readText());
-   assert.ok(copied.startsWith('[빌드 50 확인]'),copied);
-   assert.ok(copied.includes('✓ 주간 점검')&&copied.includes('✗ 밤 돌아보기 알림 — 알림이 안 와요'),copied);
+   assert.ok(copied.startsWith('[빌드 '+CHECK_BUILD+' 확인]'),copied);
+   assert.ok(copied.includes('✓ '+CHECK_A)&&copied.includes('✗ '+CHECK_B+' — 알림이 안 와요'),copied);
    assert.ok((await text(page)).includes('복사했어요'));
    await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(1500);
-   assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('routine.buildCheck.v1.50'))));
+   assert.ok(await page.evaluate(b=>Object.keys(localStorage).some(k=>k.startsWith('routine.buildCheck.v1.'+b)),CHECK_BUILD));
    const store=await page.evaluate(k=>localStorage.getItem(k),STORE);
    assert.ok(!store||!store.includes('buildCheck'),'확인표는 루틴 데이터(백업)에 들어가지 않음');
    await noOverflow(page);
