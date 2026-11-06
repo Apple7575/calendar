@@ -1,11 +1,13 @@
 import React,{useRef,useState} from 'react';
 import {Linking,Pressable,View} from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import * as Crypto from 'expo-crypto';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {MicButton} from '../../components/MicButton';
-import {addContentIdea,CONTENT_IDEA_CHARS,CONTENT_PLATFORMS,contentIdeas,contentMonth,contentToday,contentWeek,parseContentLink,pickContentIdea,removeContentIdea,submitContentLink,unpickContentIdea,type ContentIdea,type ContentUpload} from '../../lib/content';
+import {addContentIdea,addIdeaRef,CONTENT_IDEA_CHARS,IDEA_REFS_MAX,IDEA_WHY_CHARS,openableRef,parseRefLink,removeIdeaRef,setIdeaWhy,CONTENT_PLATFORMS,contentIdeas,contentMonth,contentToday,contentWeek,parseContentLink,pickContentIdea,removeContentIdea,submitContentLink,unpickContentIdea,type ContentIdea,type ContentUpload} from '../../lib/content';
 import {rewardChange} from '../../lib/rewardChange';
+import type {RoutineData} from '../../lib/routineModel';
 import {RootStackParamList} from '../../navigation/types';
 import {useTheme} from '../../theme/ThemeContext';
 import {control,radii,space} from '../../theme/tokens';
@@ -26,14 +28,65 @@ function TodayCard(p:ReturnType<typeof contentToday>[number]){
   <Copy variant="caption">{p.minutes/60+'시간 · '+won(p.won)}</Copy>
  </View>;
 }
-/** The idea's place in 아이디어 → 만드는 중 → 올림. */
-function IdeaRow({idea,today,onPick,onUnpick,onRemove}:{idea:ContentIdea;today:string;onPick:()=>void;onUnpick:()=>void;onRemove:()=>void}){
- const at=STAGES.findIndex(s=>s.id===idea.stage),{colors:c}=useTheme();
- return <View style={{gap:space.xs,paddingVertical:space.xs}}>
+const SHORT:Record<string,string>={'인스타 릴스':'릴스','인스타 게시물':'인스타','유튜브 쇼츠':'쇼츠','유튜브 영상':'유튜브'};
+/** A reference video, named by its kind instead of a thumbnail. Only an address that reads back as itself is opened. */
+function RefChip({url,index,onRemove}:{url:string;index:number;onRemove?:()=>void}){
+ const {colors:c}=useTheme(),full=parseRefLink(url)?.label??'링크',label=full+' '+(index+1),short=(SHORT[full]??full)+' '+(index+1);
+ return <View style={{flexDirection:'row',alignItems:'center',borderRadius:radii.chip,borderWidth:1,borderColor:c.border,backgroundColor:c.card}}>
+  <Pressable accessibilityRole="link" accessibilityLabel={label+' 열기'} onPress={()=>{if(openableRef(url))void Linking.openURL(url).catch(()=>{})}} style={{flexDirection:'row',alignItems:'center',gap:space.xxs,minHeight:control.touch,paddingLeft:space.sm,paddingRight:onRemove?space.xxs:space.sm}}>
+   <Icon name="play-circle-outline" size={17} color={c.text}/><Copy variant="caption">{short}</Copy>
+  </Pressable>
+  {onRemove?<Pressable accessibilityRole="button" accessibilityLabel={label+' 빼기'} onPress={onRemove} style={{width:control.touch,height:control.touch,alignItems:'center',justifyContent:'center'}}><Icon name="close" size={16}/></Pressable>:null}
+ </View>;
+}
+function Refs({idea,onRemove}:{idea:ContentIdea;onRemove?:(url:string)=>void}){
+ if(!idea.refs?.length)return null;
+ return <View testID={'idea-refs-'+idea.id} style={{flexDirection:'row',flexWrap:'wrap',gap:space.xs}}>{idea.refs.map((u,n)=><RefChip key={u} url={u} index={n} onRemove={onRemove?()=>onRemove(u):undefined}/>)}</View>;
+}
+type Save=(fn:(s:RoutineData)=>RoutineData)=>Promise<boolean>;
+const oneLine=(t:string)=>t.replace(/\s+/g,' ').trim();
+/** Reference links and the why line, opened under one idea at a time. */
+function RefEditor({idea,change}:{idea:ContentIdea;change:Save}){
+ const {colors:c}=useTheme(),[link,setLink]=useState(''),[why,setWhy]=useState(idea.why??''),[error,setError]=useState(''),prefix=useRef('');
+ const full=(idea.refs?.length??0)>=IDEA_REFS_MAX,parsed=parseRefLink(link),whyChanged=(idea.why??'')!==oneLine(why);
+ const spoken=(t:string)=>setWhy((prefix.current+(prefix.current?' ':'')+t).slice(0,IDEA_WHY_CHARS));
+ const add=async(raw:string)=>{
+  setError('');
+  if(!parseRefLink(raw)){setError('인스타·유튜브·틱톡·스레드 영상 링크만 붙일 수 있어요.');return}
+  if(await change(s=>addIdeaRef(s,idea.id,raw)))setLink('');
+ };
+ const paste=async()=>{
+  try{const text=(await Clipboard.getStringAsync()).trim();if(!text){setError('복사한 링크가 없어요.');return}setLink(text);await add(text)}
+  catch{setError('복사한 내용을 읽지 못했어요. 링크 칸에 직접 붙여 넣어 주세요.')}
+ };
+ return <View testID={'idea-editor-'+idea.id} style={{gap:space.xs,padding:space.sm,borderRadius:radii.control,backgroundColor:c.inputBg}}>
+  <View style={{flexDirection:'row',alignItems:'flex-end',gap:space.xs}}>
+   <View style={{flex:1,minWidth:0}}><Field label="왜 좋았나 (선택)" value={why} onChangeText={setWhy} maxLength={IDEA_WHY_CHARS} placeholder="예: 첫 3초에 질문을 던져서"/></View>
+   <View style={{paddingBottom:2}}><MicButton size={control.touch} onText={spoken} onPartial={spoken} onListeningChange={on=>{if(on)prefix.current=why}}/></View>
+  </View>
+  {whyChanged?<Action secondary compact label="메모 저장" onPress={()=>void change(s=>setIdeaWhy(s,idea.id,why))}/>:null}
+  <Refs idea={idea} onRemove={url=>void change(s=>removeIdeaRef(s,idea.id,url))}/>
+  {full?<Copy variant="caption" muted>{'참고 링크는 '+IDEA_REFS_MAX+'개까지예요. 하나를 빼면 더 붙일 수 있어요.'}</Copy>:<>
+   <Action compact icon="clipboard-outline" label="복사한 링크 붙이기" accessibilityLabel="복사한 링크 붙이기" onPress={()=>void paste()}/>
+   <Field label="참고 링크" value={link} onChangeText={v=>{setLink(v);setError('')}} maxLength={300} placeholder="인스타·유튜브·틱톡·스레드 링크" helper={parsed?parsed.label+' 링크예요':undefined}/>
+   {link.trim()?<Action secondary compact label="링크 넣기" onPress={()=>void add(link)}/>:null}
+  </>}
+  {error?<Notice tone="error">{error}</Notice>:null}
+ </View>;
+}
+/** The idea's place in 아이디어 → 만드는 중 → 올림. While making, its references sit right under the title so they are at hand. */
+function IdeaRow({idea,today,open,onToggle,change,onPick,onUnpick,onRemove}:{idea:ContentIdea;today:string;open:boolean;onToggle:()=>void;change:Save;onPick:()=>void;onUnpick:()=>void;onRemove:()=>void}){
+ const at=STAGES.findIndex(s=>s.id===idea.stage),{colors:c}=useTheme(),making=idea.stage==='making',count=idea.refs?.length??0;
+ const edit=<Link label={open?'닫기':count?'참고 '+count+'개 · 고치기':'참고 링크·메모'} onPress={onToggle}/>;
+ return <View testID={'idea-'+idea.id} style={{gap:space.xs,paddingVertical:space.xs}}>
   <Copy>{idea.text}</Copy>
+  {making&&!open?<Refs idea={idea}/>:null}
+  {idea.why&&!open?<Copy variant="caption" muted>{'왜 좋았나 · '+idea.why}</Copy>:null}
+  {!making&&!open?<Refs idea={idea}/>:null}
   <View style={{flexDirection:'row',gap:space.xxs,flexWrap:'wrap',alignItems:'center'}}>{STAGES.map((s,i)=><React.Fragment key={s.id}>{i?<Icon name="chevron-forward" size={12} color={c.textMuted}/>:null}<Copy variant="caption" muted={i!==at} weight={i===at?'700':undefined}>{s.label}</Copy></React.Fragment>)}</View>
-  {idea.stage==='idea'?<View style={{flexDirection:'row',gap:space.md,alignItems:'center'}}><Link label="오늘 만들기" onPress={onPick}/><Link label="지우기" onPress={onRemove}/></View>:null}
-  {idea.stage==='making'?<View style={{flexDirection:'row',gap:space.md,alignItems:'center'}}><Link label="아이디어로 되돌리기" onPress={onUnpick}/>{idea.pickedDay&&idea.pickedDay!==today?<Copy variant="caption" muted>{dateLabel(idea.pickedDay)}에 골랐어요</Copy>:null}</View>:null}
+  {open?<RefEditor idea={idea} change={change}/>:null}
+  {idea.stage==='idea'?<View style={{flexDirection:'row',gap:space.md,alignItems:'center',flexWrap:'wrap'}}><Link label="오늘 만들기" onPress={onPick}/>{edit}<View style={{marginLeft:'auto'}}><Link muted label="지우기" onPress={onRemove}/></View></View>:null}
+  {making?<View style={{flexDirection:'row',gap:space.md,alignItems:'center',flexWrap:'wrap'}}><Link label="아이디어로 되돌리기" onPress={onUnpick}/>{edit}{idea.pickedDay&&idea.pickedDay!==today?<Copy variant="caption" muted>{dateLabel(idea.pickedDay)}에 골랐어요</Copy>:null}</View>:null}
  </View>;
 }
 function Calendar({month,days,today}:{month:string;days:Record<string,string[]>;today:string}){
@@ -62,9 +115,10 @@ function LinkRow({upload}:{upload:ContentUpload}){
 /** The content section of the study tab: today's two uploads and the link to prove one, ideas, then the month. */
 export function ContentHome(){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{data,dayKey,ready,update}=useRoutine(),{colors:c}=useTheme();
- const [link,setLink]=useState(''),[idea,setIdea]=useState(''),[chosen,setChosen]=useState<string>(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[note,setNote]=useState(''),[month,setMonth]=useState(dayKey.slice(0,7)),prefix=useRef('');
+ const [link,setLink]=useState(''),[idea,setIdea]=useState(''),[editing,setEditing]=useState<string>(),[chosen,setChosen]=useState<string>(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[note,setNote]=useState(''),[month,setMonth]=useState(dayKey.slice(0,7)),prefix=useRef('');
  const today=contentToday(data,dayKey),week=contentWeek(data,dayKey),ideas=contentIdeas(data),making=ideas.filter(i=>i.stage==='making'),waiting=ideas.filter(i=>i.stage==='idea'),posted=ideas.filter(i=>i.stage==='posted').slice(-3).reverse(),record=contentMonth(data,month),parsed=parseContentLink(link);
  const change=(fn:Parameters<typeof update>[0])=>{setError('');void update(fn).catch(e=>setError(e instanceof Error?e.message:'저장하지 못했어요.'))};
+ const save=(fn:Parameters<typeof update>[0])=>update(fn).then(()=>{setError('');return true},e=>{setError(e instanceof Error?e.message:'저장하지 못했어요.');return false});
  const pickedIdea=making.some(i=>i.id===chosen)?chosen:making.length===1?making[0].id:undefined;
  const submit=async()=>{
   if(busy)return;setBusy(true);setError('');setNote('');
@@ -98,7 +152,7 @@ export function ContentHome(){
     <View style={{paddingBottom:2}}><MicButton size={control.touch} onText={t=>setIdea(prefix.current+(prefix.current?' ':'')+t)} onPartial={t=>setIdea(prefix.current+(prefix.current?' ':'')+t)} onListeningChange={on=>{if(on)prefix.current=idea}}/></View>
    </View>
    <Action secondary compact label="창고에 넣기" disabled={!ready||!idea.trim()} onPress={addIdea}/>
-   {[...making,...waiting.slice().reverse(),...posted].map(i=><IdeaRow key={i.id} idea={i} today={dayKey} onPick={()=>change(s=>pickContentIdea(s,i.id,dayKey))} onUnpick={()=>change(s=>unpickContentIdea(s,i.id))} onRemove={()=>change(s=>removeContentIdea(s,i.id))}/>)}
+   {[...making,...waiting.slice().reverse(),...posted].map(i=><IdeaRow key={i.id} idea={i} today={dayKey} open={editing===i.id&&i.stage!=='posted'} onToggle={()=>setEditing(editing===i.id?undefined:i.id)} change={save} onPick={()=>change(s=>pickContentIdea(s,i.id,dayKey))} onUnpick={()=>change(s=>unpickContentIdea(s,i.id))} onRemove={()=>change(s=>removeContentIdea(s,i.id))}/>)}
    {!ideas.length?<Copy variant="caption" muted>떠오를 때 한 줄씩 적어 두고, 오늘 만들 것을 골라요.</Copy>:null}
   </CardView>
   <CardView>
