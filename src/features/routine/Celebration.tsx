@@ -3,7 +3,7 @@ import {AppState,Modal,Platform,Text,View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Audio} from 'expo-av';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {planCelebration,streakFriends,type CelebrationLog,type CelebrationRequest,type PlannedCelebration} from '../../lib/celebration';
+import {planCelebration,rewardParts,streakFriends,type CelebrationLog,type CelebrationRequest,type PlannedCelebration} from '../../lib/celebration';
 import {settlementNews} from '../../lib/settlementNews';
 import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
 import {tapLight,tapSuccess} from '../../lib/haptics';
@@ -51,18 +51,18 @@ function Big({plan,onClose}:{plan:PlannedCelebration;onClose:()=>void}){
    <CelebrationSurface effect={plan.effect} testID={'celebration-big-'+plan.kind} title={plan.title} subtitle={plan.detail} onClose={onClose} action={plan.action as AnimalActionId} character={character}
     footer={<Action label="계속하기" onPress={onClose}/>}>
     {friends>1?<View testID="celebration-friends" style={{flexDirection:'row',gap:space.xs,justifyContent:'center',marginTop:-space.lg}}>{CAST.filter(c=>c!==character).slice(0,friends-1).map(c=><Mascot key={c} character={c} size={friends===2?140:108} action={plan.action as AnimalActionId}/>)}</View>:null}
-    {plan.won||plan.minutes?<Money plan={plan}/>:null}
+    {rewardParts(plan).length?<Money plan={plan}/>:null}
    </CelebrationSurface>
   </View>
  </Modal>;
 }
 function Money({plan}:{plan:PlannedCelebration}){
- const {colors:c}=useTheme(),parts=[plan.minutes?'+'+plan.minutes+'분':'',plan.won?'+'+plan.won.toLocaleString('ko-KR')+'원':''].filter(Boolean);
+ const {colors:c}=useTheme(),parts=rewardParts(plan);
  return <View style={{paddingHorizontal:space.lg,paddingVertical:space.sm,borderRadius:radii.card,backgroundColor:c.card}}><Text style={[type.heading,{color:c.text,fontVariant:['tabular-nums']}]}>{parts.join(' · ')}</Text></View>;
 }
 function Toast({plan}:{plan:PlannedCelebration}){
  const theme=useTheme(),c=theme.colors,role=colorRoles(theme),insets=useSafeAreaInsets();
- const parts=[plan.minutes?'+'+plan.minutes+'분':'',plan.won?'+'+plan.won.toLocaleString('ko-KR')+'원':''].filter(Boolean).join(' · ');
+ const parts=rewardParts(plan).join(' · ');
  return <View pointerEvents="none" testID={'celebration-toast-'+plan.kind} accessibilityLiveRegion="polite" accessibilityLabel={plan.title+(parts?' '+parts:'')}
   style={{position:'absolute',left:space.md,right:space.md,top:insets.top+space.xs,flexDirection:'row',alignItems:'center',gap:space.sm,padding:space.sm,borderRadius:radii.card,backgroundColor:c.card,borderWidth:1,borderColor:role.primary.soft,overflow:'hidden'}}>
   <View style={{width:56,height:56,alignItems:'center',justifyContent:'center'}}><Mascot character={(plan.character as AnimalCharacterId|undefined)??'C03'} size={56} action={plan.action as AnimalActionId}/></View>
