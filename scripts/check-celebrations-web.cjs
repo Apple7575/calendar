@@ -70,6 +70,23 @@ async function measure(page,name){
   check(await p.locator('[data-testid^=celebration-]').count()===0,'본 정산 소식이 다시 뜬다');
   await p.context().close();
  });
+ await step('achievements',async()=>{
+  // 오늘까지 7일 연속 실천(운동 30분) → 탭 화면에서 연속 7일 큰 축하가 한 번 뜬다.
+  const seed=()=>{const k='routine.v1.web-priority-demo',s=JSON.parse(localStorage.getItem(k)),last=Object.keys(s.days).sort().pop(),base=s.days[last];
+   for(let i=0;i<7;i++){const d=new Date(2026,10,6-i),key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;s.days[key]={...JSON.parse(JSON.stringify(base)),paid:{...base.paid,gym:30}}}
+   localStorage.setItem(k,JSON.stringify(s));};
+  const p=await open(new Date(2026,10,6,12,0),seed);
+  await p.getByTestId('celebration-big-streak').waitFor({timeout:15000});
+  check(await p.getByTestId('celebration-friends').count()===1,'7일 축하에 함께 나오는 친구가 없다');
+  await p.waitForTimeout(400);await p.screenshot({path:`${out}/streak-7-auto-390x844.png`});await measure(p,'streak 7 auto');
+  await p.getByRole('button',{name:'계속하기'}).click();await p.waitForTimeout(500);
+  await p.reload({waitUntil:'networkidle'});await p.waitForTimeout(2500);
+  check(await p.getByTestId('celebration-big-streak').count()===0,'같은 날 연속 축하가 다시 뜬다');
+  await p.evaluate(()=>window.__celebrate({kind:'routineStep'}));
+  await p.getByTestId('celebration-pill').waitFor({timeout:5000});
+  await p.screenshot({path:`${out}/pill-routine-step-390x844.png`});
+  await p.context().close();
+ });
  await browser.close();
  fs.writeFileSync(`${out}/report.json`,JSON.stringify(report,null,1));
  for(const r of report)console.log(r.name,JSON.stringify({wide:r.wide,small:r.small}));

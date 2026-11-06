@@ -81,3 +81,11 @@ export function streakMilestone(current:number,todayDone:boolean):number|null{
 
 /** 연속 기념일마다 함께 나오는 친구 수. 3일 1마리 → 7일 2마리 → 14일·30일 4마리. */
 export const streakFriends=(n:number)=>n>=14?4:n>=7?2:1;
+
+/** 축하 아래 줄의 분·원. 제목에 이미 같은 숫자가 있으면 빼서 두 번 쓰지 않는다. */
+export function rewardParts(plan:Pick<PlannedCelebration,'title'|'minutes'|'won'>):string[]{
+ const parts:string[]=[];
+ if(plan.minutes&&!plan.title.includes(plan.minutes.toLocaleString('ko-KR')+'분'))parts.push('+'+plan.minutes.toLocaleString('ko-KR')+'분');
+ if(plan.won&&!plan.title.includes(plan.won.toLocaleString('ko-KR')+'원'))parts.push('+'+plan.won.toLocaleString('ko-KR')+'원');
+ return parts;
+}

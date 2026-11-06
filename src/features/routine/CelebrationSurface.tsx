@@ -10,7 +10,7 @@ import {StatusBar} from 'expo-status-bar';
 import {Icon,Mascot} from './ui';
 
 /** Full-bleed celebration. Closing never changes the saved achievement or reward. */
-export function CelebrationSurface({effect,title,subtitle,onClose,children,footer,testID='fullscreen-celebration',milestone=false,detailedResult=false,action,character}:{title:string;subtitle?:string;onClose:()=>void;children?:ReactNode;footer:ReactNode;testID?:string;milestone?:boolean;detailedResult?:boolean;action?:AnimalActionId;character?:AnimalCharacterId;effect?:SharedClipId}){
+export function CelebrationSurface({hero,effect,title,subtitle,onClose,children,footer,testID='fullscreen-celebration',milestone=false,detailedResult=false,action,character}:{title:string;subtitle?:string;onClose:()=>void;children?:ReactNode;footer:ReactNode;testID?:string;milestone?:boolean;detailedResult?:boolean;action?:AnimalActionId;character?:AnimalCharacterId;effect?:SharedClipId;hero?:ReactNode}){
  const reduced=useReducedMotion(),{width,height}=useWindowDimensions(),small=height<740,theme=useTheme(),{colors:c,isDark}=theme;
  // 다크는 앱과 같은 검은 바탕에 주요 색 제목, 라이트는 밝은 축하 바탕을 쓴다.
  const tone=isDark?{ground:c.background,title:c.primary,subtitle:c.textMuted,icon:c.text,close:c.inputBg,closePressed:c.card}:{ground:'#FFEBA0',title:'#18264E',subtitle:'#5D553C',icon:'#18264E',close:'rgba(255,255,255,0.55)',closePressed:'rgba(255,255,255,0.85)'};
@@ -25,7 +25,7 @@ export function CelebrationSurface({effect,title,subtitle,onClose,children,foote
     <View style={{width:'100%',maxWidth:520,alignItems:'center',gap:small?5:8}}>
      <Text accessibilityRole="header" {...koreanTitle.props} style={{...koreanTitle.style,color:tone.title,fontSize:small?29:36,lineHeight:small?37:45,fontWeight:'900',textAlign:'center',letterSpacing:-1.1}}>{title}</Text>
      {subtitle?<Text style={{color:tone.subtitle,fontSize:14,lineHeight:21,textAlign:'center',fontWeight:'600'}}>{subtitle}</Text>:null}
-     <View style={{alignItems:'center',marginVertical:small?-10:-5}}><Mascot character={character} size={size} action={action??(milestone?'A35':'A25')}/></View>
+     <View style={{alignItems:'center',marginVertical:small?-10:-5}}>{hero??<Mascot character={character} size={size} action={action??(milestone?'A35':'A25')}/>}</View>
      {children}
     </View>
    </ScrollView>

@@ -80,3 +80,19 @@ describe('정산 소식 (앱을 열 때 모아서 한 번)',()=>{
   expect(settlementNews(emptyData(),'2026-11-06',[])).toEqual([]);
  });
 });
+
+describe('숫자를 두 번 쓰지 않는다',()=>{
+ const {rewardParts}=require('../lib/celebration');
+ test('제목에 분이 있으면 아래 줄에서 분을 뺀다(모든 kind)',()=>{
+  for(let i=0;i<4;i++){
+   const {plan}=planCelebration({kind:'wordStep',minutes:5},null,'2026-11-0'+(i+1),T);
+   expect(plan.title).toContain('5');
+   expect(rewardParts(plan)).toEqual([]);
+  }
+ });
+ test('제목에 없는 숫자는 그대로 보여 준다',()=>{
+  const {plan}=planCelebration({kind:'promiseKept',minutes:10,won:1000},null,DAY,T);
+  expect(rewardParts(plan)).toEqual(['+10분','+1,000원']);
+  expect(rewardParts({...plan,title:'1,000원 받았어요'})).toEqual(['+10분']);
+ });
+});
