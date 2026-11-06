@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {AppState,Modal,Platform,Text,View} from 'react-native';
+import {AppState,Modal,Platform,Text,View,useWindowDimensions} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Audio} from 'expo-av';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -51,13 +51,17 @@ function Big({plan,onClose}:{plan:PlannedCelebration;onClose:()=>void}){
  const character=(plan.character as AnimalCharacterId|undefined)??'C03';
  return <Modal visible animationType={Platform.OS==='web'?'none':'fade'} onRequestClose={onClose} statusBarTranslucent>
   <View style={{flex:1}}>
-   <CelebrationSurface effect={plan.effect} testID={'celebration-big-'+plan.kind} title={plan.title} subtitle={plan.detail} onClose={onClose} action={plan.action as AnimalActionId} character={character}
+   <CelebrationSurface hero={friends>1?<Friends lead={character} count={friends} action={plan.action as AnimalActionId}/>:undefined} effect={plan.effect} testID={'celebration-big-'+plan.kind} title={plan.title} subtitle={plan.detail} onClose={onClose} action={plan.action as AnimalActionId} character={character}
     footer={<Action label="계속하기" onPress={onClose}/>}>
-    {friends>1?<View testID="celebration-friends" style={{flexDirection:'row',gap:space.xs,justifyContent:'center',marginTop:-space.xxl}}>{CAST.filter(c=>c!==character).slice(0,friends-1).map(c=><Mascot key={c} character={c} size={friends===2?190:120} action={plan.action as AnimalActionId}/>)}</View>:null}
     {rewardParts(plan).length?<Money plan={plan}/>:null}
    </CelebrationSurface>
   </View>
  </Modal>;
+}
+/** 연속 기념일에 함께 나오는 친구들. 2마리는 나란히, 4마리는 2×2. 그날의 동물이 맨 앞이다. */
+function Friends({lead,count,action}:{lead:AnimalCharacterId;count:number;action:AnimalActionId}){
+ const {width}=useWindowDimensions(),list=[lead,...CAST.filter(c=>c!==lead)].slice(0,count),size=Math.min(count===2?260:220,(width-24)/2*1.35),overlap=-size*.16;
+ return <View testID="celebration-friends" style={{flexDirection:'row',flexWrap:count>2?'wrap':'nowrap',justifyContent:'center',width:(size+overlap*2)*2+2,rowGap:-size*.3}}>{list.map(c=><View key={c} style={{marginHorizontal:overlap}}><Mascot character={c} size={size} action={action}/></View>)}</View>;
 }
 function Money({plan}:{plan:PlannedCelebration}){
  const {colors:c}=useTheme(),parts=rewardParts(plan);
