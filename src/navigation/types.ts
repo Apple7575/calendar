@@ -56,7 +56,7 @@ export type RootStackParamList = {
   JapaneseSample: undefined;
   StudyPreferences:undefined;
   DeckCards:{deckId:string};
-  SavedStudy: undefined;
+  SavedStudy: {filter?:'favorite'|'issue'|'lapse'}|undefined;
   RoutineBackup: undefined;
   AnimalPreview: undefined;
   FocusTimer: undefined;
