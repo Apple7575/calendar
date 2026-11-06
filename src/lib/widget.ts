@@ -23,10 +23,8 @@ import { supabase } from "./supabase";
 const APP_GROUP = "group.com.newblueday.mycalendar";
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
-type ExtensionStorageType = {
-  new (group: string): { set: (key: string, value: string) => void };
-  reloadWidget: (name?: string) => void;
-};
+/** The package's own types, so a renamed or removed function fails typecheck instead of the phone. */
+type ExtensionStorageType = typeof import("@bacons/apple-targets")["ExtensionStorage"];
 
 let ExtensionStorage: ExtensionStorageType | null = null;
 try {

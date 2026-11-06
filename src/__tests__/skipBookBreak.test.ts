@@ -10,7 +10,7 @@ const at=new Date(2026,10,1,9).getTime(),subject='수능';
 /** Level 5 is the 25-minute stage; the plan claim creates the draft and level 1 cycle. */
 const stage=(level:1|2|3|4|5)=>{const d=claimFocusPlan(emptyData(),'plan',subject,'기출 1번',at);return {...d,focusRamp:{...d.focusRamp!,level}};};
 const required={1:120,2:300,3:600,4:900,5:1500} as const;
-const breakAfter=(studied:number,level:1|2|3|4|5=5)=>startBookBreak(startBookTimer(stage(level),'first',subject,at,required[level],'output'),at+studied*1000);
+const breakAfter=(studied:number,level:1|2|3|4|5=5)=>startBookBreak(startBookTimer(stage(level),'first',subject,at,required[level],'output',true),at+studied*1000);
 const later=(studied:number,rested:number)=>at+(studied+rested)*1000;
 
 test('skipping keeps the subject, draft and real focus total without counting the rest',()=>{

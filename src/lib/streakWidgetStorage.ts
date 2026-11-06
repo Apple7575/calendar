@@ -6,10 +6,8 @@ import type { StreakWidgetPayload } from "./streakWidget";
 
 const APP_GROUP = "group.com.newblueday.mycalendar";
 
-type ExtensionStorageType = {
-  new (group: string): { set: (key: string, value: string) => void };
-  reloadWidget: (name?: string) => void;
-};
+/** The package's own types, so a renamed or removed function fails typecheck instead of the phone. */
+type ExtensionStorageType = typeof import("@bacons/apple-targets")["ExtensionStorage"];
 
 let ExtensionStorage: ExtensionStorageType | null = null;
 try {

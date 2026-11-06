@@ -1,8 +1,8 @@
 import {earned,emptyData,getDay,routineDay} from '../lib/routineModel';
 import type {RoutineData} from '../lib/routineModel';
-import {claimFocusPlan,focusRampStatus} from '../lib/focusRamp';
+import {claimFocusPlan,focusRampStatus,focusRoundProgress,focusRunCredit} from '../lib/focusRamp';
 import {acceptHandwriting,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
-import {finishFocusRun,skipBookBreak,startBookTimer,takeEarnedBreak} from '../lib/bookStudy';
+import {finishFocusRun,skipBookBreak,startBookTimer,stopBookTimer,takeEarnedBreak} from '../lib/bookStudy';
 import {focusBreakPayouts} from '../lib/focusBreakReward';
 import {PROPOSED_MONEY_RATES,moneySummary,reconcileMoneyRewards,startMoneyRewards,validateMoneyState} from '../lib/moneyRewards';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
@@ -149,5 +149,64 @@ describe('what a round pays (A안 numbers)',()=>{
   expect(timeOf(d)).toBe(40+1);
   expect(moneySummary(d).balance).toBe(6000+100);
   valid(d);
+ });
+});
+
+describe('leaving and starting again (build 52: a new start is always 0, a rest return is the only carry-on)',()=>{
+ const credit=(d:RoutineData,s:number)=>focusRoundProgress(d,focusRunCredit(d,s),s);
+ const fresh=(d:RoutineData,s:number,id='new')=>startBookTimer(d,id,subject,s,focusRampStatus(d,s).required,'output');
+ test('공부 마치기 after 4 minutes: the met 2-minute stage is paid at finish, and the next start is 00:00 at the 2-minute stage',()=>{
+  const d=startBookTimer(planned(),'run',subject,at,120,'output');
+  const ended=finishFocusRun(d,at+240*sec);
+  expect(focusBreakPayouts(ended).map(p=>[p.fromStage,p.stage])).toEqual([[1,1]]);
+  const next=fresh(ended,at+300*sec);
+  expect(next.bookTimer).toMatchObject({duration:120,remaining:120});
+  expect(next.bookTimer?.carrySeconds).toBeUndefined();
+  expect(credit(next,at+300*sec)).toEqual({studied:0,required:120});
+  valid(next);
+ });
+ test('7 minutes then a new start: stages 2 and 5 are paid, the 2 minutes past them are dropped, the study time stays on record',()=>{
+  const d=stopBookTimer(startBookTimer(planned(),'run',subject,at,120,'output'),at+420*sec);
+  const next=fresh(d,at+500*sec);
+  expect(focusBreakPayouts(next).map(p=>[p.fromStage,p.stage,p.seconds])).toEqual([[1,2,300]]);
+  expect(credit(next,at+500*sec).studied).toBe(0);
+  expect(next.bookSessions!.find(s=>s.id==='run')?.seconds).toBe(420);
+  valid(next);
+ });
+ test('the device state that showed 06:00: 6 unpaid minutes are settled on the next start, which begins at 00:00',()=>{
+  const d=stopBookTimer(startBookTimer(planned(),'run',subject,at,120,'output'),at+360*sec);
+  const next=fresh(d,at+400*sec);
+  expect(focusBreakPayouts(next)[0]).toMatchObject({fromStage:1,stage:2});
+  expect(credit(next,at+400*sec)).toEqual({studied:0,required:120});
+ });
+ test('a stage not met: finishing still charges as before, nothing is paid, and the next start is 0',()=>{
+  const d=startBookTimer(planned(),'run',subject,at,120,'output');
+  const ended=finishFocusRun(d,at+90*sec);
+  expect(ended.focusPenalties?.length).toBe(1);
+  expect(focusBreakPayouts(ended)).toEqual([]);
+  expect(credit(fresh(ended,at+100*sec),at+100*sec).studied).toBe(0);
+ });
+ test('a rest return carries on the round and its surplus, as before',()=>{
+  const [d,s]=restStage(planned(),at);
+  expect(level(d,s)).toBe(2);
+  expect(credit(d,s).studied).toBe(120);
+ });
+ test('계속 공부 after the 25-minute photo starts a new round with nothing carried',()=>{
+  let [d,s]=[planned(),at];
+  for(let i=0;i<4;i++)[d,s]=restStage(d,s);
+  const end=s+(focusRampStatus(d,s).required+30)*sec;
+  const photo=settleHandwritingRewards(acceptHandwriting(d,'p25',hash('p25'),subject,analysis(),new Date(end)),end);
+  const again=fresh(photo,end+sec);
+  expect(again.bookTimer?.carrySeconds).toBeUndefined();
+  expect(credit(again,end+sec)).toEqual({studied:0,required:120});
+ });
+ test('a cycle saved before rounds: the next start settles it the old way and moves to rounds',()=>{
+  const base=startBookTimer(planned(),'run',subject,at,120,'output'),{round:_r,...old}=base.focusRamp!;
+  const legacy=stopBookTimer({...base,focusRamp:old} as RoutineData,at+400*sec);
+  const next=fresh(legacy,at+500*sec);
+  expect(focusBreakPayouts(next)[0]).toMatchObject({stage:2,seconds:300});
+  expect(next.focusRamp?.round).toBeDefined();
+  expect(credit(next,at+500*sec)).toEqual({studied:0,required:120});
+  valid(next);
  });
 });

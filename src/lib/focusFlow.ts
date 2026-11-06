@@ -33,7 +33,9 @@ export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
 /** "다 했어요" opens once some of this stage has been studied: before 25 minutes at any point, met or not; at 25 until it is met. */
 export function canDeclareFinish(data:RoutineData,now=Date.now()){
  const subject=data.outputDraft?.subject,t=data.bookTimer,required=focusRampStatus(data,now).required;
- if(!subject||!required||data.handwritingPending||t?.subject!==subject||t.rewardMode!=='output'||t.awaitingChoice===true)return false;
+ // A finish photo already waiting (too few letters so far) keeps it open, to add a page; any other waiting photo closes it.
+ const waiting=data.handwritingPending,ownFinish=!!waiting?.declared&&waiting.subject===subject;
+ if(!subject||!required||waiting&&!ownFinish||t?.subject!==subject||t.rewardMode!=='output'||t.awaitingChoice===true)return false;
  const credit=focusRunCredit(data,now);
  return credit>0&&(focusRampStatus(data,now).level<PHOTO_LEVEL||credit<required);
 }

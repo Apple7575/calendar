@@ -44,7 +44,7 @@ describe('a rest has to be earned by the current stage',()=>{
  test('surplus left after a paid stage counts toward the next stage, and the rest of that stage is still owed',()=>{
   const d=planned();
   const next={...d,focusRamp:{...d.focusRamp!,level:2 as const}};
-  const t=startBookTimer(next,'run',subject,at,300,'output'),carried={...t,bookTimer:{...t.bookTimer!,carrySeconds:10}};
+  const t=startBookTimer(next,'run',subject,at,300,'output',true),carried={...t,bookTimer:{...t.bookTimer!,carrySeconds:10}};
   expect(canStartBreak(carried,at+289*sec)).toBe(false);
   expect(canStartBreak(carried,at+290*sec)).toBe(true);
  });

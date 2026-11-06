@@ -117,7 +117,7 @@ describe('money',()=>{
 
 describe('declared finish',()=>{
  const finish=(d:RoutineData,seconds:number,id='p1',chars=120)=>{const when=at+seconds*sec;return reconcileMoneyRewards(d,acceptDeclaredFinish(d,id,hash(id),subject,analysis(chars),new Date(when)),key,new Date(when));};
- const atStage=(level:1|2|3|4|5,money=false)=>{const base=planned(money);return startBookTimer({...base,focusRamp:{...base.focusRamp!,level}},'run',subject,at,[0,120,300,600,900,1500][level],'output');};
+ const atStage=(level:1|2|3|4|5,money=false)=>{const base=planned(money);return startBookTimer({...base,focusRamp:{...base.focusRamp!,level}},'run',subject,at,[0,120,300,600,900,1500][level],'output',true);};
  test('8 minutes of the 25-minute stage with 100 letters: 3 + 5',()=>{
   const d=finish(atStage(5),480);
   expect(d.handwritingReceipts![0]).toMatchObject({finish:'declared',stageMinutes:3,letterMinutes:5,focusSeconds:480});
@@ -294,11 +294,12 @@ describe('after a photo the timer stops and asks',()=>{
   const d=settleHandwritingRewards(acceptHandwriting(base,'p1',hash('p1'),subject,analysis(),new Date(when)),when);
   expect(focusLockUntil(d.bookTimer,when+min)).toBe(new Date(2026,10,3,4).getTime());
  });
- test('going on starts the next stage with the surplus, and the penalty rule returns',()=>{
+ test('going on starts a fresh round with nothing carried (build 52), and the penalty rule returns',()=>{
   const seven=photo(running(true),420),balance=moneySummary(seven).balance,d=keepGoing(seven,600);
-  expect(d.bookTimer).toMatchObject({phase:'focus',running:true,carrySeconds:120,duration:600});
+  expect(d.bookTimer).toMatchObject({phase:'focus',running:true,duration:120});
+  expect(d.bookTimer!.carrySeconds).toBeUndefined();
   expect(d.bookTimer!.awaitingChoice).toBeUndefined();
-  expect(bookDisplaySeconds(d.bookTimer!,at+600*sec)).toBe(480);
+  expect(bookDisplaySeconds(d.bookTimer!,at+600*sec)).toBe(120);
   expect(focusQuitPenalty(d,at+(600+60)*sec)).toBeNull();
   const quit=finishFocusRun(d,at+(600+61)*sec);
   expect(penaltyMinutesOnDay(quit,key)).toBe(10);
@@ -343,7 +344,7 @@ describe('after a photo the timer stops and asks',()=>{
 describe('what reaches the device',()=>{
  const earned=photo(running(),120),native={supportsHandwritingRewards:true,supportsMinuteHandwriting:true};
  test('a new build gets exact minutes and the penalty',()=>{
-  const d=finishFocusRun(keepGoing(earned,120),at+300*sec);
+  const d=finishFocusRun(keepGoing(earned,120),at+210*sec);
   expect(rewardSyncExtras(d,key,native)).toEqual({handwriting:2,penalty:10});
  });
  test('an older build gets whole 5-minute steps and no penalty, so its sync does not fail',()=>{

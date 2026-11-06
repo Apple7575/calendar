@@ -1,6 +1,6 @@
 import type {RoutineData} from './routineModel';
 import {routineDay,withDay} from './routineModel';
-import {canStartBreak,carryRunPastStage,focusPlanMinutesDue,focusStagePayout,LEGACY_FOCUS_STEPS,LEGACY_STAGE_TABLES,rampAfterPayout,stageSpan} from './focusRamp';
+import {canStartBreak,carryRunPastStage,focusPlanMinutesDue,focusRampStatus,focusRunCredit,focusStagePayout,LEGACY_FOCUS_STEPS,LEGACY_STAGE_TABLES,rampAfterPayout,stageSpan} from './focusRamp';
 
 /**
  * Pressing 휴식 once a stage is met pays that stage at once, without a photo (user decision 2026-11-06, B안: "처음에는 글을
@@ -27,15 +27,32 @@ export const breakPayoutMinutes=(p:FocusBreakPayout)=>p.stageMinutes+p.planMinut
 
 /** Pays the stage the running study has met. Nothing when no rest is earned, so it can never pay without study. */
 export function payBreakStage(data:RoutineData,now=Date.now()):RoutineData{
+ const t=data.bookTimer;
+ if(!t||t.phase!=='focus'||!canStartBreak(data,now))return data;
+ return payStages(data,now,'break');
+}
+/**
+ * Ending study, or starting anew, settles every stage the last run met but was not paid for (build 52: "앞 세션에서 넘긴
+ * 단계는 먼저 정산"). What is left past the last met stage is not carried into the next study; it stays in the study record.
+ */
+export function settleUnpaidStages(data:RoutineData,now=Date.now()):RoutineData{
+ const t=data.bookTimer;
+ if(!t||t.phase==='break')return data;
+ // Only this run's own study can meet a stage here: time left over from before is not carried, so it cannot either.
+ const required=focusRampStatus(data,now).required;
+ if(!required||focusRunCredit(data,now)<required)return data;
+ return payStages(data,now,'settle');
+}
+function payStages(data:RoutineData,now:number,kind:'break'|'settle'):RoutineData{
  const t=data.bookTimer,ramp=data.focusRamp;
- if(!t||!ramp||t.phase!=='focus'||t.rewardMode!=='output'||!canStartBreak(data,now))return data;
+ if(!t||!ramp||t.rewardMode!=='output')return data;
  const due=focusStagePayout(data,t.subject,now);if(!due)return data;
- const id=`break:${t.id}:${due.from}-${due.stage}:${ramp.consumed[t.subject]??0}`;
+ const id=`${kind}:${t.id}:${due.from}-${due.stage}:${ramp.consumed[t.subject]??0}`;
  if(focusBreakPayouts(data).some(p=>p.id===id))return data;
  const at=new Date(now).toISOString(),day=routineDay(new Date(now));
  const row:FocusBreakPayout={id,timerId:t.id,subject:t.subject,cycle:ramp.cycleId,stage:due.stage,...(due.from!==undefined?{fromStage:due.from}:{}),...(ramp.round?{round:ramp.round}:{}),seconds:due.seconds,stageMinutes:due.minutes,planMinutes:focusPlanMinutesDue(data),moneyMinutes:due.money,day,at};
  let next=withDay({...data,focusBreakPayouts:[...focusBreakPayouts(data),row],focusRamp:rampAfterPayout(ramp,t.subject,due,now)},day,d=>({...d,bonus:{...d.bonus,focusBreak:(d.bonus?.focusBreak??0)+breakPayoutMinutes(row)}}));
  const won=(row.moneyMinutes+row.planMinutes)*WON_PER_MINUTE,moneyId='focus-'+id;
- if(next.money&&won>0&&!next.money.entries.some(e=>e.id===moneyId))next={...next,money:{...next.money,entries:[...next.money.entries,{id:moneyId,kind:'reward',amount:won,at,day,source:'output',note:'집중 단계 보상(휴식)'}]}};
+ if(next.money&&won>0&&!next.money.entries.some(e=>e.id===moneyId))next={...next,money:{...next.money,entries:[...next.money.entries,{id:moneyId,kind:'reward',amount:won,at,day,source:'output',note:kind==='break'?'집중 단계 보상(휴식)':'집중 단계 보상(마칠 때 정산)'}]}};
  return carryRunPastStage(next,t.subject,due.seconds,now);
 }
