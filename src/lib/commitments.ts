@@ -67,7 +67,22 @@ function interestDays(data:RoutineData):Record<string,InterestDay>{
 function addMoney(data:RoutineData,id:string,amount:number,at:number,note:string):RoutineData{
  if(!data.money||!amount||data.money.entries.some(e=>e.id===id))return data;
  const when=new Date(at);
- return {...data,money:{...data.money,entries:[...data.money.entries,{id,kind:'adjustment',amount,at:when.toISOString(),day:routineDay(when),note}]}};
+ // The money check accepts gains only as rewards and charges only as adjustments.
+ return {...data,money:{...data.money,entries:[...data.money.entries,{id,kind:amount>0?'reward':'adjustment',amount,at:when.toISOString(),day:routineDay(when),note}]}};
+}
+/**
+ * Build 50 saved a kept promise, interest and a won stake as positive adjustments, which the load check refuses, so the whole
+ * record failed to load. Those entries alone become rewards (same id, amount and day); anything else is left to the check.
+ */
+const GAIN_PREFIXES=['promise:','interest:','stake-payout:'];
+export function repairSavedData<T extends RoutineData>(data:T):T{
+ const entries=data?.money?.entries;if(!Array.isArray(entries))return data;
+ let changed=false;
+ const fixed=entries.map(e=>{
+  if(e&&e.kind==='adjustment'&&typeof e.amount==='number'&&e.amount>0&&typeof e.id==='string'&&GAIN_PREFIXES.some(p=>e.id.startsWith(p))){changed=true;return {...e,kind:'reward' as const};}
+  return e;
+ });
+ return changed?{...data,money:{...data.money!,entries:fixed}}:data;
 }
 
 /* Weekly rules chosen in the Monday review. */

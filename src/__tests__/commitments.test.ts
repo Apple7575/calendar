@@ -1,11 +1,12 @@
 import {emptyData,earned,getDay,routineDay,withDay} from '../lib/routineModel';
 import type {RoutineData} from '../lib/routineModel';
-import {moneySummary,PROPOSED_MONEY_RATES,startMoneyRewards} from '../lib/moneyRewards';
+import {moneySummary,PROPOSED_MONEY_RATES,startMoneyRewards,validateMoneyState} from '../lib/moneyRewards';
+import {validateStudyState} from '../lib/studyHistory';
 import {penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {dailyTimeline} from '../lib/dailyTimeline';
 import {pauseBookTimer,resumeBookTimer,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {
- activeWeeklyRules,COMMITMENT_POLICY,dayPromise,promiseOutcomesOn,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
+ activeWeeklyRules,COMMITMENT_POLICY,dayPromise,repairSavedData,promiseOutcomesOn,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
  STUDY_DAY_FOCUS_MINUTES,studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,saveWeeklyNote,weeklyNote,
 } from '../lib/commitments';
 
@@ -16,7 +17,7 @@ const t=(d:number,h:number,m=0)=>new Date(2026,10,d,h,m).getTime();
 const MON='2026-11-09',key=(d:number)=>`2026-11-${String(d).padStart(2,'0')}`;
 const wallet=(won=0,d:RoutineData=emptyData())=>{
  let w=startMoneyRewards(d,MON,'w',PROPOSED_MONEY_RATES,new Date(t(9,5)));
- if(won)w={...w,money:{...w.money!,entries:[...w.money!.entries,{id:'seed',kind:'adjustment',amount:won,at:new Date(t(9,5)).toISOString(),note:'seed'}]}};
+ if(won)w={...w,money:{...w.money!,entries:[...w.money!.entries,{id:'seed',kind:'reward',amount:won,at:new Date(t(9,5)).toISOString(),note:'seed'}]}};
  return w;
 };
 /** A day counted as studied: a non-photo focus record with a note, the same as the calendar's 집중 공부 완료. */
@@ -370,5 +371,35 @@ describe('a studied day by focus minutes (team lead: 25, 2026-11-06)',()=>{
   d={...d,bookSessions:[9,10,11,12,13].map(day=>session('s'+day,t(day,12),30*60))};
   expect(weeklyStake(d,MON).stake?.studyDays).toBe(5);
   expect(weeklyStake(reconcileCommitments(d,t(16,4)),MON).stake).toMatchObject({status:'won',studyDays:5});
+ });
+});
+
+describe('money entries pass the load check (build 50 hotfix)',()=>{
+ const loads=(d:RoutineData)=>{validateMoneyState(d);validateStudyState(d);};
+ test('a kept promise, interest and a won stake are saved as rewards, which the load check accepts',()=>{
+  let d=setTomorrowPromise(wallet(20000),MON,'09:00',t(9,20,30));
+  d=placeWeeklyStake({...d},MON,5000,t(9,8));
+  d={...d,bookSessions:[9,10,11,12,13].map(day=>({id:'s'+day,subject:'수능',startedAt:new Date(t(day,9)).toISOString(),completedAt:new Date(t(day,10)).toISOString(),seconds:3600,note:'',next:'',rewardMode:'standard' as const}))};
+  d={...consumed(earnOn(d,MON,45),{[MON]:0}),interestSince:'2026-11-01'};
+  d=reconcileCommitments(d,t(16,5));
+  const kinds=Object.fromEntries(d.money!.entries.filter(e=>/^(promise|interest|stake)/.test(e.id)).map(e=>[e.id.split(':')[0],e.kind+(e.amount>0?'+':'-')]));
+  expect(kinds).toMatchObject({promise:'reward+',interest:'reward+','stake-payout':'reward+',stake:'adjustment-'});
+  expect(()=>loads(d)).not.toThrow();
+ });
+ test('data saved by build 50 with those as positive adjustments is repaired, not rejected',()=>{
+  const w=wallet(0),at=new Date(t(10,5)).toISOString();
+  const broken:RoutineData={...w,money:{...w.money!,entries:[...w.money!.entries,{id:'interest:'+MON,kind:'adjustment',amount:900,at,day:key(10),note:'안 쓴 시간 이자'},{id:'promise:'+key(10),kind:'adjustment',amount:1000,at,day:key(10),note:'내일 약속 지킴'},{id:'stake-payout:'+MON,kind:'adjustment',amount:5500,at,day:key(16),note:'주간 예치금 돌려받기'}]}};
+  expect(()=>loads(broken)).toThrow();
+  const fixed=repairSavedData(broken);
+  expect(()=>loads(fixed)).not.toThrow();
+  expect(fixed.money!.entries.map(e=>e.kind)).toEqual(['reward','reward','reward']);
+  expect(moneySummary(fixed).balance).toBe(moneySummary(broken).balance);
+  expect(repairSavedData(fixed)).toBe(fixed);
+ });
+ test('nothing to repair returns the same object, and other bad entries are left to the check',()=>{
+  const w=wallet(500);
+  expect(repairSavedData(w)).toBe(w);
+  const other={...w,money:{...w.money!,entries:[...w.money!.entries,{id:'x',kind:'adjustment' as const,amount:5,at:new Date(t(9,9)).toISOString(),note:'?'}]}};
+  expect(repairSavedData(other)).toBe(other);
  });
 });
