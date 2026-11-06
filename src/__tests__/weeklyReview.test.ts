@@ -9,6 +9,8 @@ const MONDAY='2026-11-09',LAST='2026-11-02';
 const at=(day:string,h:number,m=0)=>{const [y,mo,d]=day.split('-').map(Number);return new Date(y,mo-1,d,h,m);};
 const session=(id:string,day:string,h:number,seconds:number)=>({id,subject:'수학',startedAt:at(day,h).toISOString(),completedAt:new Date(at(day,h).getTime()+seconds*1000).toISOString(),seconds,note:'오늘 한 것',next:''});
 const withMorning=(data:RoutineData,day:string):RoutineData=>({...data,days:{...data.days,[day]:{paid:{morning:5,words:0,gym:0},morning:[],complete:[],responses:0,studySeconds:0}}});
+/** 지난주(11월 2일 주)에 공부 기록 하나. 주간 점검은 볼 기록이 있을 때만 저절로 열린다. */
+const active=(data:RoutineData=emptyData()):RoutineData=>({...data,bookSessions:[...(data.bookSessions??[]),session('last',LAST,9,1500)]});
 
 describe('weeklySummary',()=>{
  it('adds up last week from saved records only',()=>{
@@ -36,12 +38,25 @@ describe('weeklySummary',()=>{
 });
 
 describe('shouldOpenWeekCheck',()=>{
- it('opens only on Monday after the morning routine, once a week',()=>{
-  const morning=withMorning(emptyData(),MONDAY);
-  expect(shouldOpenWeekCheck(emptyData(),MONDAY)).toBe(false);
+ it('opens on Monday after the morning routine, once a week',()=>{
+  const morning=withMorning(active(),MONDAY);
+  expect(shouldOpenWeekCheck(active(),MONDAY)).toBe(false);
   expect(shouldOpenWeekCheck(morning,MONDAY)).toBe(true);
-  expect(shouldOpenWeekCheck(withMorning(emptyData(),'2026-11-10'),'2026-11-10')).toBe(false);
   expect(shouldOpenWeekCheck(saveWeeklyReview(morning,MONDAY),MONDAY)).toBe(false);
+ });
+ it('opens on the first day the app is opened when Monday was missed',()=>{
+  expect(shouldOpenWeekCheck(active(),'2026-11-10')).toBe(true);
+  expect(shouldOpenWeekCheck(active(),'2026-11-15')).toBe(true);
+ });
+ it('stays closed when last week has nothing to show',()=>{
+  expect(shouldOpenWeekCheck(withMorning(emptyData(),MONDAY),MONDAY)).toBe(false);
+  expect(shouldOpenWeekCheck(emptyData(),'2026-11-10')).toBe(false);
+ });
+ it('does not open twice in the same week and opens again next Monday',()=>{
+  const done={...saveWeeklyReview(active(),MONDAY),bookSessions:[session('last',LAST,9,1500),session('this','2026-11-11',9,1500)]};
+  for(const day of ['2026-11-10','2026-11-12','2026-11-15'])expect(shouldOpenWeekCheck(done,day)).toBe(false);
+  expect(shouldOpenWeekCheck(done,'2026-11-16')).toBe(false);
+  expect(shouldOpenWeekCheck(withMorning(done,'2026-11-16'),'2026-11-16')).toBe(true);
  });
 });
 

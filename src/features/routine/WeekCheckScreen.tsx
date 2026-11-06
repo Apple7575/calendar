@@ -57,7 +57,7 @@ export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
      <Copy>{`이번 주에 ${targetDays}일 공부하면 건 돈에 10%를 더해 돌려받아요. 못 채우면 건 돈을 잃어요.`}</Copy>
      {stake.canPlace?<View testID="stake-choices" style={{flexDirection:'row',flexWrap:'wrap',gap:space.xs}}>
       {[0,...COMMITMENT_POLICY.stake.amounts].map(value=><View key={value} style={{flexBasis:'45%',flexGrow:1}}><Choice fill label={value?wonLabel(value):'걸지 않기'} selected={amount===value} onPress={()=>setAmount(value as StakeAmount|0)}/></View>)}
-     </View>:<Notice tone="info">{stake.reason??'지금은 걸 수 없어요.'}</Notice>}
+     </View>:<Notice tone="info">{!stake.stake&&dayKey!==week?'예치금은 다음 월요일에 걸 수 있어요.':stake.reason??'지금은 걸 수 없어요.'}</Notice>}
     </CardView>
     <CardView>
      <Copy variant="section">다음 주에 바꿀 규칙 하나</Copy>
