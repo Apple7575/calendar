@@ -50,9 +50,10 @@ export function useTimerScreenHold(active:boolean,screen:TimerScreen='routine'){
   * tap while turning does nothing; a rotation that fails or never answers still leaves.
   */
  const leave=useCallback((go:()=>void)=>{
+  // Not holding (web, or a routine that has not started): nothing to turn back, so leave at once.
+  if(Platform.OS==='web'||!holding.current){go();return}
   if(leaving.current)return;
   leaving.current=true;
-  if(Platform.OS==='web'||!holding.current){go();return}
   let gone=false;const once=()=>{if(!gone){gone=true;go()}};
   const timer=setTimeout(once,LEAVE_ROTATION_WAIT_MS);
   void Promise.resolve().then(()=>{const o=loadOrientation();return o.lockAsync(before.current??o.OrientationLock.PORTRAIT_UP)}).catch(()=>{}).then(()=>{clearTimeout(timer);once()});

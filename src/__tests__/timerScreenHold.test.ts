@@ -97,3 +97,14 @@ describe('leaving the screen (build 53: 닫기 froze the big timer)',()=>{
   expect(go).toHaveBeenCalledTimes(1);
  });
 });
+
+test('an inactive hold (routine not started) leaves at once, every time, without turning',async()=>{
+ let leave:(go:()=>void)=>void=()=>{};
+ function Idle(){leave=useTimerScreenHold(false,'routine').leave;return null}
+ await act(async()=>{renderer.create(React.createElement(Idle))});await flush();
+ const go=jest.fn();
+ await act(async()=>{leave(go)});
+ await act(async()=>{leave(go)});
+ expect(go).toHaveBeenCalledTimes(2);
+ expect(mockOrientation.lock).not.toHaveBeenCalled();
+});
