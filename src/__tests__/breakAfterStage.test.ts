@@ -1,7 +1,7 @@
 import {emptyData} from '../lib/routineModel';
 import {finishFocusRun,pauseBookTimer,skipBookBreak,startBookBreak,startBookTimer,takeEarnedBreak} from '../lib/bookStudy';
 import {canStartBreak,claimFocusPlan,focusRampStatus,focusRunCredit} from '../lib/focusRamp';
-import {canTakeHandwritingPhoto} from '../lib/focusFlow';
+import {focusStageMet} from '../lib/focusFlow';
 import {focusJourney} from '../lib/focusJourney';
 import {startOutputStudy} from '../lib/handwriting';
 
@@ -27,7 +27,7 @@ describe('a rest has to be earned by the current stage',()=>{
   const d=running();
   for(const s of [0,1,60,119,120,121,600]){
    const now=at+s*sec,credit=focusRunCredit(d,now),required=focusRampStatus(d,now).required;
-   expect(canStartBreak(d,now)).toBe(canTakeHandwritingPhoto(d,now));
+   expect(canStartBreak(d,now)).toBe(focusStageMet(d,now));
    expect(canStartBreak(d,now)).toBe(focusJourney(credit,required).studied>=required);
   }
  });

@@ -3,6 +3,7 @@ import {getDay,routineDay,withDay} from './routineModel';
 import {FOCUS_STEPS,carryRunPastStage,FOCUS_STAGE_MINUTES,FOCUS_STAGE_TABLES,focusPlanMinutesDue,focusRunCredit,focusRampAccess,focusStagePayout,focusStagesDue,focusRampStatus,validateFocusRamp} from './focusRamp';
 import {bookFocusSeconds} from './bookTimerTime';
 import {stopBookTimer} from './bookStudy';
+import {breakPayoutMinutes,focusBreakPayouts,validBreakPayout} from './focusBreakReward';
 
 export const OUTPUT_POLICY={version:1,units:100,minutes:5,goalUnits:500} as const;
 export type HandwritingAnalysis={lines:string[];languages:('ko'|'en'|'ja'|'math')[];quality:'readable'|'retake';message:string};
@@ -158,7 +159,16 @@ export function validateHandwritingState(data:RoutineData){
  const batches=new Map<string,HandwritingReceipt[]>();
  for(const r of rows??[])if(isRamp(r)&&r.rewardStatus==='earned'){const group=batches.get(r.focusBatch!)??[];group.push(r);batches.set(r.focusBatch!,group);}
  for(const [id,group]of batches){const first=group.find(r=>r.id===id);if(!first?.focusSeconds||group.filter(r=>r.focusSeconds!==undefined).length!==1||group.some(r=>r.focusCycle!==first.focusCycle||r.focusStage!==first.focusStage||r.subject!==first.subject||r.rewardDay!==first.rewardDay))throw new Error('집중 단계 보상 묶음을 확인해 주세요.');}
- if(data.focusRamp){const current=(rows??[]).map((r,i)=>({r,order:r.rewardOrder??i})).sort((a,b)=>a.order-b.order).map(x=>x.r).filter(r=>isRamp(r)&&r.rewardStatus==='earned'&&r.focusCycle===data.focusRamp!.cycleId&&r.focusSeconds!==undefined),used:Record<string,number>=Object.fromEntries([...new Set(current.map(r=>r.subject))].map(subject=>[subject,current.filter(r=>r.subject===subject).reduce((n,r)=>n+r.focusSeconds!,0)]));
+ // Stages paid by a rest count like photo payouts: each one raised the level and spent its time. Stages only go up, so
+ // in a cycle with rests the level is one past the highest stage paid.
+ const breaks=data.focusBreakPayouts;
+ if(breaks!==undefined&&(!Array.isArray(breaks)||breaks.length>50000||breaks.some(p=>!validBreakPayout(p))||new Set(breaks.map(p=>p.id)).size!==breaks.length))throw new Error('휴식 단계 보상 기록을 확인해 주세요.');
+ const breakDaily=new Map<string,number>();for(const p of focusBreakPayouts(data))breakDaily.set(p.day,(breakDaily.get(p.day)??0)+breakPayoutMinutes(p));
+ for(const [key,day]of Object.entries(data.days)){const value=day.bonus?.focusBreak??0;if(!Number.isSafeInteger(value)||value<0||value!==(breakDaily.get(key)??0))throw new Error('휴식 단계 보상 원장을 확인해 주세요.');}
+ if(focusBreakPayouts(data).some(p=>!data.days[p.day]))throw new Error('휴식 단계 보상 날짜를 확인해 주세요.');
+ if(data.focusRamp){const rested=focusBreakPayouts(data).filter(p=>p.cycle===data.focusRamp!.cycleId).map(p=>({rewardPolicy:'ramp-v2' as const,focusStage:p.stage,focusSeconds:p.seconds,subject:p.subject,focusStagesPaid:undefined as number[]|undefined}));
+  const photos=(rows??[]).map((r,i)=>({r,order:r.rewardOrder??i})).sort((a,b)=>a.order-b.order).map(x=>x.r).filter(r=>isRamp(r)&&r.rewardStatus==='earned'&&r.focusCycle===data.focusRamp!.cycleId&&r.focusSeconds!==undefined);
+  const current=rested.length?[...photos,...rested].sort((a,b)=>a.focusStage!-b.focusStage!):photos,used:Record<string,number>=Object.fromEntries([...new Set(current.map(r=>r.subject))].map(subject=>[subject,current.filter(r=>r.subject===subject).reduce((n,r)=>n+r.focusSeconds!,0)]));
   if(data.focusRamp.level!==current.reduce((level,r)=>r.rewardPolicy==='ramp-v2'?Math.min(5,r.focusStage!+1):Math.min(5,level+(r.focusStagesPaid?.length??1)),1)||Object.keys({...used,...data.focusRamp.consumed}).some(subject=>(used[subject]??0)!==(data.focusRamp!.consumed[subject]??0)))throw new Error('집중 단계 진행과 사용 시간을 확인해 주세요.');
  }
 }

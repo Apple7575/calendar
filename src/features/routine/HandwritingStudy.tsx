@@ -24,7 +24,8 @@ export function HandwritingStudy({declare=false,onPhotoChange,onSaving,moreRows,
  const [clock,setClock]=useState(Date.now());
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(id)},[]);
  const access=handwritingAccess(data,draft?.subject??'',clock),ramp=focusRampStatus(data,clock),requiredMinutes=ramp.required/60,met=canTakeHandwritingPhoto(data,clock),declaring=!met&&(declare&&canDeclareFinish(data,clock)||!!pending?.declared),canPhoto=met||declaring,reward=focusRewardPreview(data,draft?.subject??'',clock);
- const declaredStage=ramp.level&&ramp.required?Math.floor(FOCUS_STAGE_MINUTES[ramp.level]*Math.min(1,focusRunCredit(data,clock)/ramp.required))+focusPlanMinutesDue(data):0;
+ // A met stage pays as the timer would (the highest stage reached); a stage cut short pays its share.
+ const declaredStage=ramp.level&&ramp.required?(focusRunCredit(data,clock)>=ramp.required?reward.due:Math.floor(FOCUS_STAGE_MINUTES[ramp.level]*focusRunCredit(data,clock)/ramp.required)+focusPlanMinutesDue(data)):0;
  useEffect(()=>{if(access.ready&&data.handwritingReceipts?.some(r=>r.subject===draft?.subject&&r.rewardStatus==='pending'))void update(s=>s).catch(e=>setError(e.message))},[access.ready,data.handwritingReceipts,draft?.subject,update]);
  const controller=useRef<AbortController|null>(null),live=useRef(true),identity=useRef(accountId);identity.current=accountId;
  useEffect(()=>{live.current=true;return()=>{live.current=false;controller.current?.abort()}},[]);

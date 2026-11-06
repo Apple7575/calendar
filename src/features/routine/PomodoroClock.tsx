@@ -47,7 +47,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
    <TimerFace size={size} progress={progress} time={time} weight={design==='A'?'300':'800'} ticks={journey?.ticks} tickFill={p.bg} fontRatio={journey?(journey.studied>=6000?.22:.262):left<0||restOver?.24:.262} colors={overtime&&!inverted?{...p,text:p.accent}:p} accessibilityLabel={journey?'공부한 시간 '+Math.floor(journey.studied/60)+'분 '+journey.studied%60+'초':(restOver?'휴식 후 지난 시간 ':overtime?'추가 공부 시간 ':'남은 시간 ')+Math.floor(seconds/60)+'분 '+seconds%60+'초'} caption={journey?(phase==='focus'&&!running?'일시정지 중':journeyGoal(journey)):restOver?'버튼을 누르면 집중을 시작해요':awaitingChoice?'다음 단계':idle?'시작하면 공부 시간이 쌓여요':!running?(resting?'휴식 일시정지':'일시정지 중'):resting?'편하게 쉬어도 좋아요':overtime?'목표 달성 · 공부 시간은 계속 쌓여요':'내가 선택한 공부'}>
     {playIcon&&!(resting&&needsPlan&&onSkipBreak)?<View style={{paddingTop:space.xs}}><Pressable accessibilityRole="button" accessibilityLabel={pauseLabel} onPress={()=>{tapLight();onPause()}} style={({pressed})=>({width:control.compact,height:control.compact,borderRadius:control.compact/2,alignItems:'center',justifyContent:'center',backgroundColor:p.accent,transform:[{scale:pressed?.95:1}]})}><Ionicons name={running?'pause':'play'} size={22} color={p.onAccent}/></Pressable></View>:null}
    </TimerFace>
-   <Text style={{...type.caption,color:p.muted,textAlign:'center'}}>{needsPlan?'계획 한 줄부터 시작해요':awaitingChoice?'고를 때까지 시간이 멈춰요 · 마치기 전에는 앱이 잠겨 있어요':ready?'이번 단계 충족 · 사진 확인하면 +'+dueMinutes+'분':resting?'쉬는 시간은 공부 시간에 포함되지 않아요':(phase==='focus'&&carried>0?'지난 공부 '+Math.floor(carried/60)+'분 '+carried%60+'초 이어짐 · ':'실제 집중 ')+requiredMinutes+'분 후 필기 사진 · +'+nextMinutes+'분'}</Text>
+   <Text style={{...type.caption,color:p.muted,textAlign:'center'}}>{needsPlan?'계획 한 줄부터 시작해요':awaitingChoice?'고를 때까지 시간이 멈춰요 · 마치기 전에는 앱이 잠겨 있어요':ready?'이번 단계 충족 · 사진 확인하면 +'+dueMinutes+'분':resting?'쉬는 시간은 공부 시간에 포함되지 않아요':phase==='focus'&&onBreak&&dueMinutes>0?'이번 단계 충족 · 휴식을 누르면 +'+dueMinutes+'분':(phase==='focus'&&carried>0?'지난 공부 '+Math.floor(carried/60)+'분 '+carried%60+'초 이어짐 · ':'실제 집중 ')+requiredMinutes+(requiredMinutes>=25?'분 후 필기 사진':'분 채우면 휴식')+' · +'+nextMinutes+'분'}</Text>
   </View>
   <View style={{position:'absolute',left:panelLeft,width:panelWidth,bottom:landscape?space.xs:gutter,gap:space.sm}}>
    {asking?<MascotBubble text={confirm.question!} background={p.text} color={p.bg} tail="up"/>:null}
@@ -61,7 +61,7 @@ export function FocusClock({design,left:rawLeft,total:rawTotal=1500,running,phas
     {ready&&resting&&onPhoto?<PanelButton wide colors={p} label="필기 사진 제출" onPress={onPhoto}/>:null}
     {phase==='focus'&&onDeclare?<PanelButton wide colors={p} label="다 했어요 · 사진으로 끝내기" onPress={onDeclare}/>:null}
     <PanelButton colors={p} label={revealed?subject:'과목 보기'} onPress={()=>setRevealed(v=>!v)}/>
-    {phase==='focus'&&onBreak?<PanelButton colors={p} label="휴식 5분" onPress={onBreak}/>:null}
+    {phase==='focus'&&onBreak?<PanelButton colors={p} label={dueMinutes>0?`휴식 · +${dueMinutes}분`:"휴식 5분"} onPress={onBreak}/>:null}
     {phase==='focus'&&breakWait>0?<Text style={{...type.caption,color:p.muted,textAlign:'center',flexBasis:'100%'}}>쉬고 돌아왔어요 · {clockLabel(breakWait)} 더 공부하면 휴식할 수 있어요</Text>:null}
     {(phase==='focus'||awaitingChoice)&&onLeaveNote?<PanelButton colors={p} label="멈추고 메모" onPress={onLeaveNote}/>:null}
     {onAdjust&&!idle&&!journey?<PanelButton colors={p} label={'시간 조정 '+(adjusting?'−':'+')} accessibilityLabel="타이머 시간 조정" expanded={adjusting} onPress={()=>setAdjusting(v=>!v)}/>:null}

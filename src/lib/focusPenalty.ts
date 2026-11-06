@@ -1,5 +1,5 @@
 import type {RoutineData} from './routineModel';
-import {contentBonus,promiseBonus,routineDay,speakingBonus} from './routineModel';
+import {contentBonus,focusBreakBonus,promiseBonus,routineDay,speakingBonus} from './routineModel';
 import {focusRampStatus,focusRunCredit,focusRunSeconds} from './focusRamp';
 import {moneySummary} from './moneyRewards';
 import type {BookTimer} from './bookStudy';
@@ -54,6 +54,7 @@ export function rewardSyncExtras(data:RoutineData,key:string,native:{supportsHan
  if(!native?.supportsHandwritingRewards)return {};
  // A kept promise has its own key (0 or 10). An older build without it is never sent one, since an unknown value fails its whole sync.
  const spoken=speakingBonus(data.days[key]),speaking=native.supportsSpeakingRewards?{speaking:spoken-spoken%5}:{},promise=native.supportsPromiseRewards?{promise:promiseBonus(data.days[key])}:{},content=native.supportsContentRewards?{content:contentBonus(data.days[key])}:{};
- const value=data.days[key]?.bonus?.handwriting??0;
+ // Stage minutes a rest paid go with the photo minutes: the phone counts them the same way.
+ const value=(data.days[key]?.bonus?.handwriting??0)+focusBreakBonus(data.days[key]);
  return native.supportsMinuteHandwriting?{handwriting:value,penalty:penaltyMinutesOnDay(data,key),...speaking,...content,...promise}:{handwriting:value-value%5};
 }

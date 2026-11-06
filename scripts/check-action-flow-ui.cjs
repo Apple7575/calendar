@@ -51,11 +51,11 @@ fs.mkdirSync(out, {recursive:true});
    await page.getByTestId('focus-clock').waitFor();
   };
   await meetStudyTime();
-  await button('필기 사진 제출').click();
+  await button('다 했어요 · 사진으로 끝내기').click();
   await inViewport('노트 사진 찍기');
   await button('큰 타이머로 돌아가기').click();
   await page.getByTestId('focus-clock').waitFor();
-  await button('필기 사진 제출').click();
+  await button('다 했어요 · 사진으로 끝내기').click();
   await inViewport('노트 사진 찍기');
   await capture('submit-empty-390');
   // Exercise picker loading and local authentication failure without uploading a photo.

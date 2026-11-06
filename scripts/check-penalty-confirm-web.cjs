@@ -58,18 +58,19 @@ async function shots(page,name,selector){
 
  await step('rest',async()=>{
   const p=await studying(130);await backToClock(p);
-  await btn(p,'휴식 5분').click();
+  check(await p.getByRole('button',{name:'휴식 · +2분',exact:true}).count()===1,'휴식 버튼에 받을 분이 없다');
+  await p.getByRole('button',{name:/^휴식/}).click();
   await btn(p,'쉬는 시간 건너뛰고 공부하기').click();await p.waitForTimeout(400);
-  check(await btn(p,'휴식 5분').count()===0,'돌아오자마자 휴식 버튼이 있다');
+  check(await p.getByRole('button',{name:/^휴식/}).count()===0,'돌아오자마자 휴식 버튼이 있다');
   check(await p.getByText(/더 공부하면 휴식할 수 있어요/).count()===1,'막힌 이유 안내가 없다');
-  check(await p.getByRole('button',{name:'필기 사진 제출',exact:true}).count()===1,'쉬기 전 시간으로 사진을 낼 수 없다');
+  check(await p.getByRole('button',{name:'필기 사진 제출',exact:true}).count()===0,'휴식이 단계를 정산했는데 같은 단계로 사진을 낼 수 있다');
   await shots(p,'rest-gate','더 공부하면 휴식');
   const before=await timer(p);check(before.restedCredit>0,'저장값이 없다: '+JSON.stringify(before));
   await p.reload({waitUntil:'networkidle'});await backToClock(p);
-  check(await btn(p,'휴식 5분').count()===0,'다시 열었더니 휴식 버튼이 생겼다');
-  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.bookTimer={...s.bookTimer,focusElapsed:125,focusResumedAt:Date.now()};localStorage.setItem(k,JSON.stringify(s));},DEMO);
+  check(await p.getByRole('button',{name:/^휴식/}).count()===0,'다시 열었더니 휴식 버튼이 생겼다');
+  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.bookTimer={...s.bookTimer,focusElapsed:305,focusResumedAt:Date.now()};localStorage.setItem(k,JSON.stringify(s));},DEMO);
   await p.reload({waitUntil:'networkidle'});await backToClock(p);
-  check(await btn(p,'휴식 5분').count()===1,'단계만큼 다시 공부해도 휴식 버튼이 없다');
+  check(await p.getByRole('button',{name:/^휴식/}).count()===1,'단계만큼 다시 공부해도 휴식 버튼이 없다');
   check(await p.getByText(/더 공부하면 휴식할 수 있어요/).count()===0,'열렸는데 안내가 남았다');
   await p.context().close();
  });

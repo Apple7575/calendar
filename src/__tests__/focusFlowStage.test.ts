@@ -25,16 +25,23 @@ test('a malformed + value falls back to the start page',()=>{
  const d=settleBookTimer(startBookBreak(studying(),at+60000),at+360000);
  expect(focusFlowStage({...d,bookTimer:{...d.bookTimer!,restEndedAt:'soon' as unknown as number}},false,at+370000)).toBe('start');
 });
-test('with the timer stopped, meeting the stage makes the photo the next step',()=>{
- expect(focusFlowStage(stopBookTimer(studying(),at+120000),false,at+120000)).toBe('capture');
+/** At the 25-minute stage, the only stage that takes a photo since 2026-11-06. */
+const at25=()=>{const d=planned();return startBookTimer({...d,focusRamp:{...d.focusRamp!,level:5}},'t',subject,at,1500,'output')};
+test('with the timer stopped, meeting the 25-minute stage makes the photo the next step',()=>{
+ expect(focusFlowStage(stopBookTimer(at25(),at+1500000),false,at+1500000)).toBe('capture');
+});
+test('a stage before 25 minutes takes no photo: the rest button pays it',()=>{
+ expect(focusFlowStage(stopBookTimer(studying(),at+120000),false,at+120000)).toBe('start');
+ expect(canTakeHandwritingPhoto(studying(),at+120000)).toBe(false);
 });
 test('a running timer stays the study page even after the stage is met',()=>{
  expect(focusFlowStage(studying(),false,at+120000)).toBe('study');
 });
-test('the photo page opens only once the study time is met',()=>{
- expect(focusFlowStage(studying(),false,at+120000,true)).toBe('capture');
- expect(focusFlowStage(startBookBreak(studying(),at+120000),false,at+130000,true)).toBe('capture');
- expect(canTakeHandwritingPhoto(studying(),at+120000)).toBe(true);
+test('the photo page opens only once the 25-minute stage is met',()=>{
+ expect(focusFlowStage(at25(),false,at+1500000,true)).toBe('capture');
+ expect(focusFlowStage(startBookBreak(at25(),at+1500000),false,at+1510000,true)).toBe('capture');
+ expect(canTakeHandwritingPhoto(at25(),at+1500000)).toBe(true);
+ expect(canTakeHandwritingPhoto(at25(),at+1499000)).toBe(false);
 });
 test('a direct capture link before the time falls back to the normal page',()=>{
  expect(canTakeHandwritingPhoto(studying(),at+60000)).toBe(false);

@@ -4,7 +4,7 @@ import {claimFocusPlan as claimPlan,focusRampStatus} from '../lib/focusRamp';
 import {acceptHandwriting,handwritingAccess,settleHandwritingRewards,validateHandwritingState} from '../lib/handwriting';
 import {skipBookBreak,startBookBreak,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {bookDisplaySeconds} from '../lib/bookTimerTime';
-import {canTakeHandwritingPhoto} from '../lib/focusFlow';
+import {focusStageMet} from '../lib/focusFlow';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
 import {validateStudyState} from '../lib/studyHistory';
 jest.mock('../lib/supabase',()=>({supabase:{}}));
@@ -26,26 +26,26 @@ test('photo during the run: the next stage counts down what is left after the su
  const when=at+210*sec,d=photo(firstRun(),when);
  expect(focusRampStatus(d,when).required).toBe(300);
  expect(bookDisplaySeconds(d.bookTimer!,when)).toBe(210);
- expect(canTakeHandwritingPhoto(d,when+209*sec)).toBe(false);
- expect(canTakeHandwritingPhoto(d,when+210*sec)).toBe(true);
+ expect(focusStageMet(d,when+209*sec)).toBe(false);
+ expect(focusStageMet(d,when+210*sec)).toBe(true);
 });
 test('break then photo: the surplus reaches the next run',()=>{
  const rest=at+210*sec,d=photo(startBookBreak(firstRun(),rest),rest+sec),next=skipBookBreak(d,'first','second',rest+2*sec);
  expect(next.bookTimer!.carrySeconds).toBe(90);
  expect(bookDisplaySeconds(next.bookTimer!,rest+2*sec)).toBe(210);
- expect(canTakeHandwritingPhoto(next,rest+2*sec+210*sec)).toBe(true);
- expect(canTakeHandwritingPhoto(next,rest+2*sec+209*sec)).toBe(false);
+ expect(focusStageMet(next,rest+2*sec+210*sec)).toBe(true);
+ expect(focusStageMet(next,rest+2*sec+209*sec)).toBe(false);
 });
 test('a stage reached but not photographed stays open through a break',()=>{
  const rest=at+150*sec,next=skipBookBreak(startBookBreak(firstRun(),rest),'first','second',rest+sec);
  expect(focusRampStatus(next,rest+sec).required).toBe(120);
- expect(canTakeHandwritingPhoto(next,rest+sec)).toBe(true);
+ expect(focusStageMet(next,rest+sec)).toBe(true);
 });
 test('a run that stopped short of its stage still restarts from the full stage',()=>{
  const rest=at+60*sec,next=skipBookBreak(startBookBreak(firstRun(),rest),'first','second',rest+sec);
  expect(next.bookTimer!.carrySeconds??0).toBe(0);
  expect(bookDisplaySeconds(next.bookTimer!,rest+sec)).toBe(120);
- expect(canTakeHandwritingPhoto(next,rest+sec+119*sec)).toBe(false);
+ expect(focusStageMet(next,rest+sec+119*sec)).toBe(false);
 });
 test('a short run keeps the earlier surplus but adds nothing to it',()=>{
  const rest=at+210*sec,paid=photo(startBookBreak(firstRun(),rest),rest+sec);
@@ -59,7 +59,7 @@ test('a long run, a break, then one photo: every passed stage is paid and the re
  expect(paid.handwritingReceipts![0].focusStagesPaid).toEqual([1,2]);
  expect(next.bookTimer!.carrySeconds).toBe(80);
  expect(bookDisplaySeconds(next.bookTimer!,rest+2*sec)).toBe(520);
- expect(canTakeHandwritingPhoto(next,rest+2*sec)).toBe(false);
+ expect(focusStageMet(next,rest+2*sec)).toBe(false);
 });
 test('another subject gets no surplus',()=>{
  const rest=at+210*sec,paid=photo(startBookBreak(firstRun(),rest),rest+sec);
@@ -87,7 +87,7 @@ test('two payouts match plain accumulated time: nothing is counted twice',()=>{
  expect(handwritingAccess(done,subject,end).seconds).toBe(0);
  expect(done.days[Object.keys(done.days)[0]].bonus?.handwriting).toBe(15);
  expect(bookDisplaySeconds(done.bookTimer!,end)).toBe(600);
- expect(canTakeHandwritingPhoto(done,end)).toBe(false);
+ expect(focusStageMet(done,end)).toBe(false);
 });
 test('the same photo settled again changes nothing',()=>{
  const when=at+210*sec,d=photo(firstRun(),when);
@@ -96,7 +96,7 @@ test('the same photo settled again changes nothing',()=>{
 test('restart: surplus and countdown come back from saved JSON',()=>{
  const rest=at+210*sec,next=JSON.parse(JSON.stringify(skipBookBreak(photo(startBookBreak(firstRun(),rest),rest+sec),'first','second',rest+2*sec)));
  expect(bookDisplaySeconds(next.bookTimer,rest+102*sec)).toBe(110);
- expect(canTakeHandwritingPhoto(next,rest+212*sec)).toBe(true);
+ expect(focusStageMet(next,rest+212*sec)).toBe(true);
 });
 test('a late skip press for the old timer id does nothing',()=>{
  const rest=at+210*sec,next=skipBookBreak(photo(startBookBreak(firstRun(),rest),rest+sec),'first','second',rest+2*sec);
@@ -106,8 +106,8 @@ test.each(['soon',null,Number.NaN,-5,1.5,{},999999])('a malformed saved value %p
  const base=firstRun(),data={...base,bookTimer:{...base.bookTimer!,carrySeconds:bad as unknown as number,creditMark:bad as unknown as number}};
  expect(()=>validateStudyState(data)).not.toThrow();
  expect(()=>validateBackup(makeBackup(data,user),user)).not.toThrow();
- expect(canTakeHandwritingPhoto(data,at+119*sec)).toBe(false);
- expect(canTakeHandwritingPhoto(data,at+120*sec)).toBe(true);
+ expect(focusStageMet(data,at+119*sec)).toBe(false);
+ expect(focusStageMet(data,at+120*sec)).toBe(true);
 });
 test('saved surplus survives a backup round trip',()=>{
  const rest=at+210*sec,next=skipBookBreak(photo(startBookBreak(firstRun(),rest),rest+sec),'first','second',rest+2*sec);
@@ -115,14 +115,14 @@ test('saved surplus survives a backup round trip',()=>{
 });
 test('a saved timer from before this change loads with no surplus',()=>{
  const {carrySeconds:_c,creditMark:_m,...old}=firstRun().bookTimer!;
- expect(canTakeHandwritingPhoto({...firstRun(),bookTimer:old},at+119*sec)).toBe(false);
- expect(canTakeHandwritingPhoto({...firstRun(),bookTimer:old},at+120*sec)).toBe(true);
+ expect(focusStageMet({...firstRun(),bookTimer:old},at+119*sec)).toBe(false);
+ expect(focusStageMet({...firstRun(),bookTimer:old},at+120*sec)).toBe(true);
 });
 test('a finished stage still waits for its photo after a home start',()=>{
  const key=routineDay(new Date(at)),task={id:'t',subject,action:'1번',preparation:'',target:'',minimum:120 as const};
  const studied=stopBookTimer(startBookTimer(claimFocusPlan(savePriorityDay(emptyData(),key,[task],new Date(at)),'plan',subject,'기출 1번',at),'first',subject,at,120,'output'),at+420*sec);
  const home=beginPriorityTask(studied,key,'t',at+480*sec);
- expect(canTakeHandwritingPhoto(home,at+480*sec)).toBe(true);
+ expect(focusStageMet(home,at+480*sec)).toBe(true);
  expect(priorityTaskProgress(home,home.priorityDays![key].tasks[0],at+480*sec).seconds).toBe(0);
 });
 const straight=(seconds:number)=>photo(firstRun(),at+seconds*sec);
@@ -138,7 +138,7 @@ test('25 straight minutes and one photo finish stages 2, 5 and 10: +15 minutes, 
 });
 test('the time a photo spent is not counted again by the next photo',()=>{
  const d=straight(1500),when=at+1500*sec;
- expect(canTakeHandwritingPhoto(d,when)).toBe(false);
+ expect(focusStageMet(d,when)).toBe(false);
  const later=at+1920*sec,again=settleHandwritingRewards(acceptHandwriting(d,'p2','b'.repeat(64),subject,{...analysis,lines:['타파하거너더러머버서어'.repeat(12)]},new Date(later),'ramp-v1'),later);
  expect(again.handwritingReceipts![1]).toMatchObject({focusStage:4,focusSeconds:900,minutes:5});
  expect(again.handwritingReceipts![1].focusStagesPaid).toBeUndefined();

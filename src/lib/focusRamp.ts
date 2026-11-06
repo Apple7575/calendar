@@ -113,7 +113,9 @@ export function focusRewardPreview(data:RoutineData,subject:string,now=Date.now(
 export function focusPlanMinutesDue(data:RoutineData){
  const cycle=data.focusRamp?.cycleId,plan=data.focusPlans?.find(p=>p.cycleId===cycle);
  if(!plan||plan.minutes!==0)return 0;
- return data.handwritingReceipts?.some(r=>r.focusCycle===cycle&&r.rewardStatus==='earned'&&r.focusSeconds!==undefined)?0:FOCUS_PLAN_MINUTES;
+ // A rest that paid a stage (focusBreakReward.ts) also paid the plan. Read directly so the two files do not import each other.
+ const rested=Array.isArray(data.focusBreakPayouts)&&data.focusBreakPayouts.some(p=>p?.cycle===cycle);
+ return rested||data.handwritingReceipts?.some(r=>r.focusCycle===cycle&&r.rewardStatus==='earned'&&r.focusSeconds!==undefined)?0:FOCUS_PLAN_MINUTES;
 }
 /** After a stage is paid, spend it from the run and point the countdown at the next stage. Call with the level already raised. */
 export function carryRunPastStage(data:RoutineData,subject:string,paid:number,now=Date.now()):RoutineData{

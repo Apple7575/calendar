@@ -11,7 +11,8 @@ export const opensTimer=(stage:FocusFlowStage)=>stage==='study'||stage==='break'
  * Photos open when the latest run, with any carried surplus, reaches the whole stage, so a run cut short by a break restarts the wait (user decisions 2026-11-03, 2026-11-04).
  * The reward condition stays on accumulated time and must also be met; the editable countdown is not used.
  */
-export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
+/** Whether the current stage's time is met. It drives the countdown, the rest button's stage and the 25-minute photo. */
+export function focusStageMet(data:RoutineData,now=Date.now()){
  const subject=data.outputDraft?.subject;
  if(!subject||!handwritingAccess(data,subject,now).ready)return false;
  const t=data.bookTimer,required=focusRampStatus(data,now).required;
@@ -19,12 +20,21 @@ export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
  if(!t||t.subject!==subject)return false;
  return focusRunCredit(data,now)>=required;
 }
-/** "다 했어요" opens once some of this stage has been studied and the stage is not yet met. */
+const PHOTO_STAGE_SECONDS=1500;
+/**
+ * Photos only at the 25-minute stage (user decision 2026-11-06: "사진은 25분 다 하면 이때만 찍자"). The stages before it are
+ * paid by the rest button, and finishing early takes its photo through canDeclareFinish.
+ */
+export function canTakeHandwritingPhoto(data:RoutineData,now=Date.now()){
+ const required=focusRampStatus(data,now).required;
+ return focusStageMet(data,now)&&(!required||required>=PHOTO_STAGE_SECONDS);
+}
+/** "다 했어요" opens once some of this stage has been studied: before 25 minutes at any point, met or not; at 25 until it is met. */
 export function canDeclareFinish(data:RoutineData,now=Date.now()){
  const subject=data.outputDraft?.subject,t=data.bookTimer,required=focusRampStatus(data,now).required;
  if(!subject||!required||data.handwritingPending||t?.subject!==subject||t.rewardMode!=='output'||t.awaitingChoice===true)return false;
  const credit=focusRunCredit(data,now);
- return credit>0&&credit<required;
+ return credit>0&&(required<PHOTO_STAGE_SECONDS||credit<required);
 }
 export function focusFlowStage(data:RoutineData,hasPhoto:boolean,now=Date.now(),capture=false,declare=false):FocusFlowStage{
  if(data.handwritingPending)return 'review';

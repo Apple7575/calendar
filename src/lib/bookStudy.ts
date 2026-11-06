@@ -7,6 +7,7 @@ import {canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedI
 import {acceptHandwriting,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
+import {payBreakStage} from './focusBreakReward';
 export const SUBJECTS=['전기공사기사 실기','수능','일본어','영어'] as const;
 export type StudyRewardMode='standard'|'free'|'output';
 export type BookSession={id:string;subject:string;startedAt:string;completedAt:string;seconds:number;note:string;next:string;savedAt?:string;rewardMode?:StudyRewardMode};
@@ -66,7 +67,8 @@ export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{
 }
 /** What the app calls. startBookBreak is the bare state change underneath it and has no other caller. */
 export function takeEarnedBreak(data:RoutineData,now=Date.now()):RoutineData{
- return canStartBreak(data,now)?startBookBreak(data,now):data;
+ // The stage is paid first, without a photo (user decision 2026-11-06), then the rest starts.
+ return canStartBreak(data,now)?startBookBreak(payBreakStage(data,now),now):data;
 }
 /**
  * Leave a break early, whether it is running or paused. Keyed to the break's timer so a repeated
