@@ -44,6 +44,12 @@ const check=(ok,message)=>{if(!ok)errors.push(message);};
    const r=await bell.evaluate(e=>{const b=e.getBoundingClientRect(),hits=[];for(const o of document.querySelectorAll('[role=button],[role=switch]')){if(o===e)continue;const c=o.getBoundingClientRect();if(c.width&&b.left<c.right&&c.left<b.right&&b.top<c.bottom&&c.top<b.bottom)hits.push(o.textContent||o.getAttribute('aria-label'));}return {w:b.width,h:b.height,hits,wide:document.documentElement.scrollWidth>innerWidth};});
    report.push({name:`bell ${width}x${height}`,...r});
    check(r.w>=44&&r.h>=44,`bell ${width}: 44pt 미만`);check(!r.hits.length,`bell ${width}: 겹침 ${r.hits}`);check(!r.wide,`bell ${width}: 가로 넘침`);
+   // S2-13: 종은 세로·가로 모두 '화면 돌리기' 바로 왼쪽. 소리 버튼은 세로에선 아래 줄, 가로에선 종 왼쪽.
+   const at=await p.evaluate(()=>{const box=e=>e?.getBoundingClientRect(),bell=box(document.querySelector('[data-testid=rest-alarm-toggle]')),rot=box([...document.querySelectorAll('[role=button]')].find(e=>/로 돌리기$/.test(e.getAttribute('aria-label')||''))),noise=box([...document.querySelectorAll('[role=button]')].find(e=>/소리/.test((e.getAttribute('aria-label')||'')+e.textContent)&&!/돌리기/.test(e.getAttribute('aria-label')||'')));return {gap:rot&&bell?rot.left-bell.right:null,dy:rot&&bell?Math.abs((rot.top+rot.bottom)/2-(bell.top+bell.bottom)/2):null,noiseTop:noise?.top??null,noiseRight:noise?.right??null,bellLeft:bell.left,h:innerHeight};});
+   report.push({name:`place ${width}x${height}`,...at});
+   check(at.gap!==null&&at.gap>=0&&at.gap<=16&&at.dy<=2,`bell ${width}: 화면 돌리기 바로 옆이 아니다 ${JSON.stringify(at)}`);
+   if(width<height)check(at.noiseTop>at.h/2,`portrait: 소리 버튼이 아래 줄에 없다 ${at.noiseTop}`);
+   else check(at.noiseRight!==null&&at.noiseRight<=at.bellLeft&&at.bellLeft-at.noiseRight<=16,`landscape: 소리 버튼이 종 왼쪽에 없다 ${JSON.stringify(at)}`);
   }
   await p.setViewportSize({width:390,height:844});
   await bell.click();await p.waitForTimeout(300);
