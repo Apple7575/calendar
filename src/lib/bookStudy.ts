@@ -25,7 +25,8 @@ export function settleBookTimer(data:RoutineData,now=Date.now()):RoutineData{
  const timer=data.bookTimer;if(!timer||!timer.running||now<timer.endsAt)return data;
  // Reaching the target is a cue, not consent to stop studying or start a break.
  if(timer.phase==='focus')return data;
- return {...data,bookTimer:{...timer,phase:'idle',remaining:0,running:false,restEndedAt:timer.endsAt}};
+ const {breakSeconds:_rest,...rested}=timer;
+ return {...data,bookTimer:{...rested,phase:'idle',remaining:0,running:false,restEndedAt:timer.endsAt}};
 }
 export function startBookTimer(data:RoutineData,id:string,subject:string,now=Date.now(),duration=1500,rewardMode:StudyRewardMode='output',fromRest=false):RoutineData{
  if(![120,180,300,600,900,1500,3000].includes(duration))throw new Error('집중 시간을 확인해 주세요.');
@@ -108,7 +109,7 @@ export function takeEarnedBreak(data:RoutineData,now=Date.now()):RoutineData{
  */
 export function skipBookBreak(data:RoutineData,breakTimerId:string,id:string,now=Date.now()):RoutineData{
  const t=data.bookTimer;if(!t||t.id!==breakTimerId||t.phase==='focus')return data;
- const idle:RoutineData={...data,bookTimer:{...t,phase:'idle',remaining:0,running:false}};
+ const {breakSeconds:_rest,...left}=t,idle:RoutineData={...data,bookTimer:{...left,phase:'idle',remaining:0,running:false}};
  if(t.rewardMode!=='output')return startBookTimer(idle,id,t.subject,now,t.duration??1500,t.rewardMode??'standard');
  if(focusRampStatus(data,now).needsPlan)throw new Error('공부를 2시간 쉬었어요. 계획 한 줄부터 다시 시작해 주세요.');
  const drafted=startOutputStudy(idle,'draft-'+id,t.subject,new Date(now)),subject=drafted.outputDraft!.subject;

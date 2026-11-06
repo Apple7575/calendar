@@ -7,6 +7,8 @@ import {breakAlarmAt} from '../lib/breakAlarm';
 import {restAlarmEnd} from '../lib/restAlarm';
 import {PROPOSED_MONEY_RATES,moneySummary,startMoneyRewards} from '../lib/moneyRewards';
 import {makeBackup,validateBackup} from '../lib/routineBackup';
+import {repairSavedData} from '../lib/commitments';
+import {settleBookTimer} from '../lib/bookStudy';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
 // S2-14 (team lead, 2026-11-07): a rest is a fifth of the stage it closes. 2→1, 5→1, 10→2, 15→3, 25→5 minutes.
@@ -78,9 +80,37 @@ describe('the rest keeps its length',()=>{
   expect(breakLength({...t,breakSeconds:90})).toBe(90);
  });
  // Build 50: one shape check blocked the whole backup. A range, not the table, so a later table (say 90 s) never blocks one.
- test('backups take any whole length from 1 second to an hour, and refuse only broken ones',()=>{
-  const d=rest(running(),120),with_=(v:unknown)=>()=>validateBackup(makeBackup({...d,bookTimer:{...d.bookTimer!,breakSeconds:v as number}},user),user);
-  for(const ok of [60,90,1,3600])expect(with_(ok)).not.toThrow();
-  for(const bad of [0,3601,1.5,'60'])expect(with_(bad)).toThrow();
+ // A broken length is not refused: restoring repairs it first (repairSavedData) and the rest reads as 5 minutes.
+ test('backups keep any whole length from 1 second to an hour, and drop broken ones instead of refusing',()=>{
+  const d=rest(running(),120),backup=(v:unknown)=>{const b=makeBackup({...d,bookTimer:{...d.bookTimer!,breakSeconds:v as number}},user);validateBackup(b,user);return b.data.bookTimer!.breakSeconds;};
+  for(const ok of [60,90,1,3600])expect(backup(ok)).toBe(ok);
+  for(const bad of [0,3601,1.5,'60'])expect(backup(bad)).toBeUndefined();
+ });
+});
+
+// Ada (S2-14): a length out of range was kept on the idle timer, so every backup was refused until the next study.
+describe('a broken rest length heals itself',()=>{
+ const broken=()=>{const d=rest(running(),120);return {...d,bookTimer:{...d.bookTimer!,breakSeconds:0}} as RoutineData;};
+ test('a save holding 0 → load → save → the backup passes',()=>{
+  const loaded=repairSavedData(JSON.parse(JSON.stringify(broken())));
+  expect(loaded.bookTimer!.breakSeconds).toBeUndefined();
+  expect(loaded.bookTimer).toMatchObject({phase:'break',remaining:60});
+  expect(()=>validateBackup(makeBackup(loaded,user),user)).not.toThrow();
+ });
+ test('restoring a backup holding 0 works too',()=>{
+  const backup=JSON.parse(JSON.stringify(makeBackup(broken(),user)));
+  expect(()=>validateBackup(backup,user)).not.toThrow();
+ });
+ test('a good length is left alone when loading',()=>{
+  const d=rest(running(),120);
+  expect(repairSavedData(d)).toBe(d);
+ });
+ test('the rest ending, or leaving it early, drops the length from the idle timer',()=>{
+  const ended=settleBookTimer(rest(running(),120),at+181*sec);
+  expect(ended.bookTimer!.phase).toBe('idle');
+  expect(ended.bookTimer!.breakSeconds).toBeUndefined();
+  const left=skipBookBreak(rest(startBookTimer(emptyData(),'run',subject,at,1500,'standard'),1500),'run','run2',at+1510*sec);
+  expect(left.bookTimer!.phase).toBe('focus');
+  expect(left.bookTimer!.breakSeconds).toBeUndefined();
  });
 });
