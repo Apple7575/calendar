@@ -96,7 +96,7 @@ export function RoutineHistoryScreen({embedded=false}:{embedded?:boolean}={}) {
 export function RoutineMoreScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { dayKey } = useRoutine();
-  const { theme, setThemeId } = useThemeControls();
+  const { themeId, setThemeId } = useThemeControls();
   const items = [
     { title: "저녁 루틴 설정", icon: "moon-outline" as const, open: () => navigation.navigate("RoutineSetup",{slot:"evening"}) },
     { title: "25분 집중 공부", icon: "timer-outline" as const, open: () => navigation.navigate("BookStudy") },
@@ -119,6 +119,6 @@ export function RoutineMoreScreen() {
       <Copy>아침 루틴 10분 · 작게 5분</Copy><Copy>단어 완료 10장 → 15장 → 20장마다 5분</Copy><Copy>헬스장 운동 30분 · 집 운동 10분</Copy>
       <Copy muted size={13}>최소 목표 뒤 전체 목표까지 해내면 차액을 더 받아요. 새벽 4시에 잔액만 초기화돼요.</Copy>
     </CardView>
-    <Action label={theme.isDark ? "라이트 모드로 보기" : "다크 모드로 보기"} secondary onPress={() => setThemeId(theme.isDark ? "routine" : "dark")} />
+    <Action label={themeId === "dark" ? "라이트 모드로 보기" : "다크 모드로 보기"} secondary onPress={() => setThemeId(themeId === "dark" ? "routine" : "dark")} />
   </Page>;
 }

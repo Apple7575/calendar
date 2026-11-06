@@ -2,6 +2,7 @@ import React,{useState} from 'react';
 import {Pressable,Text,View,useWindowDimensions} from 'react-native';
 import {PriorityDay,PriorityTask,priorityTaskProgress} from '../../lib/priorityPlan';
 import {focusRampStatus} from '../../lib/focusRamp';
+import {todayFriendAction} from '../../lib/nightScreen';
 import {RoutineData} from '../../lib/routineModel';
 import {CharacterPeek,Icon,Notice} from './ui';
 import type {AnimalActionId} from './animalAssets';
@@ -16,7 +17,7 @@ export function PriorityMissionView({nudge,nudgeAction,data,plan,task,pending,pr
  const primary=progress?.complete?'이 공부 계속하기':task.startedAt?'이어서 집중하기':`딱 ${stageMinutes}분만 시작`;
  const accessible=progress?.complete?'같은 공부 계속 이어가기':task.startedAt?'첫 행동 이어서 하기':`${stageMinutes}분, 이 행동부터 시작`;
  return <View testID="priority-mission" style={{gap:space.md}}>
-  <View>{nudge}<CharacterPeek character="C04" action={nudgeAction??(progress?.complete?'A23':'A31')} maxSize={nudge?220:small?300:undefined}/><View style={{padding:small?space.md:space.lg,borderRadius:radii.stage,backgroundColor:p.paper,gap:small?space.sm:space.md}}>
+  <View>{nudge}<CharacterPeek character="C04" action={todayFriendAction(clock,!!progress?.complete,nudgeAction)} maxSize={nudge?220:small?300:undefined}/><View style={{padding:small?space.md:space.lg,borderRadius:radii.stage,backgroundColor:p.paper,gap:small?space.sm:space.md}}>
    <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}><View style={{flexDirection:'row',gap:7,alignItems:'center'}}><View style={{width:7,height:7,borderRadius:4,backgroundColor:progress?.complete?p.success:p.brand}}/><Text style={[type.caption,{color:p.muted,fontWeight:'700'}]}>{pending?'지금 할 한 가지':'작은 시작 완료'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="계획" onPress={onEdit} style={{width:control.touch,height:control.touch,borderRadius:radii.chip,alignItems:'center',justifyContent:'center',backgroundColor:p.mutedSurface}}><Icon name="options-outline" color={p.muted} size={18}/></Pressable></View>
    <View style={{gap:space.xxs}}><Text style={[type.caption,{color:p.brandInk,fontWeight:'700'}]}>{task.subject}</Text><Pressable accessibilityRole="button" accessibilityLabel="첫 행동 전체 보기" onPress={()=>setFullAction(v=>!v)}><Text numberOfLines={fullAction?undefined:small?3:4} {...koreanTitle.props} style={[type.title,koreanTitle.style,{color:p.ink}]}>{action}</Text></Pressable></View>
    <Text style={[type.caption,{color:p.muted}]}>{progress?.complete?'시작을 해냈어요 · 같은 과목으로 한 걸음 더':task.startedAt?'천천히 이어가요':'부담 없이 시작 · 책을 펴고 첫 줄부터'}</Text>

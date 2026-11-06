@@ -46,7 +46,7 @@ type GoogleStatus = "checking" | "connected" | "notLinked" | "error";
 
 export function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { theme, setThemeId } = useThemeControls();
+  const { theme, themeId, setThemeId } = useThemeControls();
   const c = theme.colors;
   const styles = useMemo(() => createStyles(c), [c]);
   const [email, setEmail] = useState<string>("");
@@ -223,7 +223,7 @@ export function SettingsScreen() {
         <Section title="테마">
           <View style={styles.themeRow}>
             {THEMES.map((t) => {
-              const selected = t.id === theme.id;
+              const selected = t.id === themeId;
               return (
                 <TouchableOpacity
                   key={t.id}

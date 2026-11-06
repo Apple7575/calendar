@@ -10,7 +10,10 @@ jest.mock('expo-av',()=>({Audio:{setAudioModeAsync:jest.fn(async()=>{}),Sound:{c
 const renderer=require('react-test-renderer');
 function Probe({event}:{event:StudyFeedback|null}){useStudyFeedback(event);return null;}
 const player=()=>({replayAsync:jest.fn(async()=>{}),pauseAsync:jest.fn(async()=>{}),unloadAsync:jest.fn(async()=>{})});
-beforeEach(()=>{jest.clearAllMocks();mockListeners.clear();(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;});
+// 밤(21:00~04:30)에는 축하음을 내지 않는다(celebrationAudio). 여기서는 낮 동작을 보므로 시계를 낮 1시에 둔다.
+let mockClock:jest.SpyInstance;
+beforeEach(()=>{jest.clearAllMocks();mockListeners.clear();(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;mockClock=jest.spyOn(Date,'now').mockReturnValue(new Date(2026,10,7,13,0).getTime());});
+afterEach(()=>mockClock.mockRestore());
 
 test('milestone plays once, cancels vocabulary first, and is stopped when dismissed',async()=>{
  const sounds:ReturnType<typeof player>[]=[];(Audio.Sound.createAsync as jest.Mock).mockImplementation(async()=>{const sound=player();sounds.push(sound);return {sound}});
