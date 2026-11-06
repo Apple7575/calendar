@@ -13,8 +13,8 @@ export const COMMITMENT_POLICY={
  stake:{amounts:[5000,10000,20000],bonusRate:0.1},
  promise:{windowMinutes:15,minutes:10,won:1000,earliest:'04:15',latest:'23:45'},
  interest:{perMinutes:10,won:300,weeklyCapWon:5000,lookbackDays:14},
- rules:{stakeDays:[4,5,6],morningWords:[10,15,20],reflectTime:[2000,2030,2050]},
- defaults:{stakeDays:5,morningWords:10,reflectTime:2030},
+ rules:{stakeDays:[4,5,6],morningWords:[10,15,20],reflectTime:[2000,2040,2050]},
+ defaults:{stakeDays:5,morningWords:10,reflectTime:2040},
 } as const;
 
 export type StakeAmount=typeof COMMITMENT_POLICY.stake.amounts[number];

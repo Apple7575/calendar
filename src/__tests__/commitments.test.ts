@@ -104,13 +104,13 @@ describe('weekly stake',()=>{
 
 describe('weekly rules',()=>{
  test('defaults',()=>{
-  expect(activeWeeklyRules(emptyData(),MON)).toEqual({stakeDays:5,morningWords:10,reflectTime:2030});
+  expect(activeWeeklyRules(emptyData(),MON)).toEqual({stakeDays:5,morningWords:10,reflectTime:2040});
  });
  test('a rule applies from the next Monday, and the latest of each kind carries on',()=>{
   let d=saveWeeklyReview(emptyData(),'2026-11-02',{kind:'morningWords',value:15},t(2,9));
   d=saveWeeklyReview(d,MON,{kind:'reflectTime',value:2050},t(9,9));
-  expect(activeWeeklyRules(d,key(8))).toEqual({stakeDays:5,morningWords:10,reflectTime:2030});
-  expect(activeWeeklyRules(d,MON)).toEqual({stakeDays:5,morningWords:15,reflectTime:2030});
+  expect(activeWeeklyRules(d,key(8))).toEqual({stakeDays:5,morningWords:10,reflectTime:2040});
+  expect(activeWeeklyRules(d,MON)).toEqual({stakeDays:5,morningWords:15,reflectTime:2040});
   expect(activeWeeklyRules(d,'2026-11-16')).toEqual({stakeDays:5,morningWords:15,reflectTime:2050});
  });
  test('a review is saved once; values outside the list are refused',()=>{
@@ -120,9 +120,14 @@ describe('weekly rules',()=>{
   expect(()=>saveWeeklyReview(emptyData(),MON,{kind:'stakeDays',value:7},t(9,9))).toThrow();
   expect(()=>saveWeeklyReview(emptyData(),key(10),undefined,t(10,9))).toThrow();
  });
+ test('a reflect time saved under the old 20:30 choice is ignored and falls back to 20:40',()=>{
+  const d={...emptyData(),weeklyReviews:{[MON]:{doneAt:'x',rule:{kind:'reflectTime',value:2030}}}} as unknown as RoutineData;
+  expect(activeWeeklyRules(d,'2026-11-16').reflectTime).toBe(2040);
+  expect(()=>saveWeeklyReview(emptyData(),MON,{kind:'reflectTime',value:2030},t(9,9))).toThrow();
+ });
  test('broken saved reviews are ignored, never thrown',()=>{
   const d={...emptyData(),weeklyReviews:{[MON]:{doneAt:'x',rule:{kind:'stakeDays',value:99}},bad:null}} as unknown as RoutineData;
-  expect(activeWeeklyRules(d,'2026-11-16')).toEqual({stakeDays:5,morningWords:10,reflectTime:2030});
+  expect(activeWeeklyRules(d,'2026-11-16')).toEqual({stakeDays:5,morningWords:10,reflectTime:2040});
  });
 });
 
