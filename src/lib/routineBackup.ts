@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { RoutineData } from './routineModel';
 import { validateLearningSummary } from './learningSummary';
 import { validateStudyState } from './studyHistory';
+import { repairSavedData } from './commitments';
 
 export type RoutineBackup={schema:'routine.backup.v1';userId:string;createdAt:string;data:RoutineData};
 const LIMIT=20*1024*1024;
@@ -9,7 +10,8 @@ export const isCloudAccount=(id?:string)=>!!id&&/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.
 export function validateBackup(input:unknown,userId:string):RoutineBackup{
  const b=input as RoutineBackup;
  if(!b||b.schema!=='routine.backup.v1'||b.userId!==userId||!Number.isFinite(Date.parse(b.createdAt)))throw new Error('같은 계정에서 만든 백업 파일인지 확인해 주세요.');
- const d=b.data;
+ // Known build-50 money entries are repaired first, so restoring a backup made then does not fail (see repairSavedData).
+ const d=b.data=b.data?repairSavedData(b.data):b.data;
  if(!d||d.version!==1||!Array.isArray(d.words)||!Array.isArray(d.decks)||!d.days||typeof d.days!=='object'||!Number.isInteger(d.newLimit)||d.newLimit<0||d.newLimit>100)throw new Error('백업 데이터 형식이 올바르지 않아요.');
  if(d.words.length>100000||d.decks.length>1000||Object.keys(d.days).length>50000)throw new Error('백업 파일이 너무 커요.');
  if(new Set(d.words.map(w=>w.id)).size!==d.words.length||d.words.some(w=>!w||typeof w.id!=='string'||typeof w.front!=='string'||typeof w.back!=='string'||!w.card||!Number.isFinite(Date.parse(w.card.due))||!Number.isFinite(w.card.reps)))throw new Error('카드 데이터를 확인하지 못했어요. 원래 기록은 보존했어요.');
