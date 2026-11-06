@@ -2,6 +2,8 @@ import {useCallback,useContext,useEffect,useRef} from 'react';
 import {NavigationContainerRefContext} from '@react-navigation/native';
 import {pendingNextStudyAsk,reservationAlarmAt,reservedStudy} from '../../lib/studyReservation';
 import {syncNextStudyAlarm} from '../../lib/studyReservationAlarm';
+import {notificationFace} from '../../lib/notificationFace';
+import {streakWidgetPayload} from '../../lib/streakWidget';
 import {useRoutine} from './RoutineProvider';
 
 /**
@@ -9,7 +11,7 @@ import {useRoutine} from './RoutineProvider';
  * CommitmentGate 옆, NavigationContainer 안에 둔다.
  */
 export function NextStudyGate(){
- const {data,ready}=useRoutine(),nav=useContext(NavigationContainerRefContext),shown=useRef(''),latest=useRef(data);
+ const {data,ready,dayKey}=useRoutine(),nav=useContext(NavigationContainerRefContext),shown=useRef(''),latest=useRef(data);
  latest.current=data;
  const tryOpen=useCallback(()=>{
   if(!ready||!nav?.isReady())return;
@@ -23,6 +25,8 @@ export function NextStudyGate(){
  useEffect(()=>{tryOpen()},[tryOpen,data]);
  useEffect(()=>nav?nav.addListener('state',tryOpen):undefined,[nav,tryOpen]);
  const now=Date.now(),at=ready?reservationAlarmAt(data,now):null,subject=at===null?'':reservedStudy(data,now)?.subject??'';
- useEffect(()=>{if(ready)void syncNextStudyAlarm(at,subject).catch(()=>{});},[ready,at,subject]);
+ // S2-12: a reserved time is the user's own choice, so its face never worries.
+ const face=at===null?undefined:notificationFace({at,kind:'chosen',today:dayKey,todayDone:streakWidgetPayload(data,dayKey).todayDone});
+ useEffect(()=>{if(ready)void syncNextStudyAlarm(at,subject,face).catch(()=>{});},[ready,at,subject,face]);
  return null;
 }

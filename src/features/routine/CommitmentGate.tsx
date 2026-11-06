@@ -2,6 +2,8 @@ import {useContext,useEffect,useRef} from 'react';
 import {NavigationContainerRefContext} from '@react-navigation/native';
 import {addDays} from '../../lib/dateUtils';
 import {syncReflectAlarm} from '../../lib/reflectAlarm';
+import {notificationFace} from '../../lib/notificationFace';
+import {streakWidgetPayload} from '../../lib/streakWidget';
 import {dayPromise,weekKeyOf} from '../../lib/weeklyCommitments';
 import {reflectAlarmTimes,shouldOpenWeekCheck} from '../../lib/weeklyReview';
 import {useRoutine} from './RoutineProvider';
@@ -22,6 +24,9 @@ export function CommitmentGate(){
  },[open,week,nav,now]);
  const promised=dayPromise(data,addDays(dayKey,1)).status!=='none';
  const times=ready?reflectAlarmTimes(data,dayKey,promised,now.getTime()).join(','):'';
- useEffect(()=>{if(ready)void syncReflectAlarm(times?times.split(',').map(Number):[]).catch(()=>{});},[ready,times]);
+ // S2-12: night reflection nudges about today, so it takes the app icon's face for each time (a later day counts as not done yet).
+ const todayDone=ready&&streakWidgetPayload(data,dayKey).todayDone;
+ const faces=times?times.split(',').map(t=>notificationFace({at:Number(t),kind:'nudge',today:dayKey,todayDone})).join(','):'';
+ useEffect(()=>{if(ready)void syncReflectAlarm(times?times.split(',').map(Number):[],faces?faces.split(','):[]).catch(()=>{});},[ready,times,faces]);
  return null;
 }
