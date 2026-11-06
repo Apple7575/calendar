@@ -59,6 +59,8 @@ export const FOCUS_OVERTIME_FLASH_SECONDS=4;
  * flashDone: 같은 타이머에서 시간을 조정해 목표를 다시 넘어도 한 번만 뒤집기 위한 값.
  */
 export function focusClockInverted(phase:string,left:number,restOvertime:number|null,flashDone=false){
+ // A rest is always inverted, so it never looks like study (build 53). '휴식 중' counts down, '휴식 끝' counts up with '+'.
+ if(phase==='break')return true;
  if(phase==='idle')return restOvertime!==null;
  return phase==='focus'&&!flashDone&&left<=0&&left>-FOCUS_OVERTIME_FLASH_SECONDS;
 }
