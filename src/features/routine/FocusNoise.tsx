@@ -55,10 +55,10 @@ function FocusNoiseSheet({choice, close}: {choice: FocusNoise; close: () => void
     <View testID="focus-noise-sheet" style={{borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: c.card, paddingHorizontal: 22, paddingTop: 16, paddingBottom: Math.max(insets.bottom, 16), gap: 6}}>
       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}><Copy size={20} weight="800">집중 소리</Copy><Link label="닫기" onPress={close}/></View>
       <Copy muted size={13}>집중하는 동안만 나오고, 휴식이 시작되면 멈춰요. 다른 앱 음악과 같이 들을 수 있어요.</Copy>
-      <View accessibilityRole="radiogroup" style={{marginTop: 6}}>{FOCUS_NOISES.map(value => {
+      <View accessibilityRole="radiogroup" style={{marginTop: 6}}>{FOCUS_NOISES.map((value, index) => {
         const selected = choice === value;
         return <Pressable key={value} accessibilityRole="radio" accessibilityState={{checked: selected}} aria-checked={selected} accessibilityLabel={FOCUS_NOISE_LABEL[value]} onPress={() => pick(value)}
-          style={({pressed}) => ({minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: c.border, backgroundColor: pressed ? c.primarySoft : 'transparent'})}>
+          style={({pressed}) => ({minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 6, borderBottomWidth: index < FOCUS_NOISES.length - 1 ? 1 : 0, borderColor: c.border, backgroundColor: pressed ? c.primarySoft : 'transparent'})}>
           <Icon name={ICON[value]} size={20}/>
           <View style={{flex: 1}}><Copy weight={selected ? '800' : '500'}>{FOCUS_NOISE_LABEL[value]}</Copy></View>
           {selected ? <Icon name="checkmark" size={20} color={c.primary}/> : null}
