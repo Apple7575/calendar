@@ -1,4 +1,4 @@
-// 목표 탭 검수: 실제 웹 미리보기에서 첫 실행, 저장, 공부 연결, 여러 목표, 옛 저장값, 끊긴 연결, 끝내기·삭제, 친구 선택 유지를 확인한다.
+// 목표 탭 검수: 실제 웹 미리보기에서 첫 실행, 저장, 공부 연결, 여러 목표, 옛 저장값, 끊긴 연결, 끝내기·삭제, 공부 시간, 친구 선택 유지를 확인한다.
 // 격리된 브라우저 컨텍스트와 예시 데이터만 사용한다. iOS 실기기·네이티브 날짜 선택기 검증을 대신하지 않는다.
 // 사용: $env:PREVIEW_PORT='8093'; node scripts/check-goal-tab-web.cjs
 const assert=require('assert/strict'),fs=require('fs');
@@ -187,6 +187,31 @@ const saved=page=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),STORE
   const week=await page.getByTestId('goal-week').last().locator('[data-testid^="goal-day-"]').evaluateAll(els=>els.map(e=>e.getAttribute('data-testid').slice(-10)));
   const first=new Date(`${week[0]}T12:00:00`);assert.equal(first.getDay(),1,'월요일 시작');assert.equal(week.length,7);assert.ok(week.includes(today));
   ok('이번 주: 월요일 시작, 연결한 공부만 셈');assert.deepEqual(errors,[]);await context.close();
+ }
+ { // 공부 시간: 연결한 과목만, 이번 주와 지난주, 보여 주기만
+  const now=Date.now(),iso=ms=>new Date(ms).toISOString();
+  const bookSessions=[
+   {id:'t1',subject:'문법',startedAt:iso(now-1800e3),completedAt:iso(now),seconds:1800,note:'',next:''},
+   {id:'t2',subject:'영어',startedAt:iso(now-900e3),completedAt:iso(now),seconds:900,note:'',next:''},
+   {id:'t3',subject:'문법',startedAt:iso(now-7*864e5-3600e3),completedAt:iso(now-7*864e5),seconds:3600,note:'',next:''},
+  ];
+  // 메모 없는 집중 기록은 시간에는 들어가지만 오늘을 '끝낸 날'로 만들지 않아 복귀 축하가 뜨지 않는다.
+  // 지난주 기록이 있으면 월요일 주간 점검이 먼저 열리므로, 이번 주 점검은 끝낸 것으로 둔다.
+  const monday=(()=>{const d=new Date(`${today}T12:00:00`);d.setDate(d.getDate()-(d.getDay()+6)%7);return dateKey(d)})();
+  const {context,page,errors}=await open(browser,{data:base({goals:[goal()],bookSessions,weeklyReviews:{[monday]:{doneAt:new Date().toISOString()}}})});
+  assert.ok((await visibleText(page)).includes('공부 시간 이번 주 30분 · 지난주 1시간'),'탭 카드의 공부 시간');
+  await card(page).click();await page.waitForTimeout(800);
+  const box=page.getByTestId('goal-week-time').last();
+  assert.equal(await box.getByLabel('이번 주 공부 시간 30분').count(),1,'이번 주 막대');
+  assert.equal(await box.getByLabel('지난주 공부 시간 1시간').count(),1,'지난주 막대');
+  const state=await saved(page);assert.equal(state.goals[0].weeklyTargetDays,5,'약속은 그대로');
+  await box.scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/week-time-390.png`});
+  await context.close();
+  const empty=await open(browser,{data:base({goals:[goal()]})});
+  assert.ok(!(await visibleText(empty.page)).includes('공부 시간 이번 주'),'시간이 없으면 탭 카드에 줄이 없음');
+  await card(empty.page).click();await empty.page.waitForTimeout(800);
+  assert.ok((await visibleText(empty.page)).includes('연결한 공부의 시간이 아직 없어요.'),'빈 상태 안내');
+  ok('공부 시간: 연결한 과목만, 이번 주·지난주, 빈 상태');assert.deepEqual(errors,[]);assert.deepEqual(empty.errors,[]);await empty.context.close();
  }
  { // 다음 한 걸음
   const detail=async data=>{const run=await open(browser,{data});await card(run.page).click();await run.page.waitForTimeout(800);return run};
