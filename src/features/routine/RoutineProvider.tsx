@@ -7,7 +7,7 @@ import { AppState } from "react-native";
 import { mergePlayLog } from "../../lib/playLog";
 import { getScreenTimeStatus, ScreenTimeStatus, syncRoutineRewards,syncFocusWindow,adjustStudyRewards } from "../../lib/screenTime";
 import { studyLedger,undoStudyAnswer,validateStudyState } from '../../lib/studyHistory';
-import { emptyData, getDay, reconcileStudyExclusions, RoutineData, routineDay } from "../../lib/routineModel";
+import { emptyData, getDay, reconcileStudyExclusions, RoutineData, routineDay, settleMorningWords } from "../../lib/routineModel";
 import { migrateDailyPlan } from "../../lib/dailyPlan";
 import { reconcileAdditionalRewards } from "../../lib/studyRewards";
 import { receiveLearningSummaries } from "../../lib/learningCloud";
@@ -76,7 +76,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
       if (migrated !== saved && raw && !await AsyncStorage.getItem(`${key}.backup.n3-unified.v1`)) {
         await AsyncStorage.setItem(`${key}.backup.n3-unified.v1`, raw);
       }
-      const grown = initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(settleBookTimer(migrateDailyPlan(advanceBoriGrowth(migrated, routineDay()))),routineDay()),routineDay()),routineDay());
+      const grown = initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(settleMorningWords(settleBookTimer(migrateDailyPlan(advanceBoriGrowth(migrated, routineDay()))),routineDay()),routineDay()),routineDay()),routineDay());
       if (recovered||grown !== saved) await AsyncStorage.setItem(key, JSON.stringify(grown));
       if (!alive.current||!live) return;
       if(recovered){lastBackedUp.current=grown;setBackupState({busy:false,lastAt:recovered.createdAt,error:null});}
@@ -96,7 +96,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
         throw new Error("새 하루가 시작됐어요. 화면을 확인하고 다시 시도해 주세요.");
       }
       const before=initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(current.current,expectedDay),expectedDay),expectedDay);
-      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(reconcilePriorityPlans(settleHandwritingRewards(fn(before)),expectedDay),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
+      const next = reconcileMoneyRewards(before,advanceBoriGrowth(advanceHabitOrder(before,reconcileStudyExclusions(reconcileAdditionalRewards(reconcilePriorityPlans(settleHandwritingRewards(settleMorningWords(fn(before),expectedDay)),expectedDay),expectedDay),expectedDay),expectedDay), expectedDay),expectedDay);
       await AsyncStorage.setItem(key, JSON.stringify(next));
       if (alive.current&&identity.current===userId) { current.current = next; setData(next); setError(null); }
     });
