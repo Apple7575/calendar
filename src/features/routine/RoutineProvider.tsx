@@ -29,6 +29,7 @@ import {streakWidgetPayload} from '../../lib/streakWidget';
 import {writeStreakWidget} from '../../lib/streakWidgetStorage';
 import {appIconSlot} from '../../lib/appIcon';
 import {syncAppIcon} from '../../lib/appIconSync';
+import {notificationFace} from '../../lib/notificationFace';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -205,7 +206,9 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   useEffect(()=>{if(ready&&reconcileCommitments(data)!==data)void update(s=>reconcileCommitments(s)).catch(e=>setError(e.message));},[ready,data,dayKey,Math.floor(now.getTime()/60000)]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(ready&&native?.supportsEmergencyUnlock&&reconcileEmergency(data,native.emergencyLog)!==data)void update(s=>reconcileEmergency(s,native.emergencyLog)).catch(e=>setError(e.message));},[ready,native?.supportsEmergencyUnlock,native?.emergencyLog?.length,data.emergencyPending?.id,data.emergencyUnlocks?.length]);
   const breakAlarm=breakAlarmAt(t),[ringAlarm]=useRestAlarmSetting();
-  useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm,ringAlarm).catch(e=>setError(e.message));},[ready,breakAlarm,ringAlarm]);
+  // S2-12: the rest end is a time the user chose, so its face never worries.
+  const breakFace=breakAlarm===null?undefined:notificationFace({at:breakAlarm,kind:'chosen',today:dayKey,todayDone:streakWidgetPayload(data,dayKey).todayDone});
+  useEffect(()=>{if(ready)void syncBreakAlarm(breakAlarm,ringAlarm,breakFace).catch(e=>setError(e.message));},[ready,breakAlarm,ringAlarm,breakFace]);
   useEffect(() => {
     let active = true;
       if (ready && !adjustment && native?.enabled && native.rewardMode) {
