@@ -46,14 +46,14 @@ test('word and sentence speeds persist independently and apply to playback with 
  expect(Audio.Sound.createAsync).toHaveBeenCalledTimes(2);await renderer.act(async()=>tree.unmount());
 });
 
-test('automatic sentence waits exactly 500ms and a manual action cancels the pending sentence',async()=>{
+test('automatic sentence waits exactly 200ms and a manual action cancels the pending sentence',async()=>{
  jest.useFakeTimers({doNotFake:['queueMicrotask','setImmediate']});
  (AsyncStorage.getItem as jest.Mock).mockImplementation(async(key:string)=>key==='routine.studyAudio.sentenceAuto.v1'?'true':'false');
  const players:any[]=[];(Audio.Sound.createAsync as jest.Mock).mockImplementation(async()=>{const sound={pauseAsync:jest.fn(async()=>{}),replayAsync:jest.fn(async()=>{}),unloadAsync:jest.fn(async()=>{}),setOnPlaybackStatusUpdate:jest.fn((callback:any)=>{sound.callback=callback}),callback:null as any};players.push(sound);return {sound}});
  let tree:any;try{
   await renderer.act(async()=>{tree=renderer.create(React.createElement(Probe,{revealed:true}));});
   await renderer.act(async()=>{await value.play('word',true)});
-  await renderer.act(async()=>{players[0].callback({isLoaded:true,didJustFinish:true});jest.advanceTimersByTime(499)});
+  await renderer.act(async()=>{players[0].callback({isLoaded:true,didJustFinish:true});jest.advanceTimersByTime(199)});
   expect(players[1].replayAsync).not.toHaveBeenCalled();
   await renderer.act(async()=>{jest.advanceTimersByTime(1)});expect(players[1].replayAsync).toHaveBeenCalledTimes(1);
   await renderer.act(async()=>{await value.play('word',true);players[0].callback({isLoaded:true,didJustFinish:true});value.stop();jest.advanceTimersByTime(1000)});
