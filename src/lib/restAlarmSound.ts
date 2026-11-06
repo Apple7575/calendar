@@ -1,5 +1,6 @@
 import {Platform,Vibration} from 'react-native';
 import {Audio} from 'expo-av';
+import {playbackAudioMode} from './focusNoise';
 
 /**
  * 휴식 끝 알람 소리 (S1-21): 반복 재생 + 진동. 무음 스위치가 켜져 있어도 울린다(playsInSilentModeIOS).
@@ -11,7 +12,8 @@ let sound:Audio.Sound|null=null,wanted=false,queue:Promise<unknown>=Promise.reso
 
 async function begin(){
  if(sound)return;
- await Audio.setAudioModeAsync({allowsRecordingIOS:false,playsInSilentModeIOS:true,staysActiveInBackground:false,shouldDuckAndroid:false});
+ // 앱 전체가 같은 모드를 쓴다(S1-22). playbackAudioMode는 무음 스위치를 무시한다(playsInSilentModeIOS:true).
+ await Audio.setAudioModeAsync(playbackAudioMode());
  const created=await Audio.Sound.createAsync(SOURCE,{shouldPlay:false,isLooping:true,volume:1});
  if(!wanted){await created.sound.unloadAsync().catch(()=>{});return;}
  sound=created.sound;

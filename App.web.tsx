@@ -10,6 +10,7 @@ import {NextStudyGate} from './src/features/routine/NextStudyGate';
 import {NextStudyScreen} from './src/features/routine/NextStudyScreen';
 import {RestAlarmGate} from './src/features/routine/RestAlarmGate';
 import { CelebrationHost } from "./src/features/routine/Celebration";
+import {FocusNoiseHost} from "./src/features/routine/FocusNoise";
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -126,6 +127,7 @@ function Preview() {
           <NextStudyGate/>
           <RestAlarmGate/>
           <CelebrationHost/>
+          <FocusNoiseHost/>
         </NavigationContainer>
       </RoutineProvider>
     </View>
