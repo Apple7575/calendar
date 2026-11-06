@@ -57,11 +57,12 @@ export async function loadBuildCheck(build:number):Promise<BuildCheckState>{
 }
 export async function saveBuildCheck(build:number,state:BuildCheckState){await AsyncStorage.setItem(storageKey(build),JSON.stringify(state));}
 
-/** PM에게 붙여 넣을 글. 확인하지 않은 항목도 빠짐없이 적는다. */
-export function buildCheckReport(list:BuildChecklist,state:BuildCheckState,now=new Date()){
+/** PM에게 붙여 넣을 글. 확인하지 않은 항목도 빠짐없이 적는다.
+ * auto: 앱이 스스로 확인한 줄(selfCheckLines). 사람이 확인한 항목보다 앞에 둔다. */
+export function buildCheckReport(list:BuildChecklist,state:BuildCheckState,now=new Date(),auto:string[]=[]){
  const date=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
  const marks=list.items.map(item=>({item,mark:state[item.id]}));
  const count=(ok:boolean|undefined)=>marks.filter(m=>m.mark?.ok===ok).length;
  const line=({item,mark}:{item:BuildCheckItem;mark?:BuildCheckMark})=>`${mark?.ok===true?'✓':mark?.ok===false?'✗':'·'} ${item.title}${mark?.note.trim()?` — ${mark.note.trim()}`:''}`;
- return [`[빌드 ${list.build} 확인] ${date}`,`됨 ${count(true)} · 안 됨 ${count(false)} · 미확인 ${count(undefined)}`,...marks.map(line)].join('\n');
+ return [`[빌드 ${list.build} 확인] ${date}`,...auto,`됨 ${count(true)} · 안 됨 ${count(false)} · 미확인 ${count(undefined)}`,...marks.map(line)].join('\n');
 }
