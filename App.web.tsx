@@ -6,6 +6,7 @@ import {WeekCheckScreen} from './src/features/routine/WeekCheckScreen';
 import {NightReflectionScreen} from './src/features/routine/NightReflectionScreen';
 import {BuildCheckScreen} from './src/features/routine/BuildCheckScreen';
 import {CommitmentGate} from './src/features/routine/CommitmentGate';
+import { CelebrationHost } from "./src/features/routine/Celebration";
 import {EarnedRewardScreen} from './src/features/routine/EarnedRewardScreen';
 import {AnimalPreviewScreen} from './src/features/routine/AnimalPreviewScreen';
 import {FocusDesignGallery} from './src/features/routine/FocusClock';
@@ -118,6 +119,7 @@ function Preview() {
             {(["RoutineScreenTime", "LegacyCalendar", "LegacyToday", "LegacyReport", "LegacyInterests", "Gallery", "Camera", "Routines", "Settings", "Workout", "EventEdit"] as const).map(name => <Stack.Screen key={name} name={name} component={DeviceOnly} />)}
           </Stack.Navigator>
           <CommitmentGate/>
+          <CelebrationHost/>
         </NavigationContainer>
       </RoutineProvider>
     </View>

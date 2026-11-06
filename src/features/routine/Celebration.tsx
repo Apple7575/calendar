@@ -1,0 +1,107 @@
+import React,{useCallback,useEffect,useRef,useState} from 'react';
+import {AppState,Modal,Platform,Text,View} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Audio} from 'expo-av';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {planCelebration,streakFriends,type CelebrationLog,type CelebrationRequest,type PlannedCelebration} from '../../lib/celebration';
+import {settlementNews} from '../../lib/settlementNews';
+import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
+import {tapLight,tapSuccess} from '../../lib/haptics';
+import {radii,space,type} from '../../theme/tokens';
+import {useTheme} from '../../theme/ThemeContext';
+import {colorRoles} from '../../theme/roles';
+import {useRoutine} from './RoutineProvider';
+import {CelebrationSurface} from './CelebrationSurface';
+import type {AnimalActionId,AnimalCharacterId} from './animalAssets';
+import {Action,Mascot} from './ui';
+
+/*
+ * 축하 부품. 어디서든 celebrate({kind,...})를 부르면 CelebrationHost가 단계(큰·중간·작은)를 정하고 보여 준다.
+ * 규칙은 src/lib/celebration.ts, 기준은 routine-portfolio/celebration-audit/design-plan.md.
+ * 화면 표시 전용이다. 보상을 만들거나 바꾸지 않는다. 표시 기록은 아래 두 키에만 둔다.
+ */
+const LOG_KEY='celebration.log.v1',SEEN_KEY='celebration.settlementSeen.v1';
+type Listener=(request:CelebrationRequest)=>void;
+let listener:Listener|null=null;const early:CelebrationRequest[]=[];
+/** 축하를 요청한다. 보여 줄지·어떤 단계일지는 하루 한도와 순환 규칙이 정한다. */
+export function celebrate(request:CelebrationRequest){if(listener)listener(request);else early.push(request);}
+// 웹 미리보기 검사(scripts/check-celebrations-web.cjs)에서만 부른다. 앱(iOS)에는 붙지 않는다.
+if(Platform.OS==='web'&&typeof window!=='undefined')(window as unknown as {__celebrate?:typeof celebrate}).__celebrate=celebrate;
+
+const SOUNDS={complete:require('../../../assets/sounds/study/complete.mp3'),milestone:require('../../../assets/sounds/study/milestone.mp3')};
+async function playSound(kind:'complete'|'milestone'){
+ await loadExperiencePreferences();if(!experiencePreferences().sound)return;
+ try{
+  await Audio.setAudioModeAsync({playsInSilentModeIOS:true,allowsRecordingIOS:false,staysActiveInBackground:false});
+  const {sound}=await Audio.Sound.createAsync(SOUNDS[kind],{shouldPlay:true,volume:0.65});
+  sound.setOnPlaybackStatusUpdate(s=>{if(s.isLoaded&&s.didJustFinish)void sound.unloadAsync().catch(()=>{});});
+ }catch{}
+}
+const CAST:AnimalCharacterId[]=['C03','C04','C01','C02'];
+
+function Big({plan,onClose}:{plan:PlannedCelebration;onClose:()=>void}){
+ const friends=plan.kind==='streak'?streakFriends(Number(plan.title.match(/\d+/)?.[0]??0)):1;
+ const character=(plan.character as AnimalCharacterId|undefined)??'C03';
+ return <Modal visible animationType={Platform.OS==='web'?'none':'fade'} onRequestClose={onClose} statusBarTranslucent>
+  <View style={{flex:1}}>
+   <CelebrationSurface effect={plan.effect} testID={'celebration-big-'+plan.kind} title={plan.title} subtitle={plan.detail} onClose={onClose} action={plan.action as AnimalActionId} character={character}
+    footer={<Action label="계속하기" onPress={onClose}/>}>
+    {friends>1?<View testID="celebration-friends" style={{flexDirection:'row',gap:space.xs,justifyContent:'center',marginTop:-space.lg}}>{CAST.filter(c=>c!==character).slice(0,friends-1).map(c=><Mascot key={c} character={c} size={friends===2?140:108} action={plan.action as AnimalActionId}/>)}</View>:null}
+    {plan.won||plan.minutes?<Money plan={plan}/>:null}
+   </CelebrationSurface>
+  </View>
+ </Modal>;
+}
+function Money({plan}:{plan:PlannedCelebration}){
+ const {colors:c}=useTheme(),parts=[plan.minutes?'+'+plan.minutes+'분':'',plan.won?'+'+plan.won.toLocaleString('ko-KR')+'원':''].filter(Boolean);
+ return <View style={{paddingHorizontal:space.lg,paddingVertical:space.sm,borderRadius:radii.card,backgroundColor:c.card}}><Text style={[type.heading,{color:c.text,fontVariant:['tabular-nums']}]}>{parts.join(' · ')}</Text></View>;
+}
+function Toast({plan}:{plan:PlannedCelebration}){
+ const theme=useTheme(),c=theme.colors,role=colorRoles(theme),insets=useSafeAreaInsets();
+ const parts=[plan.minutes?'+'+plan.minutes+'분':'',plan.won?'+'+plan.won.toLocaleString('ko-KR')+'원':''].filter(Boolean).join(' · ');
+ return <View pointerEvents="none" testID={'celebration-toast-'+plan.kind} accessibilityLiveRegion="polite" accessibilityLabel={plan.title+(parts?' '+parts:'')}
+  style={{position:'absolute',left:space.md,right:space.md,top:insets.top+space.xs,flexDirection:'row',alignItems:'center',gap:space.sm,padding:space.sm,borderRadius:radii.card,backgroundColor:c.card,borderWidth:1,borderColor:role.primary.soft,overflow:'hidden'}}>
+  <View style={{width:56,height:56,alignItems:'center',justifyContent:'center'}}><Mascot character={(plan.character as AnimalCharacterId|undefined)??'C03'} size={56} action={plan.action as AnimalActionId}/></View>
+  <View style={{flex:1,minWidth:0}}><Text style={[type.label,{color:c.text}]}>{plan.title}</Text>{parts?<Text style={[type.body,{color:role.primary.ink,fontVariant:['tabular-nums']}]}>{parts}</Text>:null}</View>
+ </View>;
+}
+
+/** 앱 뿌리에 한 번 둔다(RootNavigator, App.web.tsx). 축하 줄을 하나씩 보여 주고, 앱을 열 때 정산 소식을 모아 보여 준다. */
+export function CelebrationHost(){
+ const [queue,setQueue]=useState<PlannedCelebration[]>([]),log=useRef<CelebrationLog>(null),loaded=useRef<Promise<void>|null>(null);
+ const load=()=>loaded.current??(loaded.current=AsyncStorage.getItem(LOG_KEY).then(raw=>{try{const v=raw?JSON.parse(raw):null;if(v&&typeof v.day==='string'&&Array.isArray(v.big)&&Array.isArray(v.lines)&&v.last&&typeof v.last==='object')log.current=v;}catch{}}).catch(()=>{}));
+ const accept=useCallback((request:CelebrationRequest)=>{void load().then(()=>{
+  const now=Date.now(),{plan,log:next}=planCelebration(request,log.current,localDay(now),now);
+  log.current=next;AsyncStorage.setItem(LOG_KEY,JSON.stringify(next)).catch(()=>{});
+  if(plan.haptic==='success')tapSuccess();else tapLight();
+  if(plan.sound)void playSound(plan.sound);
+  if(plan.tier!=='small')setQueue(q=>[...q,plan]);
+ })},[]);
+ useEffect(()=>{listener=accept;early.splice(0).forEach(accept);return()=>{if(listener===accept)listener=null}},[accept]);
+ const current=queue[0],next=useCallback(()=>setQueue(q=>q.slice(1)),[]);
+ useEffect(()=>{if(current?.tier!=='medium')return;const t=setTimeout(next,2800);return()=>clearTimeout(t)},[current,next]);
+ return <>
+  <SettlementWatcher/>
+  {current?.tier==='big'?<Big plan={current} onClose={next}/>:current?.tier==='medium'?<Toast plan={current}/>:null}
+ </>;
+}
+/** 04시 기준 날짜. routineDay와 같은 기준이다. */
+function localDay(now:number){const d=new Date(now);if(d.getHours()<4)d.setDate(d.getDate()-1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+/** 앱을 열 때(앞으로 올 때) 조용히 정산된 돈을 모아 한 번씩 축하한다. 본 소식 id는 표시용 키에만 남긴다. */
+function SettlementWatcher(){
+ const {data,dayKey,ready}=useRoutine(),[active,setActive]=useState(AppState.currentState==='active'),checked=useRef('');
+ useEffect(()=>{const s=AppState.addEventListener('change',v=>setActive(v==='active'));return()=>s.remove()},[]);
+ useEffect(()=>{
+  if(!ready||!active)return;
+  const stamp=dayKey+':'+JSON.stringify([data.weeklyStakes,data.dayPromises,data.interestDays]).length;
+  if(checked.current===stamp)return;checked.current=stamp;
+  void AsyncStorage.getItem(SEEN_KEY).then(raw=>{
+   let seen:string[]=[];try{const v=raw?JSON.parse(raw):[];if(Array.isArray(v))seen=v.filter(x=>typeof x==='string')}catch{}
+   const items=settlementNews(data,dayKey,seen);if(!items.length)return;
+   for(const item of items)celebrate({kind:item.kind,won:item.won,minutes:item.minutes});
+   AsyncStorage.setItem(SEEN_KEY,JSON.stringify([...seen,...items.flatMap(i=>i.ids)].slice(-200))).catch(()=>{});
+  }).catch(()=>{});
+ },[ready,active,dayKey,data]);
+ return null;
+}
