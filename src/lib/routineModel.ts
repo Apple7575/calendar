@@ -49,7 +49,7 @@ export type Day = {
   complete: string[]; responses: number; studySeconds: number;
   lastStudyWordId?: string;
   additional?:AdditionalPlan;additionalByDeck?:Record<string,AdditionalPlan>;
-  bonus?:{words?:number;book?:number;quick?:number;order?:number;freeStudy?:number;handwriting?:number;speaking?:number;content?:number};
+  bonus?:{words?:number;book?:number;quick?:number;order?:number;freeStudy?:number;handwriting?:number;speaking?:number;content?:number;promise?:number};
   rewardedFreeSessionIds?:string[];
   orderProgress?:import('./habitOrder').HabitOrderProgress;
   evening?:boolean[];eveningPlan?:MorningStep[];guidedTimer?:import('./dailyPlan').GuidedTimer;
@@ -66,6 +66,8 @@ export type RoutineData = {
   focusRamp?:import('./focusRamp').FocusRamp;focusPlans?:import('./focusRamp').FocusPlan[];focusPenalties?:import('./focusPenalty').FocusPenalty[];
   speakingRecords?:import('./speaking').SpeakingRecord[];speakingConsentAt?:string;
   emergencyUnlocks?:import('./emergencyUnlock').EmergencyUnlock[];emergencyPending?:import('./emergencyUnlock').EmergencyPending;
+  weeklyStakes?:Record<string,import('./commitments').WeeklyStakeRow>;dayPromises?:Record<string,import('./commitments').DayPromiseRow>;
+  interestDays?:Record<string,import('./commitments').InterestDay>;interestSince?:string;weeklyReviews?:Record<string,import('./commitments').WeeklyReview>;
   contentUploads?:import('./content').ContentUpload[];contentSeenLinks?:string[];contentIdeas?:import('./content').ContentIdea[];
   money?:import('./moneyRewards').MoneyWallet;playLog?:import('./playLog').PlayLog;
   version: 1; decks: Deck[]; words: Word[]; days: Record<string, Day>; newLimit: number; morningSteps?: MorningStep[];
@@ -124,7 +126,9 @@ export function earn(data: RoutineData, key: string, unit: Unit, level: Level): 
 export const speakingBonus=(day:Day|undefined)=>{const v=day?.bonus?.speaking;return typeof v==='number'&&Number.isSafeInteger(v)&&v>0?v:0};
 /** Only sums of the two platforms' rewards are real. Anything else counts as nothing, and the device would refuse it. */
 export const contentBonus=(day:Day|undefined)=>{const v=day?.bonus?.content;return v===60||v===120||v===180?v:0};
-export function earned(day: Day): number { return contentBonus(day) + speakingBonus(day) + day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
+/** A kept promise is worth exactly 10 minutes; any other saved value counts as nothing. */
+export const promiseBonus=(day:Day|undefined)=>day?.bonus?.promise===10?10:0;
+export function earned(day: Day): number { return promiseBonus(day) + contentBonus(day) + speakingBonus(day) + day.paid.morning + day.paid.words + day.paid.gym + (day.bonus?.book??0) + (day.bonus?.words??0) + (day.bonus?.quick??0) + (day.bonus?.order??0) + (day.bonus?.freeStudy??0) + (day.bonus?.handwriting??0); }
 export function achieved(day: Day): boolean { return earned(day) > 0; }
 export function planStudy(data: RoutineData, key: string): RoutineData {
   if (getDay(data, key).plan) return data;
