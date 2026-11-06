@@ -104,6 +104,107 @@
       "expo-font",
       "@bacons/apple-targets",
       [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "SmileOtter",
+            "ios": "./assets/app-icons/smile-otter.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/smile-otter.png",
+              "backgroundColor": "#FFE2AA"
+            }
+          },
+          {
+            "name": "SmileCat",
+            "ios": "./assets/app-icons/smile-cat.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/smile-cat.png",
+              "backgroundColor": "#D6EFB0"
+            }
+          },
+          {
+            "name": "SmileBear",
+            "ios": "./assets/app-icons/smile-bear.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/smile-bear.png",
+              "backgroundColor": "#C9DCFF"
+            }
+          },
+          {
+            "name": "SmileHedgehog",
+            "ios": "./assets/app-icons/smile-hedgehog.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/smile-hedgehog.png",
+              "backgroundColor": "#F9CFE0"
+            }
+          },
+          {
+            "name": "WorriedOtter",
+            "ios": "./assets/app-icons/worried-otter.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/worried-otter.png",
+              "backgroundColor": "#FFE2AA"
+            }
+          },
+          {
+            "name": "WorriedCat",
+            "ios": "./assets/app-icons/worried-cat.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/worried-cat.png",
+              "backgroundColor": "#D6EFB0"
+            }
+          },
+          {
+            "name": "WorriedBear",
+            "ios": "./assets/app-icons/worried-bear.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/worried-bear.png",
+              "backgroundColor": "#C9DCFF"
+            }
+          },
+          {
+            "name": "WorriedHedgehog",
+            "ios": "./assets/app-icons/worried-hedgehog.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/worried-hedgehog.png",
+              "backgroundColor": "#F9CFE0"
+            }
+          },
+          {
+            "name": "CheerOtter",
+            "ios": "./assets/app-icons/cheer-otter.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/cheer-otter.png",
+              "backgroundColor": "#FFE2AA"
+            }
+          },
+          {
+            "name": "CheerCat",
+            "ios": "./assets/app-icons/cheer-cat.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/cheer-cat.png",
+              "backgroundColor": "#D6EFB0"
+            }
+          },
+          {
+            "name": "CheerBear",
+            "ios": "./assets/app-icons/cheer-bear.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/cheer-bear.png",
+              "backgroundColor": "#C9DCFF"
+            }
+          },
+          {
+            "name": "CheerHedgehog",
+            "ios": "./assets/app-icons/cheer-hedgehog.png",
+            "android": {
+              "foregroundImage": "./assets/app-icons/cheer-hedgehog.png",
+              "backgroundColor": "#F9CFE0"
+            }
+          }
+        ]
+      ],
+      [
         "expo-screen-orientation",
         {
           "initialOrientation": "PORTRAIT_UP"
