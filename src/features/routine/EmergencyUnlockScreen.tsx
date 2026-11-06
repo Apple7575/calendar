@@ -1,20 +1,36 @@
 import React,{useEffect,useState} from 'react';
-import {Platform} from 'react-native';
+import {Platform,View} from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {beginEmergencyUnlock,cancelEmergencyUnlock,EMERGENCY_POLICY,emergencyBlock,emergencyOpenUntil,emergencyPrice,finishEmergencyUnlock} from '../../lib/emergencyUnlock';
 import {penaltyLabel} from '../../lib/focusPenalty';
 import {clockLabel} from '../../lib/focusJourney';
+import {emergencyGoal,type GoalReminder} from '../../lib/goalReminder';
 import {startEmergencyUnlock} from '../../lib/screenTime';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
-import {Action,CardView,Copy,Field,Link,Notice,Page} from './ui';
+import {useTheme} from '../../theme/ThemeContext';
+import {colorRoles} from '../../theme/roles';
+import {Action,CardView,Copy,Field,Link,Notice,Page,Progress} from './ui';
 
 const P=EMERGENCY_POLICY;
 const BLOCKED={studying:'공부 중에는 쓸 수 없어요. 공부 잠금은 여기서 풀리지 않아요.','not-sleep':'긴급 해제는 취침 잠금 시간(21시~04시 30분)에만 쓸 수 있어요.'} as const;
+/** The goal furthest behind, in the user's own words, above the price. It only shows; nothing here changes the rules. */
+function GoalReminderCard({reminder:{goal,dueLabel,duePassed,week}}:{reminder:GoalReminder}){
+ const theme=useTheme();
+ return <View testID="emergency-goal"><CardView style={{gap:space.xs}}>
+  <Copy variant="label" style={{color:colorRoles(theme).primary.ink}}>{'내 목표'+(dueLabel&&!duePassed?' · '+dueLabel:'')}</Copy>
+  <Copy variant="heading">{goal.title}</Copy>
+  {goal.why?<View style={{gap:2}}><Copy variant="caption" muted>내가 적은 이유</Copy><Copy>{goal.why}</Copy></View>:null}
+  {week?<View style={{gap:space.xxs}}>
+   <Copy variant="caption" muted>{`이번 주 ${week.count}일 / 주 ${week.target}일`}</Copy>
+   <Progress value={week.count/Math.max(1,week.target)} label={`${goal.title} 이번 주 공부한 날 ${week.count}일, 목표 ${week.target}일`}/>
+  </View>:null}
+ </CardView></View>;
+}
 /** Opening the apps during the sleep lock. The price, a reason and a wait come first, so it is not done on reflex. */
 export function EmergencyUnlockScreen({navigation}:RootScreenProps<'EmergencyUnlock'>){
- const {data,native,update,refreshNative}=useRoutine(),[now,setNow]=useState(Date.now()),[reason,setReason]=useState(''),[wait,setWait]=useState<number>(P.waitSeconds),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const {data,dayKey,native,update,refreshNative}=useRoutine(),[now,setNow]=useState(Date.now()),[reason,setReason]=useState(''),[wait,setWait]=useState<number>(P.waitSeconds),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const hasReason=!!reason.trim();
  useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),250);return()=>clearInterval(id)},[]);
  /** The wait starts once there is a reason, and starts over if it is cleared. */
@@ -24,6 +40,7 @@ export function EmergencyUnlockScreen({navigation}:RootScreenProps<'EmergencyUnl
   return()=>clearInterval(id);
  },[hasReason]);
  const nativeUntil=native?.emergencyUntil,until=emergencyOpenUntil(data,nativeUntil,now),block=emergencyBlock(data,nativeUntil,now),price=emergencyPrice(data,now),supported=Platform.OS==='web'||!!native?.supportsEmergencyUnlock;
+ const reminder=emergencyGoal(data,dayKey);
  const submit=async()=>{
   if(busy||wait>0||!hasReason)return;
   setBusy(true);setError('');
@@ -51,6 +68,7 @@ export function EmergencyUnlockScreen({navigation}:RootScreenProps<'EmergencyUnl
   {block==='studying'||block==='not-sleep'?<Notice tone="warning">{BLOCKED[block]}</Notice>:null}
   {!supported?<Notice tone="warning">긴급 해제는 새 아이폰 빌드에서 쓸 수 있어요.</Notice>:null}
   {block?null:<>
+   {reminder?<GoalReminderCard reminder={reminder}/>:null}
    <CardView>
     <Copy variant="heading">{'제한 앱을 '+P.minutes+'분 열어요'}</Copy>
     <Copy variant="section">{'오늘 '+price.order+'번째 · '+penaltyLabel(price)}</Copy>
