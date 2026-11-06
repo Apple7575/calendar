@@ -228,3 +228,10 @@ PM 전달 팀장 지시(2026-11-06): 학습 탭의 말하기·콘텐츠를 디�
 - 정산 소식: 앱이 앞에 올 때 Felix의 공개 함수(`weeklyStake`, `promiseOutcomesOn`, `weeklyInterest`)만 읽어 예치금 성공(큰)·약속 지킴·이자(중간)를 한 번씩 보여 준다(`settlementNews.ts`).
 - 표시 기록은 `celebration.log.v1`, `celebration.settlementSeen.v1`에만 둔다. 보상·저장 형식과 관계없다.
 - 부르는 법: `celebrate({kind,n?,minutes?,won?,character?})`. 저장(update)이 끝난 뒤 한 번 부른다. 웹 검사는 `scripts/check-celebrations-web.cjs`.
+
+## 탭 다시 누르면 맨 위로 (2026-11-06)
+
+- 보던 탭을 한 번 더 누르면 그 탭 화면이 맨 위로 올라간다. `Page`가 `src/lib/tabScrollTop.ts`로 tabPress를 듣는다. 탭 네 개 모두 `Page` 하나로 그려서 화면마다 따로 달지 않는다.
+- 다른 탭에서 넘어올 때는 스크롤을 그대로 둔다. 이미 맨 위면 아무 일도 없다. 동작 줄이기가 켜져 있으면 애니메이션 없이 옮긴다.
+- 학습 탭의 단어·집중·말하기·콘텐츠 선택은 그대로 둔다(스택이 아니라 화면 안 선택이다). 탭 안에 쌓인 스택은 없다.
+- 웹 검사: `scripts/check-tab-scroll-top-web.cjs`.

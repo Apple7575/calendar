@@ -11,6 +11,7 @@ import {RootStackParamList} from '../../navigation/types';
 import {tapLight} from '../../lib/haptics';
 import {colorRoles} from '../../theme/roles';
 import {keyboardScrollDelta} from '../../lib/keyboardScroll';
+import {scrollTopOnTabPress} from '../../lib/tabScrollTop';
 import {BoriMascot as Mascot} from './BoriMascot';
 import type {AnimalActionId,AnimalCharacterId} from './animalAssets';
 import type {MascotMood} from './boriAssets';
@@ -32,6 +33,9 @@ export function Page({ title, right, children, footer, scrollable = true, floati
   const back=pushed&&!isExitAction(right);
   const ownScroll=useRef<ScrollView>(null),scroller=scrollRef??ownScroll,offset=useRef(0);
   const pageScroll=useMemo(()=>({scrollBy:(dy:number)=>scroller.current?.scrollTo({y:offset.current+dy,animated:true})}),[scroller]);
+  const reduced=useReducedMotion(),reducedNow=useRef(reduced);reducedNow.current=reduced;
+  // 탭 화면에서 보던 탭을 한 번 더 누르면 맨 위로. 탭 밖(위로 쌓인 화면)에는 tabPress가 오지 않는다.
+  useEffect(()=>embedded||!scrollable?undefined:scrollTopOnTabPress(nav as unknown as Parameters<typeof scrollTopOnTabPress>[0],()=>scroller.current,()=>offset.current,()=>reducedNow.current),[nav,embedded,scrollable,scroller]);
   if(embedded)return <View style={{gap:space.md}}>{children}</View>;
   const content = <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.surface }}>
     {showHeader?<View style={u.header}>{back?<Pressable accessibilityRole="button" accessibilityLabel="뒤로" onPress={()=>nav.goBack()} style={{minWidth:control.touch,minHeight:control.touch,justifyContent:'center'}}><Icon name="arrow-back" size={23} color={c.text}/></Pressable>:null}<Text accessibilityRole="header" style={[type.title, { color: c.text,flex:1 }]}>{title}</Text>{right??(pushed?null:<ProfileButton/>)}</View>:null}
