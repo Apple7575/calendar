@@ -132,6 +132,8 @@ async function shots(page,name,full=false){
   const editor=p.getByTestId('idea-editor-old');
   await editor.getByRole('textbox',{name:'왜 좋았나 (선택)'}).fill('첫 3초에 질문을 던져서');
   await editor.getByRole('button',{name:'메모 저장',exact:true}).click();await p.waitForTimeout(300);
+  check(!(await editor.getByRole('button',{name:'메모 저장',exact:true}).count()),'저장한 뒤에도 메모 저장 버튼이 남는다');
+  check(!(await editor.getByRole('button',{name:'링크 넣기',exact:true}).count()),'빈 링크 칸인데 링크 넣기가 보인다');
   await p.evaluate(t=>navigator.clipboard.writeText(t),'https://www.instagram.com/reel/RefReel_1/?igsh=abc');
   await editor.getByRole('button',{name:'복사한 링크 붙이기',exact:true}).click();await p.waitForTimeout(400);
   await editor.getByRole('textbox',{name:'참고 링크'}).fill('https://evil.example/reel/x');
@@ -149,7 +151,9 @@ async function shots(page,name,full=false){
   await row.getByRole('button',{name:'닫기',exact:true}).click();await p.waitForTimeout(200);
   await row.getByRole('button',{name:'오늘 만들기',exact:true}).click();await p.waitForTimeout(300);
   const making=p.getByTestId('idea-old'),refsBox=await making.getByTestId('idea-refs-old').boundingBox(),textBox=await making.getByText('예전 아이디어',{exact:true}).boundingBox();
-  check(refsBox&&textBox&&refsBox.y<textBox.y,'만드는 중인데 참고 링크가 맨 위가 아니다');
+  check(refsBox&&textBox&&refsBox.y>textBox.y,'만드는 중인데 참고 링크가 제목 아래가 아니다');
+  const whyBox=await making.getByText(/^왜 좋았나 · /).boundingBox();
+  check(refsBox&&whyBox&&refsBox.y<whyBox.y,'만드는 중인데 참고 링크가 메모보다 아래다');
   await p.evaluate(()=>{window.__opened=[];window.open=u=>{window.__opened.push(String(u));return null};});
   await making.getByRole('link',{name:'인스타 릴스 1 열기'}).click();await p.waitForTimeout(300);
   const opened=await p.evaluate(()=>window.__opened);
