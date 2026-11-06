@@ -9,6 +9,7 @@ import {useReducedMotion} from './motion';
 import {STUDY_RATES,StudyRate} from '../../lib/studyPlayback';
 import * as Clipboard from 'expo-clipboard';
 import {studyIssueText} from '../../lib/studyIssueExport';
+import {WordMemoEditor} from './WordMemoEditor';
 
 type Props={word:Word;visible:boolean;onClose:()=>void;auto:boolean;sentenceAuto:boolean;toggleAuto:()=>Promise<void>;toggleSentenceAuto:()=>Promise<void>;rates:Record<'word'|'sentence',StudyRate>;setRate:(kind:'word'|'sentence',rate:StudyRate)=>Promise<void>};
 const reportRows=[['wordAudio','volume-medium-outline','단어 음성','발음·반복·소리 문제'],['sentenceAudio','headset-outline','예문 음성','예문 발음·소리 문제'],['example','chatbox-outline','예문 내용·번역','문장이나 번역이 어색해요'],['meaning','book-outline','단어 뜻·읽기','뜻이나 읽기가 맞지 않아요']] as const;
@@ -35,6 +36,7 @@ export function StudyCardMenu({word,visible,onClose,auto,sentenceAuto,toggleAuto
       <Copy muted size={12}>‘모아둔 단어 → 확인 필요’에서 복사·수정하거나 다시 학습에 넣을 수 있어요.</Copy>
      </>:<>
       <Pressable accessibilityRole="button" accessibilityLabel={word.favorite?'즐겨찾기 해제':'즐겨찾기 추가'} disabled={busy} onPress={()=>void run(s=>favoriteWord(s,word.id),false)} style={{flexDirection:'row',alignItems:'center',gap:12,minHeight:48}}><Icon name={word.favorite?'star':'star-outline'}/><Copy weight="700">{word.favorite?'즐겨찾기에 저장됨':'즐겨찾기에 저장'}</Copy></Pressable>
+      <WordMemoEditor word={word}/>
       <Pressable accessibilityRole="button" accessibilityLabel="문제 신고" onPress={()=>{setReport(true);setError('')}} style={{minHeight:56,flexDirection:'row',gap:12,alignItems:'center'}}><Icon name="flag-outline"/><View style={{flex:1}}><Copy weight="700">문제 신고</Copy><Copy muted size={12}>유형 한 번으로 저장·학습 제외</Copy></View><Icon name="chevron-forward" size={18}/></Pressable>
       <View style={{borderTopWidth:1,borderColor:c.border,paddingTop:10,gap:2}}><Link label="오늘만 숨기기 · 새벽 4시에 다시" onPress={()=>void run(s=>setWordStudyStatus(s,word.id,'bury',dayKey))}/><Link label="계속 학습에서 제외" onPress={()=>void run(s=>setWordStudyStatus(s,word.id,'suspend',dayKey))}/>{word.suspended||word.buriedOn===dayKey?<Link label="숨김·제외 해제" onPress={()=>void run(s=>setWordStudyStatus(s,word.id,'restore',dayKey))}/>:null}<Copy muted size={12}>숨기거나 제외해도 단어와 복습 진도는 보관해요.</Copy></View>
       <View style={{borderTopWidth:1,borderColor:c.border,paddingTop:14,gap:12}}>{([['정답 뒤 단어 자동 재생',auto,toggleAuto],['이어서 예문 자동 재생',sentenceAuto,toggleSentenceAuto]] as const).map(([title,value,operation])=><View key={title} style={[u.between,{gap:12}]}><View style={{flex:1}}><Copy>{title}</Copy></View><Switch trackColor={{false:c.border,true:c.primary}} thumbColor={c.white} ios_backgroundColor={c.border} accessibilityLabel={title} value={value} onValueChange={()=>changeAudio(operation)}/></View>)}<Copy muted size={12}>단어가 끝나면 0.2초 뒤에 예문을 들어요. 재생 속도를 바꿔도 간격은 같아요.</Copy></View>

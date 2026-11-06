@@ -17,6 +17,7 @@ import {FocusStart} from './FocusStart';
 import {SpeakingHome} from './SpeakingHome';
 import {ContentHome} from './ContentHome';
 import {MascotVisible} from './mascotVisibility';
+import {lapseWords} from '../../lib/lapseWords';
 type Section='word'|'focus'|'speak'|'content';
 /** A section stays mounted once opened and is only hidden, so coming back does not reload its friend (Lottie) or relayout the page. */
 function SectionPane({id,section,opened,children}:{id:Section;section:Section;opened:Section[];children:()=>React.ReactNode}){
@@ -49,7 +50,7 @@ export function StudyHomeScreen(){
    <NavCard title="오늘의 일본어 시작" subtitle="25분 구성 샘플 · 예문 복습 → 독해 → 새 상황 → 말하기" icon="language-outline" onPress={()=>nav.navigate('JapaneseSample')}/>
    <Copy muted size={12}>오늘 단어 보상 +{budget.earned}분 · 이번 구간 {budget.pending}/{budget.required}장 · 하루 상한 없음</Copy>{error?<Copy muted>{error}</Copy>:null}
    <MenuRow title="복습 예정" subtitle="오늘·내일·날짜별 복습할 카드" icon="calendar-outline" onPress={()=>nav.navigate('StudyForecast',{deckId})}/>
-   <View style={{paddingHorizontal:4}}><MenuRow title="모아둔 단어" subtitle={`즐겨찾기 ${data.words.filter(w=>w.favorite).length} · 확인 필요 ${data.words.filter(w=>w.issue).length}`} icon="star-outline" onPress={()=>nav.navigate('SavedStudy')}/><MenuRow title="내 단어장" subtitle={`${data.decks.length}개 단어장 · 카드 관리·컴퓨터에서 받기`} icon="albums-outline" onPress={()=>nav.navigate('StudySettings')}/><MenuRow title="학습 통계" subtitle="완료와 응답, 복습의 발자국" icon="stats-chart-outline" onPress={()=>nav.navigate('StudyHistory')}/></View>
+   <View style={{paddingHorizontal:4}}><MenuRow title="모아둔 단어" subtitle={`즐겨찾기 ${data.words.filter(w=>w.favorite).length} · 확인 필요 ${data.words.filter(w=>w.issue).length} · 자꾸 잊는 ${lapseWords(data).length}`} icon="star-outline" onPress={()=>nav.navigate('SavedStudy')}/><MenuRow title="내 단어장" subtitle={`${data.decks.length}개 단어장 · 카드 관리·컴퓨터에서 받기`} icon="albums-outline" onPress={()=>nav.navigate('StudySettings')}/><MenuRow title="학습 통계" subtitle="완료와 응답, 복습의 발자국" icon="stats-chart-outline" onPress={()=>nav.navigate('StudyHistory')}/></View>
   </>}</SectionPane>
  </Page>;
  // 집중 탭만 집중 테마로 그린다. 감싸는 컴포넌트를 늘 같게 두어 탭을 바꿔도 Page(상단 안전 영역)를 다시 만들지 않는다. 다시 만들면 첫 프레임에 위 여백이 0이 되어 깜빡인다.
