@@ -2,13 +2,13 @@ import React,{useState} from 'react';
 import {View} from 'react-native';
 import {addDays,parseDateKey} from '../../lib/dateUtils';
 import {durationLabel} from '../../lib/dailyTimeline';
-import {COMMITMENT_POLICY,activeWeeklyRules,placeWeeklyStake,saveWeeklyReview,weekKeyOf,weeklyStake,type StakeAmount,type WeeklyRule} from '../../lib/weeklyCommitments';
+import {COMMITMENT_POLICY,WEEKLY_NOTE_CHARS,activeWeeklyRules,placeWeeklyStake,saveWeeklyNote,saveWeeklyReview,weekKeyOf,weeklyNote,weeklyStake,type StakeAmount,type WeeklyRule} from '../../lib/weeklyCommitments';
 import {RULE_OPTIONS,ruleLabel,weeklyReviews,weeklySummary,wonLabel} from '../../lib/weeklyReview';
 import {clockLabel,weekTrends} from '../../lib/weeklyTrends';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
-import {Action,CardView,Choice,Copy,Link,LoadingState,Notice,Page,u} from './ui';
+import {Action,CardView,Choice,Copy,Field,Link,LoadingState,Notice,Page,u} from './ui';
 
 const shortDate=(key:string)=>{const d=parseDateKey(key);return `${d.getMonth()+1}월 ${d.getDate()}일`;};
 
@@ -47,12 +47,12 @@ function LastWeek({weekKey}:{weekKey:string}){
 
 export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
  const {data,dayKey,ready,error,update}=useRoutine(),week=weekKeyOf(dayKey),lastWeek=addDays(week,-7);
- const [amount,setAmount]=useState<StakeAmount|0>(0),[rule,setRule]=useState<WeeklyRule|null>(null),[busy,setBusy]=useState(false),[saveError,setSaveError]=useState('');
+ const [amount,setAmount]=useState<StakeAmount|0>(0),[rule,setRule]=useState<WeeklyRule|null>(null),[busy,setBusy]=useState(false),[saveError,setSaveError]=useState(''),[note,setNote]=useState(()=>weeklyNote(data,weekKeyOf(dayKey))?.text??'');
  const done=weeklyReviews(data)[week],stake=weeklyStake(data,dayKey),rules=activeWeeklyRules(data,dayKey),targetDays=rules.stakeDays;
  const close=()=>navigation.canGoBack()?navigation.goBack():navigation.navigate('Main');
  const save=async()=>{
   setBusy(true);setSaveError('');
-  try{await update(current=>saveWeeklyReview(amount?placeWeeklyStake(current,dayKey,amount):current,week,rule??undefined));close();}
+  try{await update(current=>saveWeeklyReview(saveWeeklyNote(amount?placeWeeklyStake(current,dayKey,amount):current,week,note),week,rule??undefined));close();}
   catch(e){setSaveError(e instanceof Error?e.message:'저장하지 못했어요. 다시 시도해 주세요.');setBusy(false);}
  };
  return <Page title="주간 점검" right={<Link label="닫기" onPress={close}/>} footer={ready&&!done?<Action label="이번 주 시작하기" loading={busy} onPress={()=>void save()}/>:undefined}>
@@ -62,6 +62,7 @@ export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
     <Copy variant="section">이번 주 점검을 마쳤어요</Copy>
     <Copy>{stake.stake?`예치금 ${wonLabel(stake.stake.amount)}을 걸었어요. ${stake.stake.targetDays}일 중 ${stake.stake.studyDays}일 공부했어요.`:'이번 주에는 예치금을 걸지 않았어요.'}</Copy>
     <Copy muted>{done.rule?`다음 주부터 ${ruleLabel(done.rule)}로 바뀌어요.`:'다음 주 규칙은 그대로예요.'}</Copy>
+    {weeklyNote(data,week)?<Copy>{`이번 주 메모: ${weeklyNote(data,week)!.text}`}</Copy>:null}
    </CardView>:<>
     <CardView>
      <Copy variant="section">이번 주 예치금</Copy>
@@ -78,6 +79,9 @@ export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
       <Copy variant="caption" weight="700" muted>{`${option.title} · 지금 ${option.label(rules[option.kind])}`}</Copy>
       <View style={{flexDirection:'row',gap:space.xs}}>{option.values.filter(v=>v!==rules[option.kind]).map(value=><View key={value} style={{flex:1}}><Choice fill label={option.label(value)} accessibilityLabel={`${option.title} ${option.label(value)}로 바꾸기`} selected={rule?.kind===option.kind&&rule.value===value} onPress={()=>setRule({kind:option.kind,value})}/></View>)}</View>
      </View>)}
+    </CardView>
+    <CardView>
+     <Field label="이번 주는 어떤 주였나요? (선택)" placeholder="예: 시험 주" value={note} onChangeText={setNote} maxLength={WEEKLY_NOTE_CHARS} helper={`한 줄, ${WEEKLY_NOTE_CHARS}자까지 적을 수 있어요.`}/>
     </CardView>
     {saveError?<Notice tone="error">{saveError}</Notice>:null}
    </>}

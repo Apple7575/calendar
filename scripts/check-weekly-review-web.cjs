@@ -82,11 +82,13 @@ async function open(browser,{data=null,time}={}){
    ok('월요일 아침 루틴 뒤 자동으로 열림, 지난주 요약');
    await press(page,'10,000원',200);
    await press(page,'밤 돌아보기 알림 20:50로 바꾸기',200);
+   await page.getByLabel('이번 주는 어떤 주였나요? (선택)').fill('  시험 주  ');
    await press(page,'이번 주 시작하기',1200);
    const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
    assert.ok(saved.weeklyReviews[MON].doneAt);
    assert.deepEqual(saved.weeklyReviews[MON].rule,{kind:'reflectTime',value:2050});
    assert.equal(saved.weeklyStakes[MON].amount,10000);
+   assert.equal(saved.weeklyNotes[MON].text,'시험 주','주별 메모는 앞뒤 공백을 자르고 저장');
    assert.ok(saved.money.entries.some(e=>e.id==='stake:'+MON&&e.amount===-10000),'건 돈이 지갑에서 빠짐');
    await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(17000);
    assert.ok(!(await text(page)).includes('다음 주에 바꿀 규칙'),'같은 주에는 다시 열리지 않음');
@@ -95,7 +97,7 @@ async function open(browser,{data=null,time}={}){
    await page.screenshot({path:`${out}/goal-home-390.png`,fullPage:true});
    await press(page,'주간 점검',1000);
    t=await text(page);
-   assert.ok(t.includes('이번 주 점검을 마쳤어요')&&t.includes('밤 돌아보기 알림 20:50'),'마친 상태');
+   assert.ok(t.includes('이번 주 점검을 마쳤어요')&&t.includes('밤 돌아보기 알림 20:50')&&t.includes('이번 주 메모: 시험 주'),'마친 상태');
    await page.screenshot({path:`${out}/week-check-done-390.png`,fullPage:true});
    ok('마친 주는 결과만 보여 줌');
   }
@@ -114,6 +116,7 @@ async function open(browser,{data=null,time}={}){
   const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
   assert.deepEqual(saved.weeklyReviews[MON].rule,{kind:'morningWords',value:15});
   assert.ok(!saved.weeklyStakes?.[MON],'월요일이 아니면 예치금 없음');
+  assert.ok(!saved.weeklyNotes?.[MON],'빈 메모는 저장하지 않음');
   ok('월요일을 놓친 주: 화요일 첫 열기에 열림, 예치금 대신 안내, 규칙은 고를 수 있음');
   assert.deepEqual(errors,[]);await context.close();
  }
