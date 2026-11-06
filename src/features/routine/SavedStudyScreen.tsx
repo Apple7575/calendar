@@ -12,7 +12,7 @@ import { Action,CardView,Copy,Link,Page } from './ui';
 
 type Filter='favorite'|'issue'|'lapse';
 const FILTER_LABEL:Record<Filter,string>={favorite:'즐겨찾기',issue:'확인 필요',lapse:'자꾸 잊는'};
-const EMPTY:Record<Filter,string>={favorite:'아직 저장한 단어가 없어요. 카드의 … 메뉴에서 표시해 보세요.',issue:'확인할 단어가 없어요. 카드의 … 메뉴에서 표시해 보세요.',lapse:`아직 ${LAPSE_MIN}번 이상 잊은 단어가 없어요. 복습에서 '다시'를 누른 횟수로 모여요.`};
+const EMPTY:Record<Filter,string>={favorite:'아직 저장한 단어가 없어요. 카드의 … 메뉴에서 표시해 보세요.',issue:'확인할 단어가 없어요. 카드의 … 메뉴에서 표시해 보세요.',lapse:`아직 ${LAPSE_MIN}번 이상 잊은 단어가 없어요. 잘 기억하고 있어요. 외운 카드를 복습에서 '다시'로 고를 때마다 한 번씩 세요.`};
 export function SavedStudyScreen({navigation,route}:RootScreenProps<'SavedStudy'>){
   const {data,update,dayKey}=useRoutine();
   const [filter,setFilter]=useState<Filter>(route.params?.filter??'favorite'),[opened,setOpened]=useState<string|null>(null),[revealed,setRevealed]=useState(false);
