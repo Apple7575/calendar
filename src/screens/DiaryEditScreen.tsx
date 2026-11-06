@@ -733,7 +733,7 @@ export function DiaryEditScreen({ route, navigation }: RootScreenProps<"DiaryEdi
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={0}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
         <View style={[styles.hero,{flexDirection:'row',alignItems:'center',gap:14}]}><Mascot size={76} action="A51"/><View style={{flex:1}}><Text style={[styles.heroTitle,{fontSize:23}]}>오늘, 기억하고 싶은 순간은?</Text><Text style={styles.heroSubtitle}>한 줄, 목소리, 사진. 편한 만큼만 남겨요.</Text></View></View>
         <View style={styles.surfaceCard}>{writingSection}</View>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="사진 선택 항목" onPress={()=>setPhotosOpen(!photosOpen)} style={styles.surfaceCard}><Text style={styles.sectionTitle}>사진 {photos.length+pending.length?`${photos.length+pending.length}장`:'추가'} {photosOpen?'접기':'+'}</Text><Text style={styles.heroSubtitle}>선택 · 작은 장면을 사진으로 남겨요.</Text></TouchableOpacity>{photosOpen?<View style={styles.surfaceCard}>{photoSection}</View>:null}
