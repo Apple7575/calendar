@@ -1,6 +1,7 @@
 import React from 'react';
 import {Text} from 'react-native';
 import {FocusClock} from '../features/routine/PomodoroClock';
+import {warmRender,WARM_TIMEOUT} from './warmRender';
 
 jest.mock('@expo/vector-icons',()=>({Ionicons:()=>null}));
 jest.mock('../features/routine/ui',()=>({Icon:()=>null}));
@@ -8,6 +9,7 @@ jest.mock('../lib/haptics',()=>({tapLight:()=>{}}));
 const renderer=require('react-test-renderer');
 const QUESTION='일론 머스크라면 지금 그만둘까?',PENALTY='벌점 10분·1,000원';
 beforeAll(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true});
+beforeAll(()=>warmRender(()=>React.createElement(FocusClock,{design:'A',left:200,running:true,phase:'focus',subject:'회로',onClose:()=>{},onPause:()=>{},onFinish:()=>{}})),WARM_TIMEOUT);
 
 async function clock(props:object){
  const onFinish=jest.fn(),onPause=jest.fn(),ask=jest.fn(()=>QUESTION as string|null),make=(extra:object)=>React.createElement(FocusClock,{design:'A',left:200,running:true,phase:'focus',subject:'회로',onClose:()=>{},onPause,onFinish,quitPenalty:PENALTY,askQuit:ask,...props,...extra});let tree:any;

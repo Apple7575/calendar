@@ -3,6 +3,7 @@ import {Alert,Switch} from 'react-native';
 import {RewardUseToggle} from '../features/routine/RewardUseToggle';
 import {emptyData,emptyDay,routineDay} from '../lib/routineModel';
 import {runScreenTimeAction,syncRoutineRewards} from '../lib/screenTime';
+import {warmRender,WARM_TIMEOUT} from './warmRender';
 let mockContext:any;
 const mockNavigate=jest.fn();
 jest.mock('@react-navigation/native',()=>({useNavigation:()=>({navigate:mockNavigate})}));
@@ -11,7 +12,9 @@ jest.mock('../theme/ThemeContext',()=>({useTheme:()=>({colors:{primary:'#347B50'
 jest.mock('../features/routine/ui',()=>{const React=require('react'),{Text,Pressable}=require('react-native');return {Copy:({children}:any)=>React.createElement(Text,null,children),Link:({label,onPress}:any)=>React.createElement(Pressable,{onPress},React.createElement(Text,null,label)),u:{between:{}}}});
 jest.mock('../lib/screenTime',()=>({runScreenTimeAction:jest.fn(async()=>{}),syncRoutineRewards:jest.fn(async()=>{})}));
 const renderer=require('react-test-renderer');
-beforeEach(()=>{jest.clearAllMocks();jest.spyOn(Alert,'alert').mockImplementation(()=>{});(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;const key=routineDay(),data=emptyData();data.days[key]={...emptyDay(),paid:{morning:10,words:20,gym:0},bonus:{order:60}};mockContext={data,dayKey:key,ready:true,refreshNative:jest.fn(async()=>{}),native:{supported:true,authorized:true,enabled:true,rewardMode:true,day:key,policyVersion:2,supportsOrderBonus:true,morningComplete:true,grantedMinutes:90,consumedMinutes:0,usingRewards:false,locked:true}};});
+function setup(){jest.clearAllMocks();jest.spyOn(Alert,'alert').mockImplementation(()=>{});(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;const key=routineDay(),data=emptyData();data.days[key]={...emptyDay(),paid:{morning:10,words:20,gym:0},bonus:{order:60}};mockContext={data,dayKey:key,ready:true,refreshNative:jest.fn(async()=>{}),native:{supported:true,authorized:true,enabled:true,rewardMode:true,day:key,policyVersion:2,supportsOrderBonus:true,morningComplete:true,grantedMinutes:90,consumedMinutes:0,usingRewards:false,locked:true}};}
+beforeAll(async()=>{setup();await warmRender(()=>React.createElement(RewardUseToggle))},WARM_TIMEOUT);
+beforeEach(setup);
 test('home starts only reward use, syncing the cap and separate order credit',async()=>{let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(RewardUseToggle))});const control=tree.root.findByType(Switch);expect(control.props.disabled).toBe(false);await renderer.act(async()=>control.props.onValueChange(true));expect(syncRoutineRewards).toHaveBeenCalledWith(mockContext.dayKey,{morning:10,words:20,gym:0,book:0,extra:0,quick:0,wordDailyCap:0,order:60});expect(runScreenTimeAction).toHaveBeenCalledWith('startRewardUse');expect(mockContext.refreshNative).toHaveBeenCalledTimes(1);await renderer.act(async()=>tree.unmount());});
 test.each(['morning','sleep','focus','permission','zero'])('%s state explains a blocked tap without unlocking apps',async state=>{if(state==='morning')mockContext.native.morningComplete=false;if(state==='sleep')mockContext.native.sleepLocked=true;if(state==='focus')mockContext.native.focusUntil=Date.now()+60000;if(state==='permission')mockContext.native.authorized=false;if(state==='zero')mockContext.native.consumedMinutes=90;let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(RewardUseToggle))});const control=tree.root.findByType(Switch);expect(control.props.disabled).toBe(false);await renderer.act(async()=>control.props.onValueChange(true));expect(Alert.alert).toHaveBeenCalled();expect(runScreenTimeAction).not.toHaveBeenCalled();expect(syncRoutineRewards).not.toHaveBeenCalled();await renderer.act(async()=>tree.unmount());});
 
