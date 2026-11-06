@@ -42,6 +42,7 @@ async function open(browser,{data=null,time}={}){
 (async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});try{
  { // 설정과 목표 탭의 들어가는 곳
   const {context,page,errors}=await open(browser);
+  if(stage==='after')assert.ok(!(await text(page)).includes('지난주 ·'),'볼 기록이 없으면 주간 점검이 저절로 열리지 않음');
   await press(page,'프로필·설정',1000);
   await page.screenshot({path:`${out}/settings-390.png`,fullPage:true});
   if(stage==='after'){
@@ -98,8 +99,25 @@ async function open(browser,{data=null,time}={}){
   }
   assert.deepEqual(errors,[]);await context.close();
  }
+ if(stage==='after'){ // 월요일을 놓친 주: 화요일 첫 열기에 열림, 예치금은 다음 월요일
+  const {context,page,errors}=await open(browser,{data:mondayData,time:new Date(2026,10,10,10,0)});
+  await page.waitForTimeout(2000);
+  const t=await text(page);
+  assert.ok(t.includes('주간 점검')&&t.includes('지난주'),'월요일을 놓친 주에도 처음 연 날 열려야 함');
+  assert.ok(t.includes('예치금은 다음 월요일에 걸 수 있어요'));
+  assert.equal(await page.getByTestId('stake-choices').count(),0);
+  await page.screenshot({path:`${out}/week-check-tuesday-390.png`,fullPage:true});
+  await press(page,'아침 단어 장수 15장로 바꾸기',200);
+  await press(page,'이번 주 시작하기',1200);
+  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),STORE);
+  assert.deepEqual(saved.weeklyReviews[MON].rule,{kind:'morningWords',value:15});
+  assert.ok(!saved.weeklyStakes?.[MON],'월요일이 아니면 예치금 없음');
+  ok('월요일을 놓친 주: 화요일 첫 열기에 열림, 예치금 대신 안내, 규칙은 고를 수 있음');
+  assert.deepEqual(errors,[]);await context.close();
+ }
  if(stage==='after'){ // 밤 돌아보기
   const {context,page,errors}=await open(browser,{data:mondayData,time:new Date(2026,10,10,20,30)});
+  await press(page,'닫기',800); // 이번 주 점검이 먼저 뜬다
   await page.getByRole('tab',{name:'목표',exact:true}).click();await page.waitForTimeout(800);
   await press(page,'밤 1분 돌아보기',1000);
   let t=await text(page);

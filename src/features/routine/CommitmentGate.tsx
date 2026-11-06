@@ -12,7 +12,7 @@ import {useRoutine} from './RoutineProvider';
  */
 export function CommitmentGate(){
  const {data,ready,dayKey,now}=useRoutine(),nav=useContext(NavigationContainerRefContext),opened=useRef('');
- const open=ready&&shouldOpenWeekCheck(data,dayKey),week=weekKeyOf(dayKey);
+ const open=ready&&shouldOpenWeekCheck(data,dayKey,now.getTime()),week=weekKeyOf(dayKey);
  useEffect(()=>{
   if(!open||opened.current===week||!nav?.isReady())return;
   const root=nav.getRootState();

@@ -37,10 +37,16 @@ export function weeklySummary(data:RoutineData,weekKey:string,now=Date.now()):We
   empty:!studySeconds&&!studyDays&&!earnedMinutes&&!earnedWon&&!penaltyMinutes&&!emergencies.length&&!stake};
 }
 
-/** 월요일 아침 루틴을 마쳤고 이번 주 점검을 아직 안 했으면 연다. */
-export function shouldOpenWeekCheck(data:RoutineData,dayKey:string){
+/**
+ * 이번 주 점검을 아직 안 했으면 연다. 월요일에는 아침 루틴을 마친 뒤에 연다.
+ * 월요일을 놓친 주에는 그 주에 처음 앱을 여는 날 연다(팀장 결정 2026-11-06).
+ * 지난주에 볼 기록이 하나도 없으면(새로 설치 등) 저절로 열지 않는다. 목표 탭에서는 언제든 열 수 있다.
+ */
+export function shouldOpenWeekCheck(data:RoutineData,dayKey:string,now=Date.now()){
  const weekKey=weekKeyOf(dayKey);
- return dayKey===weekKey&&getDay(data,dayKey).paid.morning>0&&!weeklyReviews(data)[weekKey];
+ if(weeklyReviews(data)[weekKey])return false;
+ if(weeklySummary(data,addDays(weekKey,-7),now).empty)return false;
+ return dayKey!==weekKey||getDay(data,dayKey).paid.morning>0;
 }
 
 export const RULE_OPTIONS:{kind:WeeklyRuleKind;title:string;values:number[];label:(value:number)=>string}[]=[
