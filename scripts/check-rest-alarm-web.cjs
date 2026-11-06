@@ -35,7 +35,8 @@ const check=(ok,message)=>{if(!ok)errors.push(message);};
  await step('bell and copy',async()=>{
   const p=await resting();
   const bell=p.getByTestId('rest-alarm-toggle');
-  check(await bell.getAttribute('aria-label')==='휴식 끝 알람 켜짐','종 아이콘 기본값이 켬이 아니다');
+  check(await bell.getAttribute('data-on')==='1','종 아이콘 기본값이 켬이 아니다');
+  check(await bell.getAttribute('aria-label')==='휴식 끝 알람','종 라벨이 다르다');
   check(await p.getByText(/잘 땐 이 화면을 켜 두세요/).count()===1,'켬 문구(화면 켜 두기·무음이면 진동)가 없다');
   for(const [width,height] of [[390,844],[844,390]]){
    await p.setViewportSize({width,height});await p.waitForTimeout(300);
@@ -46,13 +47,13 @@ const check=(ok,message)=>{if(!ok)errors.push(message);};
   }
   await p.setViewportSize({width:390,height:844});
   await bell.click();await p.waitForTimeout(300);
-  check(await bell.getAttribute('aria-label')==='휴식 끝 알람 꺼짐','종을 눌러도 꺼지지 않았다');
+  check(await bell.getAttribute('data-on')==='0','종을 눌러도 꺼지지 않았다');
   check(await p.getByText(/알람 끔 · 끝나면 소리 없는 알림만 와요/).count()===1,'끔 문구가 없다');
   await p.screenshot({path:`${out}/rest-bell-off-390x844.png`});
   await p.reload({waitUntil:'networkidle'});await p.waitForTimeout(800);
   if(!(await p.getByTestId('focus-clock').count()))await btn(p,'집중 공부로 시간 모으기').click();
   await p.getByTestId('rest-alarm-toggle').waitFor();
-  check(await p.getByTestId('rest-alarm-toggle').getAttribute('aria-label')==='휴식 끝 알람 꺼짐','끈 값이 기기에 기억되지 않았다');
+  check(await p.getByTestId('rest-alarm-toggle').getAttribute('data-on')==='0','끈 값이 기기에 기억되지 않았다');
   await p.context().close();
  });
 
