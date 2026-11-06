@@ -5,6 +5,9 @@ import {Audio} from 'expo-av';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {planCelebration,rewardParts,streakFriends,type CelebrationLog,type CelebrationRequest,type PlannedCelebration} from '../../lib/celebration';
 import {settlementNews} from '../../lib/settlementNews';
+import {achievements,newAchievements,type AchievedShown} from '../../lib/celebrationTriggers';
+import {stickerFor} from '../../lib/calendarSticker';
+import {useIsFocused} from '@react-navigation/native';
 import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
 import {tapLight,tapSuccess} from '../../lib/haptics';
 import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
@@ -21,7 +24,7 @@ import {Action,Mascot} from './ui';
  * 규칙은 src/lib/celebration.ts, 기준은 routine-portfolio/celebration-audit/design-plan.md.
  * 화면 표시 전용이다. 보상을 만들거나 바꾸지 않는다. 표시 기록은 아래 두 키에만 둔다.
  */
-const LOG_KEY='celebration.log.v1',SEEN_KEY='celebration.settlementSeen.v1';
+const LOG_KEY='celebration.log.v1',SEEN_KEY='celebration.settlementSeen.v1',ACHIEVED_KEY='celebration.achieved.v1';
 type Listener=(request:CelebrationRequest)=>void;
 let listener:Listener|null=null;const early:CelebrationRequest[]=[];
 /** 축하를 요청한다. 보여 줄지·어떤 단계일지는 하루 한도와 순환 규칙이 정한다. */
@@ -50,7 +53,7 @@ function Big({plan,onClose}:{plan:PlannedCelebration;onClose:()=>void}){
   <View style={{flex:1}}>
    <CelebrationSurface effect={plan.effect} testID={'celebration-big-'+plan.kind} title={plan.title} subtitle={plan.detail} onClose={onClose} action={plan.action as AnimalActionId} character={character}
     footer={<Action label="계속하기" onPress={onClose}/>}>
-    {friends>1?<View testID="celebration-friends" style={{flexDirection:'row',gap:space.xs,justifyContent:'center',marginTop:-space.lg}}>{CAST.filter(c=>c!==character).slice(0,friends-1).map(c=><Mascot key={c} character={c} size={friends===2?140:108} action={plan.action as AnimalActionId}/>)}</View>:null}
+    {friends>1?<View testID="celebration-friends" style={{flexDirection:'row',gap:space.xs,justifyContent:'center',marginTop:-space.xxl}}>{CAST.filter(c=>c!==character).slice(0,friends-1).map(c=><Mascot key={c} character={c} size={friends===2?190:120} action={plan.action as AnimalActionId}/>)}</View>:null}
     {rewardParts(plan).length?<Money plan={plan}/>:null}
    </CelebrationSurface>
   </View>
@@ -70,23 +73,30 @@ function Toast({plan}:{plan:PlannedCelebration}){
  </View>;
 }
 
+/** 작은 축하: 위쪽에 1.3초 뜨는 짧은 말. 화면을 막지 않는다. */
+function Pill({text}:{text:string}){
+ const theme=useTheme(),role=colorRoles(theme),insets=useSafeAreaInsets();
+ return <View pointerEvents="none" testID="celebration-pill" accessibilityLiveRegion="polite" style={{position:'absolute',alignSelf:'center',top:insets.top+space.xs,paddingHorizontal:space.md,paddingVertical:space.xs,borderRadius:radii.chip,backgroundColor:role.primary.fill}}><Text style={[type.label,{color:role.primary.on}]}>{text}</Text></View>;
+}
+
 /** 앱 뿌리에 한 번 둔다(RootNavigator, App.web.tsx). 축하 줄을 하나씩 보여 주고, 앱을 열 때 정산 소식을 모아 보여 준다. */
 export function CelebrationHost(){
- const [queue,setQueue]=useState<PlannedCelebration[]>([]),log=useRef<CelebrationLog>(null),loaded=useRef<Promise<void>|null>(null);
+ const [pill,setPill]=useState<string|null>(null),[queue,setQueue]=useState<PlannedCelebration[]>([]),log=useRef<CelebrationLog>(null),loaded=useRef<Promise<void>|null>(null);
  const load=()=>loaded.current??(loaded.current=AsyncStorage.getItem(LOG_KEY).then(raw=>{try{const v=raw?JSON.parse(raw):null;if(v&&typeof v.day==='string'&&Array.isArray(v.big)&&Array.isArray(v.lines)&&v.last&&typeof v.last==='object')log.current=v;}catch{}}).catch(()=>{}));
  const accept=useCallback((request:CelebrationRequest)=>{void load().then(()=>{
   const now=Date.now(),{plan,log:next}=planCelebration(request,log.current,localDay(now),now);
   log.current=next;AsyncStorage.setItem(LOG_KEY,JSON.stringify(next)).catch(()=>{});
   if(plan.haptic==='success')tapSuccess();else tapLight();
   if(plan.sound)void playSound(plan.sound);
-  if(plan.tier!=='small')setQueue(q=>[...q,plan]);
+  if(plan.tier!=='small')setQueue(q=>[...q,plan]);else setPill(plan.title);
  })},[]);
  useEffect(()=>{listener=accept;early.splice(0).forEach(accept);return()=>{if(listener===accept)listener=null}},[accept]);
+ useEffect(()=>{if(!pill)return;const t=setTimeout(()=>setPill(null),1300);return()=>clearTimeout(t)},[pill]);
  const current=queue[0],next=useCallback(()=>setQueue(q=>q.slice(1)),[]);
  useEffect(()=>{if(current?.tier!=='medium')return;const t=setTimeout(next,2800);return()=>clearTimeout(t)},[current,next]);
  return <>
   <SettlementWatcher/>
-  {current?.tier==='big'?<Big plan={current} onClose={next}/>:current?.tier==='medium'?<Toast plan={current}/>:null}
+  {current?.tier==='big'?<Big plan={current} onClose={next}/>:current?.tier==='medium'?<Toast plan={current}/>:pill?<Pill text={pill}/>:null}
  </>;
 }
 /** 04시 기준 날짜. routineDay와 같은 기준이다. */
@@ -109,3 +119,27 @@ function SettlementWatcher(){
  },[ready,active,dayKey,data]);
  return null;
 }
+
+/**
+ * 연속 기념일·오늘 전부·다시 돌아온 날·우선 과제 전부·성장을 축하한다(design-plan.md G7·G12·G14·G15·G18).
+ * 탭 화면이 보일 때만(다른 화면이나 보상 화면 위에 겹치지 않게) 판정하고, 같은 날 같은 축하는 1번이다.
+ */
+export function AchievementWatcher(){
+ const {data,dayKey,ready}=useRoutine(),focused=useIsFocused(),busy=useRef(false);
+ useEffect(()=>{
+  if(!ready||!focused||busy.current)return;
+  const now=achievements(data,dayKey);
+  if(!now.streak&&!now.dayComplete&&!now.comeback&&!now.priorityAll&&now.stage==='sprout')return;
+  busy.current=true;
+  const timer=setTimeout(()=>{void AsyncStorage.getItem(ACHIEVED_KEY).then(raw=>{
+   let shown:AchievedShown=null;try{const v=raw?JSON.parse(raw):null;if(v&&typeof v.day==='string'&&Array.isArray(v.kinds))shown=v}catch{}
+   const result=newAchievements(now,shown,dayKey);
+   AsyncStorage.setItem(ACHIEVED_KEY,JSON.stringify(result.shown)).catch(()=>{});
+   const friend=FRIEND_OF[stickerFor(dayKey).animal];// 위젯·달력 스티커와 같은 그날의 동물
+   for(const kind of result.kinds)celebrate(kind==='streak'?{kind,n:now.streak!,character:friend}:{kind,character:kind==='growth'?'C03':friend});
+  }).catch(()=>{}).finally(()=>{busy.current=false})},700);
+  return()=>{clearTimeout(timer);busy.current=false};
+ },[ready,focused,data,dayKey]);
+ return null;
+}
+const FRIEND_OF={otter:'C03',cat:'C04',bear:'C01',hedgehog:'C02'} as const;

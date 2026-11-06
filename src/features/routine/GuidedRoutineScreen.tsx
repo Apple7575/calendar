@@ -4,6 +4,8 @@ import {Modal,Pressable,ScrollView,Text,useWindowDimensions,View} from 'react-na
 import {completeGuidedStep,currentGuidedIndex,eveningSteps,isReturnDay,pauseGuidedStep,previousGuidedIndex,resumeGuidedStep,startGuidedStep,guidedSeconds,formatGuidedTime,undoGuidedStep} from '../../lib/dailyPlan';
 import {checkMorning,getDay,Level,morningSteps,morningWords,withDay} from '../../lib/routineModel';
 import {tapSuccess} from '../../lib/haptics';
+import {dailyPick} from '../../lib/celebrationTriggers';
+import {celebrate as celebrateMoment} from './Celebration';
 import {RootScreenProps} from '../../navigation/types';
 import {runScreenTimeAction,syncRoutineRewards} from '../../lib/screenTime';
 import {ThemeOverride,useTheme} from '../../theme/ThemeContext';
@@ -46,12 +48,15 @@ export function GuidedRoutineScreen({route,navigation}:RootScreenProps<'GuidedRo
   if(current===undefined||busy)return;setBusy(true);setError('');let added=0,finished=false;
   let paidAfter=0;
   try{await update(s=>{const before=getDay(s,dayKey).paid.morning,next=completeGuidedStep(s,dayKey,slot,current,level),after=getDay(next,dayKey);added=after.paid.morning-before;paidAfter=after.paid.morning;const checks=slot==='morning'?after.morning:after.evening??[];finished=required.every(i=>checks[i]);const following=currentGuidedIndex(required,checks,skipped,stepIds);return following===undefined?next:startGuidedStep(next,dayKey,slot,steps[following].id)});tapSuccess();
-   if(finished&&slot==='morning'&&added>0)navigation.replace('RoutineReward',{unit:'morning',level,added});else if(finished&&(slot!=='morning'||paidAfter>0))setCelebrate(true);
+   if(finished&&slot==='morning'&&added>0)navigation.replace('RoutineReward',{unit:'morning',level,added});else if(finished&&(slot!=='morning'||paidAfter>0)){setCelebrate(true);tapSuccess();}
+   else if(!finished)celebrateMoment({kind:'routineStep',character:slot==='morning'?'C01':'C04'});
   }catch(e){setError(e instanceof Error?e.message:'기록을 저장하지 못했어요.')}finally{setBusy(false)}
  };
  const passed=required.map((_,n)=>n).reduce<boolean[]>((flags,n)=>{const i=required[n];flags[i]=!!done[i]||skipped.includes(stepIds[i]);return flags},[]),previous=previousGuidedIndex(required,passed,current??steps.length),others=required.filter(i=>!done[i]&&i!==current);
  const goBack=()=>{if(previous===undefined)return;const wasDone=!!done[previous];setSkipped(list=>list.filter(id=>id!==steps[previous].id));void run(s=>startGuidedStep(wasDone?undoGuidedStep(s,dayKey,slot,previous):s,dayKey,slot,steps[previous].id));};
  const skip=()=>{if(!step||!others.length)return;const remaining=[...skipped.filter(id=>id!==step.id),step.id],nextIndex=currentGuidedIndex(required,done,remaining,stepIds);setSkipped(remaining);if(nextIndex!==undefined)void run(s=>startGuidedStep(s,dayKey,slot,steps[nextIndex].id));};
+ // 끝낸 날의 친구 동작은 날마다 돌아가며 바꾼다(축하가 지루하지 않게). 저녁은 '인사하고 앉기' 그대로.
+ const doneAction=slot==='evening'?'A30':level==='min'?dailyPick(['A24','A22','A23'] as const,dayKey,'min'):dailyPick(['A25','A27','A28','A24'] as const,dayKey,slot);
  const hold=useTimerScreenHold(started&&current!==undefined&&identity.current===dayKey,'routine');
  const levelChoice=<Segments value={level} onChange={choose} items={[{id:'full',label:'전체 목표'},{id:'min',label:isReturnDay(data,dayKey)?'다시 시작 · 작게':'오늘은 작게'}]}/>;
  const focused=useIsFocused();
@@ -76,7 +81,7 @@ export function GuidedRoutineScreen({route,navigation}:RootScreenProps<'GuidedRo
  const skipButton=<IconAction icon="play-skip-forward" label="이 행동 건너뛰기" caption="건너뛰기" disabled={!others.length||busy} onPress={skip}/>;
  const finishAction=<Action compact label={busy?'기록하고 있어요…':'이 행동 마쳤어요'} disabled={!ready||busy||identity.current!==dayKey} onPress={()=>void finish()}/>;
  const modals=<>
-  <Modal supportedOrientations={["portrait","landscape"]} visible={celebrate} presentationStyle="fullScreen" animationType="fade" onRequestClose={()=>setCelebrate(false)}><CelebrationSurface character={slot==='morning'?'C01':'C04'} action={slot==='evening'?'A30':level==='min'?'A24':'A25'} title={level==='min'?'작게 해도,\n해냈어요!':slot==='evening'?'포근하게\n하루 마무리!':'아침 루틴\n완료!'} subtitle="실천 기록을 캘린더에 남겼어요" onClose={()=>setCelebrate(false)} footer={<Action label="오늘로 돌아가기" onPress={()=>{setCelebrate(false);navigation.popTo('Main',{screen:'Today'})}}/>}><View style={{alignSelf:'stretch',backgroundColor:c.card,borderRadius:26,padding:18,alignItems:'center',gap:8}}><Copy size={18} weight="800">{slot==='evening'?'저녁 루틴 완료':`오늘 아침 보상 합계 ${day.paid.morning}분`}</Copy><Copy muted size={13}>{slot==='evening'?'저녁은 별도 시간 보상 없이 실천 기록을 남겨요.':'이미 받은 시간은 중복 지급하지 않아요.'}</Copy></View></CelebrationSurface></Modal>
+  <Modal supportedOrientations={["portrait","landscape"]} visible={celebrate} presentationStyle="fullScreen" animationType="fade" onRequestClose={()=>setCelebrate(false)}><CelebrationSurface character={slot==='morning'?'C01':'C04'} action={doneAction} title={level==='min'?'작게 해도,\n해냈어요!':slot==='evening'?'포근하게\n하루 마무리!':'아침 루틴\n완료!'} subtitle="실천 기록을 캘린더에 남겼어요" onClose={()=>setCelebrate(false)} footer={<Action label="오늘로 돌아가기" onPress={()=>{setCelebrate(false);navigation.popTo('Main',{screen:'Today'})}}/>}><View style={{alignSelf:'stretch',backgroundColor:c.card,borderRadius:26,padding:18,alignItems:'center',gap:8}}><Copy size={18} weight="800">{slot==='evening'?'저녁 루틴 완료':`오늘 아침 보상 합계 ${day.paid.morning}분`}</Copy><Copy muted size={13}>{slot==='evening'?'저녁은 별도 시간 보상 없이 실천 기록을 남겨요.':'이미 받은 시간은 중복 지급하지 않아요.'}</Copy></View></CelebrationSurface></Modal>
   <Modal supportedOrientations={["portrait","landscape"]} visible={order} transparent animationType="fade" onRequestClose={()=>setOrder(false)}><View style={{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(20,30,30,0.4)'}}><View style={{backgroundColor:c.card,borderTopLeftRadius:30,borderTopRightRadius:30,padding:24,maxHeight:'80%',gap:14}}><View style={u.between}><Copy size={21} weight="800">오늘의 순서</Copy><Link label="닫기" onPress={()=>setOrder(false)}/></View>{levelChoice}<ScrollView contentContainerStyle={{gap:16}}>{required.map((i,n)=><View key={steps[i].id} style={u.between}><Copy>{done[i]?'✓':`${n+1}.`} {steps[i].title}</Copy><Copy muted size={12}>{steps[i].minutes??5}분</Copy></View>)}<Link label="루틴 구성 편집" onPress={()=>{setOrder(false);navigation.navigate('RoutineSetup',{slot})}}/></ScrollView></View></View></Modal>
  </>;
  if(landscape&&started&&step)return <ThemeOverride theme={overtime?overtimeTheme:undefined}><View testID="guided-landscape" style={{flex:1,flexDirection:'row',alignItems:'center',gap:space.md,backgroundColor:c.surface,paddingTop:insets.top,paddingBottom:insets.bottom,paddingLeft:Math.max(insets.left,space.md),paddingRight:Math.max(insets.right,space.md)}}>
@@ -101,7 +106,7 @@ export function GuidedRoutineScreen({route,navigation}:RootScreenProps<'GuidedRo
    <Progress value={words.required?words.done/words.required:1} label="아침 단어 진행률"/>
    <Copy muted>{words.done}/{words.required}장 · 끝내면 아침 루틴이 완료돼요.</Copy>
    {words.reduced?<Copy variant="caption" muted>오늘 학습할 수 있는 카드가 {words.required}장이라 {words.required}장만 해요.</Copy>:null}
-  </CardView></View>:complete?<><CelebrationHero character={slot==='morning'?'C01':'C04'} action={slot==='evening'?'A30':level==='min'?'A24':'A25'} title={level==='min'?'작게 해도, 해냈어요!':slot==='evening'?'포근하게 하루 마무리!':'아침 루틴 완료!'} subtitle="실천 기록을 캘린더에 남겼어요"/>{slot==='evening'?<Copy muted size={13}>저녁 루틴은 별도 사용 시간 보상 없이 실천 기록을 남겨요.</Copy>:<Copy muted size={13}>오늘 아침 루틴에서 받은 합계 {day.paid.morning}분 · 이미 받은 시간은 중복 지급되지 않아요.</Copy>}</>:<View><CharacterPeek character={slot==='morning'?'C01':'C04'} action={started&&step?routineAnimalAction(step.id,step.title):slot==='morning'?'A04':'A05'}/><CardView>
+  </CardView></View>:complete?<><CelebrationHero character={slot==='morning'?'C01':'C04'} action={doneAction} title={level==='min'?'작게 해도, 해냈어요!':slot==='evening'?'포근하게 하루 마무리!':'아침 루틴 완료!'} subtitle="실천 기록을 캘린더에 남겼어요"/>{slot==='evening'?<Copy muted size={13}>저녁 루틴은 별도 사용 시간 보상 없이 실천 기록을 남겨요.</Copy>:<Copy muted size={13}>오늘 아침 루틴에서 받은 합계 {day.paid.morning}분 · 이미 받은 시간은 중복 지급되지 않아요.</Copy>}</>:<View><CharacterPeek character={slot==='morning'?'C01':'C04'} action={started&&step?routineAnimalAction(step.id,step.title):slot==='morning'?'A04':'A05'}/><CardView>
    <View style={[u.between,{gap:space.xs}]}><Text accessibilityRole="header" style={[type.heading,{color:c.text,flex:1}]}>{!started?`${required.length}개의 작은 행동을 함께해요`:step?.title??''}</Text>{started&&step?rotateButton:null}</View>
    <Copy muted>{!started?`약 ${totalMinutes}분 · ${slot==='morning'?'07:00까지 하루를 준비해요.':'잠들기 전 내일의 나를 챙겨요.'}`:step?.detail}</Copy>
    {started&&step?<View style={{gap:space.sm,paddingTop:space.xs}}>
