@@ -185,11 +185,31 @@ describe('tomorrow\'s promise',()=>{
   expect(penaltyMinutesOnDay(d,key(10))).toBe(0);
   expect(penaltyMinutesOnDay(d,key(11))).toBe(10);
  });
- test('the kept minutes reach the phone on a 5-minute key it already accepts',()=>{
+ const native={supportsHandwritingRewards:true,supportsMinuteHandwriting:true,supportsSpeakingRewards:true,supportsPromiseRewards:true};
+ test('the kept minutes reach the phone on their own promise key, apart from speaking',()=>{
   const d=reconcileCommitments(startAt(promised(),t(10,9)),t(10,9,1));
-  expect(rewardSyncExtras(d,key(10),{supportsHandwritingRewards:true,supportsMinuteHandwriting:true,supportsSpeakingRewards:true})).toMatchObject({speaking:10});
+  expect(rewardSyncExtras(d,key(10),native)).toMatchObject({promise:10,speaking:0});
   const missed=reconcileCommitments(promised(),t(10,10));
-  expect(rewardSyncExtras(missed,key(10),{supportsHandwritingRewards:true,supportsMinuteHandwriting:true})).toMatchObject({penalty:10});
+  expect(rewardSyncExtras(missed,key(10),native)).toMatchObject({promise:0,penalty:10});
+ });
+ test('a build without the promise key is never sent it, which would fail the whole sync',()=>{
+  const d=reconcileCommitments(startAt(promised(),t(10,9)),t(10,9,1));
+  const sent=rewardSyncExtras(d,key(10),{...native,supportsPromiseRewards:false});
+  expect(sent).not.toHaveProperty('promise');
+  expect(sent).toMatchObject({speaking:0});
+ });
+ test('a broken saved value sends 0, never a value the phone refuses',()=>{
+  const d=withDay(emptyData(),key(10),day=>({...day,bonus:{promise:7}}));
+  expect(rewardSyncExtras(d,key(10),native)).toMatchObject({promise:0});
+ });
+ test('Swift accepts only 0 or 10, says it can, and both copies match; the provider re-sends on change',()=>{
+  const fs=require('fs'),path=require('path'),read=(f:string)=>(fs.readFileSync(path.join(__dirname,'../..',f),'utf8') as string).replace(/\r/g,'');
+  expect(read('modules/routine-screen-time/ios/RoutineScreenTimeModule.swift')).toContain('"promise": [0, 10]');
+  expect(read('modules/routine-screen-time/ios/ScreenTimeState.swift')).toContain('"supportsPromiseRewards": true');
+  expect(read('targets/screentime/ScreenTimeState.swift')).toBe(read('modules/routine-screen-time/ios/ScreenTimeState.swift'));
+  const provider=read('src/features/routine/RoutineProvider.tsx');
+  expect(provider).toContain('bonus?.promise,');
+  expect(provider).toContain('native?.supportsPromiseRewards');
  });
 });
 
