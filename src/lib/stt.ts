@@ -8,16 +8,38 @@ import * as FileSystem from "expo-file-system/legacy";
 import { continuousListen } from "./liveTranscript";
 import { supabase } from "./supabase";
 
-// 네이티브 음성인식 모듈 — Expo Go에는 없으므로 로드 자체를 건너뛴다
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let speech: any = null;
+// 네이티브 음성인식 모듈 — Expo Go에는 없으므로 로드 자체를 건너뛴다.
+// The package's own types are attached, so calling a function it does not have fails typecheck (build 51 called the
+// removed addSpeechRecognitionListener and the phone showed "undefined is not a function").
+type SpeechPackage = typeof import("expo-speech-recognition");
+type SpeechModule = SpeechPackage["ExpoSpeechRecognitionModule"];
+let speech: SpeechPackage | null = null;
 try {
   if (Constants.appOwnership !== "expo") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    speech = require("expo-speech-recognition");
+    speech = require("expo-speech-recognition") as SpeechPackage;
   }
 } catch {
   speech = null;
+}
+/** Every call goes through here, so a failure names the function that failed on the screen. */
+function speechCall<T>(name: string, run: (module: SpeechModule) => T): T {
+  const module = speech?.ExpoSpeechRecognitionModule;
+  if (!module) throw new Error("음성 인식을 쓸 수 없는 빌드예요.");
+  try {
+    return run(module);
+  } catch (e) {
+    throw new Error(`음성 인식을 시작하지 못했어요 (${name}): ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SpeechEvent = any;
+/** Events come through the module itself (56.x); returns the subscription to remove. */
+const onSpeech = (name: "result" | "error" | "end", fn: (event: SpeechEvent) => void) =>
+  speechCall("addListener", (m) => m.addListener(name, fn));
+async function askSpeechPermission() {
+  const perm = await speechCall("requestPermissionsAsync", (m) => m.requestPermissionsAsync());
+  if (!perm.granted) throw new Error("마이크·음성인식 권한이 필요해요. 설정에서 허용해 주세요.");
 }
 
 /** 실시간(부분 결과) 음성인식 가능 여부 */
@@ -32,13 +54,11 @@ let liveCommitted = "";
 
 /** 실시간 인식 시작 — 말하는 동안 onPartial로 계속 텍스트를 준다 */
 export async function startLive(onPartial: (text: string) => void, language = "ko-KR"): Promise<void> {
-  const perm = await speech.ExpoSpeechRecognitionModule.requestPermissionsAsync();
-  if (!perm.granted) throw new Error("마이크·음성인식 권한이 필요해요. 설정에서 허용해 주세요.");
+  await askSpeechPermission();
   liveShown = "";
   liveCommitted = "";
   liveListeners.push(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    speech.addSpeechRecognitionListener("result", (e: any) => {
+    onSpeech("result", (e: SpeechEvent) => {
       const t: string =
         e?.results?.map((r: { transcript?: string }) => r?.transcript ?? "").join("") ?? "";
       if (e?.isFinal) {
@@ -50,17 +70,13 @@ export async function startLive(onPartial: (text: string) => void, language = "k
       onPartial(liveShown);
     })
   );
-  speech.ExpoSpeechRecognitionModule.start({
-    lang: language,
-    interimResults: true,
-    continuous: true,
-  });
+  speechCall("start", (m) => m.start({ lang: language, interimResults: true, continuous: true }));
 }
 
 /** 실시간 인식 종료 → 최종 텍스트 */
 export async function stopLive(): Promise<string> {
   try {
-    speech.ExpoSpeechRecognitionModule.stop();
+    speechCall("stop", (m) => m.stop());
   } catch {
     // 무시
   }
@@ -78,12 +94,11 @@ export async function startContinuousLive(
   onStopped: (reason: "denied" | "silent" | "failed") => void,
   language = "ko-KR"
 ) {
-  const perm = await speech.ExpoSpeechRecognitionModule.requestPermissionsAsync();
-  if (!perm.granted) throw new Error("마이크·음성인식 권한이 필요해요. 설정에서 허용해 주세요.");
+  await askSpeechPermission();
   return continuousListen({
-    start: () => speech.ExpoSpeechRecognitionModule.start({ lang: language, interimResults: true, continuous: true }),
-    stop: () => speech.ExpoSpeechRecognitionModule.stop(),
-    on: (name, fn) => speech.addSpeechRecognitionListener(name, fn),
+    start: () => speechCall("start", (m) => m.start({ lang: language, interimResults: true, continuous: true })),
+    stop: () => speechCall("stop", (m) => m.stop()),
+    on: (name, fn) => onSpeech(name as "result" | "error" | "end", fn),
     onText,
     onStopped,
   });

@@ -5,11 +5,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, Platform } from "react-native";
 import { APP_ICON_NAMES, nativeIconName, nextAppIcon, type AppIconLast } from "./appIcon";
 
-type IconModule = {
-  supportsAlternateIcons: boolean;
-  setAlternateAppIcon: (name: string | null) => Promise<string | null>;
-  getAppIconName: () => string | null;
-};
+/** The package's own types, so a renamed or removed function fails typecheck instead of the phone. */
+type IconModule = typeof import("expo-alternate-app-icons");
 
 let icons: IconModule | null = null;
 try {
