@@ -15,9 +15,10 @@ const QUESTION_ONE='AI가 개발 업무를 대체하는 상황에서 개발자�
 async function measure(page,name){
  const r=await page.evaluate(()=>{
   const seen=e=>{const b=e.getBoundingClientRect();return b.width>0&&b.height>0&&!e.closest('[aria-hidden=true]')};
-  const buttons=[...document.querySelectorAll('[role=button]')].filter(seen).map(e=>({label:(e.getAttribute('aria-label')||e.textContent||'').trim().slice(0,24),b:e.getBoundingClientRect()}));
+  // 웹 미리보기 전용 '예시 초기화' 배너는 화면 위에 떠 있어 스크롤된 버튼과 겹쳐 보인다. 앱에는 없으므로 겹침 측정에서 뺀다.
+  const buttons=[...document.querySelectorAll('[role=button]')].filter(seen).filter(e=>(e.getAttribute('aria-label')||e.textContent||'').trim()!=='예시 초기화').map(e=>({label:(e.getAttribute('aria-label')||e.textContent||'').trim().slice(0,24),b:e.getBoundingClientRect()}));
   const hits=[];for(let i=0;i<buttons.length;i++)for(let j=i+1;j<buttons.length;j++){const a=buttons[i].b,o=buttons[j].b;if(a.left<o.right-1&&o.left<a.right-1&&a.top<o.bottom-1&&o.top<a.bottom-1&&!(a.left<=o.left&&a.right>=o.right&&a.top<=o.top&&a.bottom>=o.bottom)&&!(o.left<=a.left&&o.right>=a.right&&o.top<=a.top&&o.bottom>=a.bottom))hits.push(buttons[i].label+'/'+buttons[j].label)}
-  const small=buttons.filter(x=>x.b.height<43.5&&x.label!=='예시 초기화').map(x=>x.label+' '+Math.round(x.b.height));
+  const small=buttons.filter(x=>x.b.height<43.5).map(x=>x.label+' '+Math.round(x.b.height));
   return {wide:document.documentElement.scrollWidth>innerWidth,hits,small};
  });
  report.push({name,...r});
