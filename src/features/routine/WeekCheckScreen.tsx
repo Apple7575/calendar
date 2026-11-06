@@ -4,6 +4,7 @@ import {addDays,parseDateKey} from '../../lib/dateUtils';
 import {durationLabel} from '../../lib/dailyTimeline';
 import {COMMITMENT_POLICY,activeWeeklyRules,placeWeeklyStake,saveWeeklyReview,weekKeyOf,weeklyStake,type StakeAmount,type WeeklyRule} from '../../lib/weeklyCommitments';
 import {RULE_OPTIONS,ruleLabel,weeklyReviews,weeklySummary,wonLabel} from '../../lib/weeklyReview';
+import {clockLabel,weekTrends} from '../../lib/weeklyTrends';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
 import {useRoutine} from './RoutineProvider';
@@ -15,14 +16,24 @@ function Row({label,value,testID}:{label:string;value:string;testID?:string}){
  return <View testID={testID} style={[u.between,{gap:space.sm,minHeight:28}]}><Copy muted>{label}</Copy><View style={{flexShrink:1}}><Copy variant="label">{value}</Copy></View></View>;
 }
 
+/** 4주 공부한 날. 오래된 주부터 쓰고 지난주만 굵게 한다. */
+function Trend({values}:{values:number[]}){
+ return <View testID="week-trend" accessible accessibilityLabel={`최근 4주 공부한 날 ${values.join(', ')}일, 지난주 ${values[values.length-1]}일`} style={{flexDirection:'row',alignItems:'baseline'}}>
+  {values.map((n,i)=><Copy key={i} variant={i===values.length-1?'label':'body'} muted={i!==values.length-1}>{`${n}${i<values.length-1?' · ':'일'}`}</Copy>)}
+ </View>;
+}
+
 function LastWeek({weekKey}:{weekKey:string}){
- const {data}=useRoutine(),s=weeklySummary(data,weekKey);
+ const {data}=useRoutine(),s=weeklySummary(data,weekKey),t=weekTrends(data,weekKey);
  const stake=!s.stake?'걸지 않음':s.stake.status==='won'?`${s.stake.studyDays}/${s.stake.targetDays}일 · ${wonLabel(s.stake.payoutWon??0)} 돌려받음`:s.stake.status==='lost'?`${s.stake.studyDays}/${s.stake.targetDays}일 · ${wonLabel(s.stake.amount)} 잃음`:'정산 전';
  return <CardView>
   <Copy variant="section">{`지난주 · ${shortDate(weekKey)}~${shortDate(addDays(weekKey,6))}`}</Copy>
   {s.empty?<Copy muted>지난주에는 남은 기록이 없어요. 이번 주부터 쌓아 봐요.</Copy>:<View testID="week-summary" style={{gap:space.xxs}}>
    <Row label="공부 시간" value={durationLabel(s.studySeconds)}/>
    <Row label="공부한 날" value={`${s.studyDays}일 / 7일`}/>
+   <View style={[u.between,{gap:space.sm,minHeight:28}]}><Copy muted>최근 4주</Copy><Trend values={t.studyDays4w}/></View>
+   <Row testID="week-first-start" label="첫 공부 시작" value={t.firstStartMedian===null?'—':`보통 ${clockLabel(t.firstStartMedian)}에 시작했어요 (${t.firstStartDays}일)`}/>
+   <Row testID="week-saved-ten" label="10분 이상 남긴 날" value={t.savedKnownDays?`남긴 날 ${t.savedTenDays} / ${t.savedKnownDays}일`:'—'}/>
    <Row label="받은 시간" value={`${s.earnedMinutes}분`}/>
    <Row label="받은 돈" value={wonLabel(s.earnedWon)}/>
    <Row label="벌점" value={s.penaltyMinutes||s.penaltyWon?`${s.penaltyMinutes}분 · ${wonLabel(s.penaltyWon)}`:'없음'}/>

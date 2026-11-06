@@ -74,7 +74,9 @@ async function open(browser,{data=null,time}={}){
    await page.waitForTimeout(2000); // 앱을 열자마자 주간 점검이 떠야 한다.
    let t=await text(page);
    assert.ok(t.includes('주간 점검')&&t.includes('지난주'),'월요일 아침 루틴 뒤 주간 점검이 자동으로 열려야 함');
-   for(const s of ['공부 시간','1시간 5분','공부한 날','2일 / 7일','긴급 해제','1번','택배 기사님 연락','30분 · 3,000원','받은 돈','1,500원','안 쓴 시간 이자','걸지 않음'])assert.ok(t.includes(s),s);
+   for(const s of ['공부 시간','1시간 5분','공부한 날','2일 / 7일','긴급 해제','1번','택배 기사님 연락','30분 · 3,000원','받은 돈','1,500원','안 쓴 시간 이자','걸지 않음','최근 4주','보통 14:30에 시작했어요 (2일)','10분 이상 남긴 날'])assert.ok(t.includes(s),s);
+   assert.equal(await page.getByTestId('week-trend').getAttribute('aria-label'),'최근 4주 공부한 날 0, 0, 0, 2일, 지난주 2일');
+   assert.ok((await page.getByTestId('week-saved-ten').innerText()).includes('—'),'이자 기록 전 주는 —');
    await page.screenshot({path:`${out}/week-check-390.png`,fullPage:true});
    await noOverflow(page);
    ok('월요일 아침 루틴 뒤 자동으로 열림, 지난주 요약');
