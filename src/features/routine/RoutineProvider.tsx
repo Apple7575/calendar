@@ -25,6 +25,8 @@ import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/foc
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
 import {streakWidgetPayload} from '../../lib/streakWidget';
 import {writeStreakWidget} from '../../lib/streakWidgetStorage';
+import {appIconSlot} from '../../lib/appIcon';
+import {syncAppIcon} from '../../lib/appIconSync';
 
 type Value = {
   accountId?:string;data: RoutineData; ready: boolean; error: string | null; dayKey: string; now: Date;
@@ -172,6 +174,9 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
   }, [ready, syncDecks]);
   // 기록이 저장되거나 04시에 하루가 바뀌면 연속 실천 위젯에 같은 값을 넘긴다. 홈의 연속 실천과 같은 계산이다.
   useEffect(()=>{if(ready)writeStreakWidget(streakWidgetPayload(data,dayKey));},[ready,data,dayKey]);
+  // 앱 아이콘: 12시 기준 오전·오후 칸마다 그날 동물의 표정으로 바꾼다(appIcon.ts). 앱이 열려 있을 때만 바뀐다.
+  const iconSlot=appIconSlot(now.getHours());
+  useEffect(()=>{if(ready)void syncAppIcon(dayKey,now.getHours(),streakWidgetPayload(data,dayKey).todayDone);},[ready,data,dayKey,iconSlot]);// eslint-disable-line react-hooks/exhaustive-deps
   const today=getDay(data,dayKey),paid=today.paid;
   const bonus=today.bonus;
   const adjustment=data.pendingStudyAdjustment;
