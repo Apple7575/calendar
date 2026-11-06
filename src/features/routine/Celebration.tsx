@@ -7,6 +7,7 @@ import {planCelebration,streakFriends,type CelebrationLog,type CelebrationReques
 import {settlementNews} from '../../lib/settlementNews';
 import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
 import {tapLight,tapSuccess} from '../../lib/haptics';
+import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
 import {radii,space,type} from '../../theme/tokens';
 import {useTheme} from '../../theme/ThemeContext';
 import {colorRoles} from '../../theme/roles';
@@ -32,9 +33,12 @@ const SOUNDS={complete:require('../../../assets/sounds/study/complete.mp3'),mile
 async function playSound(kind:'complete'|'milestone'){
  await loadExperiencePreferences();if(!experiencePreferences().sound)return;
  try{
-  await Audio.setAudioModeAsync({playsInSilentModeIOS:true,allowsRecordingIOS:false,staysActiveInBackground:false});
-  const {sound}=await Audio.Sound.createAsync(SOUNDS[kind],{shouldPlay:true,volume:0.65});
-  sound.setOnPlaybackStatusUpdate(s=>{if(s.isLoaded&&s.didJustFinish)void sound.unloadAsync().catch(()=>{});});
+  // 무음 모드면 소리 없이 진동만(팀장 결정 B안). 끝나면 학습 음성 모드로 되돌린다.
+  await withCelebrationAudio(async()=>{
+   const {sound}=await Audio.Sound.createAsync(SOUNDS[kind],{shouldPlay:true,volume:0.65});
+   await untilFinished(sound);
+   void sound.unloadAsync().catch(()=>{});
+  });
  }catch{}
 }
 const CAST:AnimalCharacterId[]=['C03','C04','C01','C02'];
