@@ -109,8 +109,11 @@ export function Choice({label,description,selected,onPress,disabled=false,fill=f
     <View style={{flexShrink:1,flexGrow:fill?1:0,gap:2}}><Copy variant={labelVariant} weight={selected?'700':'500'} style={selected?{color:role.primary.ink}:undefined}>{label}</Copy>{description?<Copy variant="caption" muted>{description}</Copy>:null}</View>
   </Pressable>;
 }
-/** 입력창. 이름표는 위에, 설명과 오류는 아래에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다. */
-export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength,minHeight}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number;minHeight?:number}){
+/**
+ * 입력창. 이름표는 위에, 설명과 오류는 아래에 둔다. 플레이스홀더를 이름표 대신 쓰지 않는다.
+ * 한 줄 칸은 키보드 오른쪽 아래 키가 '완료'이고 누르면 키보드가 닫힌다. onSubmit을 주면 그때 함께 부른다. 여러 줄 칸은 줄바꿈 그대로.
+ */
+export function Field({label,accessibilityLabel,value,onChangeText,placeholder,helper,error,multiline=false,editable=true,maxLength,minHeight,onSubmit}:{label?:string;accessibilityLabel?:string;value:string;onChangeText:(value:string)=>void;placeholder?:string;helper?:string;error?:string;multiline?:boolean;editable?:boolean;maxLength?:number;minHeight?:number;onSubmit?:()=>void}){
   const theme=useTheme(),{colors:c}=theme,role=colorRoles(theme),[focused,setFocused]=useState(false),box=useRef<View>(null),page=useContext(PageScroll);
   const reveal=useCallback((keyboardTop?:number)=>{
     if(Platform.OS!=='ios')return;
@@ -120,7 +123,7 @@ export function Field({label,accessibilityLabel,value,onChangeText,placeholder,h
   useEffect(()=>{if(!focused)return;reveal();const shown=Keyboard.addListener('keyboardDidShow',event=>reveal(event.endCoordinates.screenY));return()=>shown.remove()},[focused,reveal]);
   return <View ref={box} style={{gap:space.xs}}>
     {label?<Copy variant="caption" weight="700" muted>{label}</Copy>:null}
-    <TextInput keyboardAppearance={theme.isDark?'dark':'light'} accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} onContentSizeChange={()=>{if(focused)reveal()}} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
+    <TextInput keyboardAppearance={theme.isDark?'dark':'light'} accessibilityLabel={accessibilityLabel??label} value={value} onChangeText={onChangeText} multiline={multiline} editable={editable} returnKeyType={multiline?'default':'done'} onSubmitEditing={multiline?undefined:onSubmit} maxLength={maxLength} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} onContentSizeChange={()=>{if(focused)reveal()}} placeholder={placeholder} placeholderTextColor={c.textMuted} selectionColor={c.primary} underlineColorAndroid="transparent" style={[type.body,{outlineWidth:0,borderRadius:radii.control,paddingHorizontal:space.md,paddingVertical:space.sm,borderWidth:1,borderColor:error?role.danger.ink:focused?c.primary:c.border,backgroundColor:focused?c.card:c.inputBg,color:c.text,minHeight:minHeight??(multiline?104:control.compact),textAlignVertical:multiline?'top':'center',opacity:editable?1:.7}]}/>
     {error?<Copy variant="caption" style={{color:role.danger.ink}}>{error}</Copy>:helper?<Copy variant="caption" muted>{helper}</Copy>:null}
   </View>;
 }
