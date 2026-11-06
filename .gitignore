@@ -42,3 +42,7 @@ supabase/.temp/
 # generated native folders
 /ios
 /android
+
+# EAS에서 내려받은 iOS 서명 정보(인증서 비밀번호 포함)
+credentials.json
+credentials/
