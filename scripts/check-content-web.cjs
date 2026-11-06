@@ -1,4 +1,4 @@
-// 콘텐츠 검수: 오늘의 업로드, 링크 인증, 하루 1번, 같은 링크, 아이디어 단계, 달력, 하루 기록을 390x844, 844x390에서 찍고 잰다.
+// 콘텐츠 검수: 오늘의 업로드, 링크 인증, 하루 1번, 같은 링크, 아이디어 단계, 참고 링크·메모, 달력, 하루 기록을 390x844, 844x390에서 찍고 잰다.
 // 격리된 브라우저 컨텍스트와 예시 데이터만 사용한다. 외부 호출이 없다. iOS 실기기 검증을 대신하지 않는다.
 // 사용: $env:PREVIEW_PORT='8123'; node scripts/check-content-web.cjs
 const {previewUrl}=require('./lib/preview-url.cjs');
@@ -33,7 +33,7 @@ async function shots(page,name,full=false){
 (async()=>{
  const browser=await chromium.launch({channel:'chrome',headless:true});
  const open=async()=>{
-  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce',permissions:['clipboard-read','clipboard-write']});
   const page=await context.newPage();
   page.on('pageerror',e=>errors.push('pageerror: '+e.message));
   await page.goto(previewUrl('/?priorityDemo=1'),{waitUntil:'networkidle',timeout:300000});
@@ -113,6 +113,49 @@ async function shots(page,name,full=false){
   await btn(p,'지우기').click();await p.waitForTimeout(300);
   check((await state(p)).contentIdeas.length===1,'지우기가 안 된다');
   await shots(p,'idea-posted',true);
+  await p.context().close();
+ });
+
+ await step('idea refs',async()=>{
+  const p=await open();await toTab(p);
+  // 참고 링크가 없는 예전 기록과 깨진 refs·why가 섞인 기록: 불러올 때 아이디어는 남고 깨진 칸만 빠져야 한다.
+  await p.evaluate(k=>{const s=JSON.parse(localStorage.getItem(k));s.contentIdeas=[
+   {id:'old',text:'예전 아이디어',at:'2026-11-01T00:00:00.000Z',stage:'idea'},
+   {id:'bad',text:'깨진 참고 링크',at:'2026-11-01T00:00:00.000Z',stage:'idea',refs:['javascript:alert(1)',7,'https://evil.example/reel/x'],why:{x:1}},
+  ];localStorage.setItem(k,JSON.stringify(s));},DEMO);
+  await p.reload({waitUntil:'networkidle'});await toTab(p);
+  check(await p.getByText('예전 아이디어',{exact:true}).isVisible(),'예전 기록이 안 보인다');
+  check(await p.getByText('깨진 참고 링크',{exact:true}).isVisible(),'깨진 칸 때문에 아이디어가 사라졌다');
+  check(!(await p.getByTestId('idea-refs-bad').count()),'깨진 참고 링크가 보인다');
+  const row=p.getByTestId('idea-old');
+  await row.getByRole('button',{name:'참고 링크·메모',exact:true}).click();await p.waitForTimeout(200);
+  const editor=p.getByTestId('idea-editor-old');
+  await editor.getByRole('textbox',{name:'왜 좋았나 (선택)'}).fill('첫 3초에 질문을 던져서');
+  await editor.getByRole('button',{name:'메모 저장',exact:true}).click();await p.waitForTimeout(300);
+  await p.evaluate(t=>navigator.clipboard.writeText(t),'https://www.instagram.com/reel/RefReel_1/?igsh=abc');
+  await editor.getByRole('button',{name:'복사한 링크 붙이기',exact:true}).click();await p.waitForTimeout(400);
+  await editor.getByRole('textbox',{name:'참고 링크'}).fill('https://evil.example/reel/x');
+  await editor.getByRole('button',{name:'링크 넣기',exact:true}).click();await p.waitForTimeout(200);
+  check(await editor.getByText('인스타·유튜브·틱톡·스레드 영상 링크만 붙일 수 있어요.').isVisible(),'허용 안 된 주소에 안내가 없다');
+  await editor.getByRole('textbox',{name:'참고 링크'}).fill('https://www.tiktok.com/@maker/video/7301234567890');
+  await editor.getByRole('button',{name:'링크 넣기',exact:true}).click();await p.waitForTimeout(300);
+  await editor.getByRole('textbox',{name:'참고 링크'}).fill('https://www.threads.net/@maker/post/C1abc');
+  await p.screenshot({path:`${out}/idea-refs-editor-390x844.png`});await measure(p,'idea-refs-editor 390x844');
+  await editor.getByRole('button',{name:'링크 넣기',exact:true}).click();await p.waitForTimeout(300);
+  let idea=(await state(p)).contentIdeas.find(i=>i.id==='old');
+  check(idea.why==='첫 3초에 질문을 던져서','메모가 저장되지 않았다: '+idea.why);
+  check(JSON.stringify(idea.refs)===JSON.stringify(['https://www.instagram.com/reel/RefReel_1/','https://www.tiktok.com/@maker/video/7301234567890','https://www.threads.com/@maker/post/C1abc']),'참고 링크가 다르다: '+JSON.stringify(idea.refs));
+  check((await state(p)).contentIdeas.length===2,'예전 기록이 저장 중에 사라졌다');
+  await row.getByRole('button',{name:'닫기',exact:true}).click();await p.waitForTimeout(200);
+  await row.getByRole('button',{name:'오늘 만들기',exact:true}).click();await p.waitForTimeout(300);
+  const making=p.getByTestId('idea-old'),refsBox=await making.getByTestId('idea-refs-old').boundingBox(),textBox=await making.getByText('예전 아이디어',{exact:true}).boundingBox();
+  check(refsBox&&textBox&&refsBox.y<textBox.y,'만드는 중인데 참고 링크가 맨 위가 아니다');
+  await p.evaluate(()=>{window.__opened=[];window.open=u=>{window.__opened.push(String(u));return null};});
+  await making.getByRole('link',{name:'인스타 릴스 1 열기'}).click();await p.waitForTimeout(300);
+  const opened=await p.evaluate(()=>window.__opened);
+  check(opened[0]==='https://www.instagram.com/reel/RefReel_1/','링크를 열지 않았다: '+JSON.stringify(opened));
+  await making.evaluate(e=>e.scrollIntoView({block:'center'}));
+  await shots(p,'idea-refs-making',false);
   await p.context().close();
  });
 
