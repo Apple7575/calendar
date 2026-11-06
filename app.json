@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "루틴 친구들",
-    "slug": "calendar-app",
-    "owner": "hey9991s-team",
+    "slug": "calendar-app-shawn",
+    "owner": "shawn777",
     "version": "1.0.0",
     "scheme": "calendarapp",
     "orientation": "default",
@@ -31,7 +31,8 @@
           "group.com.newblueday.mycalendar",
           "group.com.newblueday.mycalendar"
         ]
-      }
+      },
+      "buildNumber": "49"
     },
     "android": {
       "adaptiveIcon": {
@@ -115,7 +116,7 @@
       "supabaseUrl": "https://qlurqptsnvxvlbsvpjie.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsdXJxcHRzbnZ4dmxic3ZwamllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODg2NjEsImV4cCI6MjA5OTA2NDY2MX0.rQhKMJAZ10hUClgLbmDR6qejnhPQo8dxCR3Qe8Pur9c",
       "eas": {
-        "projectId": "389de53e-8eb9-49bf-962c-b63d9a09bcdd",
+        "projectId": "1fd50862-86cc-4140-80b4-cba6f7a9ad69",
         "build": {
           "experimental": {
             "ios": {
@@ -149,7 +150,7 @@
       "policy": "fingerprint"
     },
     "updates": {
-      "url": "https://u.expo.dev/389de53e-8eb9-49bf-962c-b63d9a09bcdd"
+      "url": "https://u.expo.dev/1fd50862-86cc-4140-80b4-cba6f7a9ad69"
     }
   }
 }
