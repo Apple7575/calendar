@@ -5,6 +5,7 @@ import {focusTheme} from '../theme/themes';
 // 학습 탭에서 단어·집중·말하기·콘텐츠를 바꿔도 Page(상단 안전 영역 포함)가 다시 만들어지지 않아야 한다.
 // 다시 만들어지면 첫 프레임에 위 여백이 0이 되어 깜빡인다(팀장 실기기 제보, 빌드 49).
 const mockMounts={page:0,speak:0};
+const mockSpeakVisible:boolean[]=[];
 let mockSwitchTo:(id:string)=>void=()=>{};
 let mockSeenTheme:string[]=[];
 
@@ -32,7 +33,7 @@ jest.mock('../features/routine/experience',()=>({
  Segments:({onChange}:{onChange:(id:string)=>void})=>{mockSwitchTo=onChange;return null},
 }));
 jest.mock('../features/routine/FocusStart',()=>({FocusStart:()=>null}));
-jest.mock('../features/routine/SpeakingHome',()=>({SpeakingHome:()=>{jest.requireActual('react').useEffect(()=>{mockMounts.speak+=1},[]);return null}}));
+jest.mock('../features/routine/SpeakingHome',()=>({SpeakingHome:()=>{const R=jest.requireActual('react');R.useEffect(()=>{mockMounts.speak+=1},[]);mockSpeakVisible.push(R.useContext(jest.requireActual('../features/routine/mascotVisibility').MascotVisible));return null}}));
 jest.mock('../features/routine/ContentHome',()=>({ContentHome:()=>null}));
 
 const renderer=require('react-test-renderer');
@@ -53,7 +54,10 @@ test('탭을 바꿔도 Page를 다시 만들지 않고, 집중 탭만 집중 테
  }
  // 한 번 연 칸은 숨겨 둘 뿐 다시 만들지 않는다(친구 Lottie를 다시 불러오지 않는다).
  expect(mockMounts.speak).toBe(1);
+ // 숨겨 둔 칸의 친구는 재생하지 않는다.
+ expect(mockSpeakVisible[mockSpeakVisible.length-1]).toBe(false);
  await renderer.act(async()=>switchBack());
+ expect(mockSpeakVisible[mockSpeakVisible.length-1]).toBe(true);
  expect(mockMounts.speak).toBe(1);
  await renderer.act(async()=>tree.unmount());
 });

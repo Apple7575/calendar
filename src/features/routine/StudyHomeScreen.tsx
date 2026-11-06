@@ -16,10 +16,11 @@ import {space,type} from '../../theme/tokens';
 import {FocusStart} from './FocusStart';
 import {SpeakingHome} from './SpeakingHome';
 import {ContentHome} from './ContentHome';
+import {MascotVisible} from './mascotVisibility';
 type Section='word'|'focus'|'speak'|'content';
 /** A section stays mounted once opened and is only hidden, so coming back does not reload its friend (Lottie) or relayout the page. */
 function SectionPane({id,section,opened,children}:{id:Section;section:Section;opened:Section[];children:()=>React.ReactNode}){
- return opened.includes(id)?<View style={{display:id===section?'flex':'none',gap:space.md}}>{children()}</View>:null;
+ return opened.includes(id)?<View style={{display:id===section?'flex':'none',gap:space.md}}><MascotVisible.Provider value={id===section}>{children()}</MascotVisible.Provider></View>:null;
 }
 export function StudyHomeScreen(){
  const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(),{colors:c}=useTheme(),{data,ready,error,dayKey}=useRoutine();
