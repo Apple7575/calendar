@@ -1,6 +1,7 @@
 import React from 'react';
 import {Text} from 'react-native';
 import {FocusClock} from '../features/routine/PomodoroClock';
+import {warmRender,WARM_TIMEOUT} from './warmRender';
 import {focusJourney} from '../lib/focusJourney';
 
 jest.mock('@expo/vector-icons',()=>({Ionicons:()=>null}));
@@ -17,6 +18,7 @@ async function labels(props:object){
  return texts;
 }
 beforeAll(()=>{(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true});
+beforeAll(()=>warmRender(()=>React.createElement(FocusClock,{design:'A',left:200,running:true,phase:'focus',subject:'회로',onClose:()=>{},onPause:()=>{},onFinish:()=>{}})),WARM_TIMEOUT);
 
 describe('the screen time button on the timer',()=>{
  test('shows during a rest',async()=>expect(await labels({phase:'break'})).toContain('스크린타임 켜기 · 23분'));
