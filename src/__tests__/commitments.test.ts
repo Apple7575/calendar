@@ -3,9 +3,10 @@ import type {RoutineData} from '../lib/routineModel';
 import {moneySummary,PROPOSED_MONEY_RATES,startMoneyRewards} from '../lib/moneyRewards';
 import {penaltyMinutesOnDay,rewardSyncExtras} from '../lib/focusPenalty';
 import {dailyTimeline} from '../lib/dailyTimeline';
+import {pauseBookTimer,resumeBookTimer,startBookTimer,stopBookTimer} from '../lib/bookStudy';
 import {
  activeWeeklyRules,COMMITMENT_POLICY,dayPromise,promiseOutcomesOn,placeWeeklyStake,reconcileCommitments,saveWeeklyReview,setTomorrowPromise,
- studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,saveWeeklyNote,weeklyNote,
+ STUDY_DAY_FOCUS_MINUTES,studyDayKeys,weekKeyOf,weeklyInterest,weeklyStake,saveWeeklyNote,weeklyNote,
 } from '../lib/commitments';
 
 jest.mock('../lib/supabase',()=>({supabase:{}}));
@@ -38,9 +39,10 @@ describe('studied days',()=>{
   let d=emptyData();for(const day of [8,9,11,15,16])d=studied(d,day);
   expect(studyDayKeys(d,MON)).toEqual([key(9),key(11),key(15)]);
  });
- test('a session without a note is not a studied day',()=>{
-  const d=studied(emptyData(),9);
-  expect(studyDayKeys({...d,bookSessions:d.bookSessions!.map(s=>({...s,note:' '}))},MON)).toEqual([]);
+ test('by the calendar rule alone, a session without a note is not a studied day; 25 focus minutes make it one',()=>{
+  const d=studied(emptyData(),9),bare={...d,bookSessions:d.bookSessions!.map(s=>({...s,note:' '}))};
+  expect(studyDayKeys(bare,MON,null)).toEqual([]);
+  expect(studyDayKeys(bare,MON)).toEqual([MON]);
  });
 });
 
@@ -327,5 +329,46 @@ describe('a one-line note for the week',()=>{
   expect(weeklyNote(d,'2026-11-16')).toBeUndefined();
   expect(d.weeklyReviews?.[MON]).toBeDefined();
   expect(weeklyNote(saveWeeklyNote(d,'2026-11-16','새로',t(16,9)),'2026-11-16')?.text).toBe('새로');
+ });
+});
+
+describe('a studied day by focus minutes (team lead: 25, 2026-11-06)',()=>{
+ const session=(id:string,end:number,seconds:number,mode:'output'|'standard'='output')=>({id,subject:'수능',startedAt:new Date(end-seconds*1000).toISOString(),completedAt:new Date(end).toISOString(),seconds,note:'',next:'',rewardMode:mode});
+ const withSessions=(...rows:ReturnType<typeof session>[]):RoutineData=>({...emptyData(),bookSessions:rows});
+ test('the value is 25, and it is what studyDayKeys uses by default',()=>{
+  expect(STUDY_DAY_FOCUS_MINUTES).toBe(25);
+  expect(studyDayKeys(withSessions(session('a',t(9,12),24*60+59)),MON)).toEqual([]);
+  expect(studyDayKeys(withSessions(session('a',t(9,12),25*60)),MON)).toEqual([MON]);
+ });
+ test.each([25,30])('N=%i: N−1 minutes is not a studied day, N minutes is',n=>{
+  expect(studyDayKeys(withSessions(session('a',t(9,12),(n-1)*60+59)),MON,n)).toEqual([]);
+  expect(studyDayKeys(withSessions(session('a',t(9,12),n*60)),MON,n)).toEqual([MON]);
+ });
+ test('several sessions on a day add up, in any study mode',()=>{
+  expect(studyDayKeys(withSessions(session('a',t(9,10),15*60),session('b',t(9,15),10*60,'standard')),MON,25)).toEqual([MON]);
+ });
+ test('the day is where the session ended, by the 04:00 rule',()=>{
+  const d=withSessions(session('a',t(10,3,59),25*60),session('b',t(10,4,1),25*60));
+  expect(studyDayKeys(d,MON,25)).toEqual([MON,key(10)]);
+  // A session ending at 03:59 Monday belongs to the Sunday before, outside this week.
+  expect(studyDayKeys(withSessions(session('c',t(9,3,59),25*60)),MON,25)).toEqual([]);
+ });
+ test('paused time is not study time',()=>{
+  let d=startBookTimer(emptyData(),'run','수능',t(9,9),1500,'standard');
+  d=pauseBookTimer(d,t(9,9,20));
+  d=resumeBookTimer(d,t(9,10,20));
+  d=stopBookTimer(d,t(9,10,24));
+  expect(d.bookSessions![0].seconds).toBe(24*60);
+  expect(studyDayKeys(d,MON,25)).toEqual([]);
+  expect(studyDayKeys(d,MON,24)).toEqual([MON]);
+ });
+ test('the old rule still counts on its own (OR)',()=>{
+  expect(studyDayKeys(studied(emptyData(),9),MON,30)).toEqual([MON]);
+ });
+ test('the stake and its settlement use the same rule',()=>{
+  let d=placeWeeklyStake(wallet(20000),MON,5000,t(9,8));
+  d={...d,bookSessions:[9,10,11,12,13].map(day=>session('s'+day,t(day,12),30*60))};
+  expect(weeklyStake(d,MON).stake?.studyDays).toBe(5);
+  expect(weeklyStake(reconcileCommitments(d,t(16,4)),MON).stake).toMatchObject({status:'won',studyDays:5});
  });
 });

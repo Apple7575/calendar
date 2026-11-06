@@ -104,8 +104,17 @@ export function saveWeeklyNote(data:RoutineData,weekKey:string,text:string,now=D
 }
 
 /* Studied days: the same rule as the calendar's 집중 공부 완료. */
-export function studyDayKeys(data:RoutineData,weekKey:string){
- return weekDays(weekKey).filter(k=>routineActivities(data,k).some(a=>a.id==='book'&&isActivityComplete(a)));
+/**
+ * Focus minutes that also make a studied day, alongside the calendar's rule (OR). The team lead
+ * chose 25 (2026-11-06); null would turn it off. Real study only: paused time is never in a session's seconds.
+ */
+export const STUDY_DAY_FOCUS_MINUTES:number|null=25;
+/** Seconds of finished focus sessions on a day, by the 04:00 day of when each ended, in any study mode. */
+export function focusSecondsOnDay(data:RoutineData,dayKey:string){
+ return (Array.isArray(data.bookSessions)?data.bookSessions:[]).filter(s=>s&&whole(s.seconds)&&Number.isFinite(Date.parse(s.completedAt))&&routineDay(new Date(s.completedAt))===dayKey).reduce((n,s)=>n+s.seconds,0);
+}
+export function studyDayKeys(data:RoutineData,weekKey:string,focusMinutes:number|null=STUDY_DAY_FOCUS_MINUTES){
+ return weekDays(weekKey).filter(k=>routineActivities(data,k).some(a=>a.id==='book'&&isActivityComplete(a))||focusMinutes!==null&&focusSecondsOnDay(data,k)>=focusMinutes*60);
 }
 
 /* Weekly stake. */
