@@ -216,3 +216,15 @@ PM 전달 팀장 지시(2026-11-06): 학습 탭의 말하기·콘텐츠를 디�
 - 친구 동작은 기존 Lottie만 쓴다: 18시 A32(생각하기), 20:30 A35(깃발 흔들기). ×로 닫은 칸은 화면 표시용 키 `friendNudge.closed.v1`에만 남고 보상·잠금·저장 형식과 관계없다.
 - 스티커: 기록 달력에서 실천한 날(`completedDays`와 같은 기준) 칸에 그날 동물 스티커와 작은 날짜. 동물·포즈는 연속 실천 위젯과 같은 날짜 계산(`calendarSticker.ts`). 그림은 위젯 PNG를 줄인 `assets/stickers/` 8장이다.
 - 검사: `scripts/check-friend-nudge-web.cjs`(시계를 고정해 18:30·20:40·13:00·21:05와 실천한 날을 확인).
+
+## 축하
+
+팀장 결정(2026-11-06): "축하화면은 다이애나 말대로 하자. 지루하지 않게 잘 해줘." 기준은 `routine-portfolio/celebration-audit/design-plan.md`. 규칙은 `src/lib/celebration.ts`, 화면은 `src/features/routine/Celebration.tsx`.
+
+- 단계: 큰(전체 화면 `CelebrationSurface` + 효과 + 완료 소리 + 성공 진동), 중간(위쪽 카드 2.8초, 화면을 막지 않음, 짧은 소리 + 성공 진동), 작은(가벼운 진동만).
+- 한도: 큰 축하 하루 3번, 같은 큰 축하 하루 1번(넘으면 중간). 같은 축하가 10분 안에 또 오면 작은. 기념일은 3·7·14·30일.
+- 순환: 순간마다 친구 동작 2~4개와 문구 2~3개를 날짜·횟수로 돌려 쓰고 바로 전 것을 피한다.
+- 효과 5개의 뜻: confetti 하루 끝, ribbon 연속 기념일·주간 점검, star 돈 들어옴, petal 다시 돌아온 날·성장, bookmark 공부 구간. 모션 줄이기면 효과를 그리지 않는다.
+- 정산 소식: 앱이 앞에 올 때 Felix의 공개 함수(`weeklyStake`, `promiseOutcomesOn`, `weeklyInterest`)만 읽어 예치금 성공(큰)·약속 지킴·이자(중간)를 한 번씩 보여 준다(`settlementNews.ts`).
+- 표시 기록은 `celebration.log.v1`, `celebration.settlementSeen.v1`에만 둔다. 보상·저장 형식과 관계없다.
+- 부르는 법: `celebrate({kind,n?,minutes?,won?,character?})`. 저장(update)이 끝난 뒤 한 번 부른다. 웹 검사는 `scripts/check-celebrations-web.cjs`.

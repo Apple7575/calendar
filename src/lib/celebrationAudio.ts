@@ -1,0 +1,32 @@
+import {Audio} from 'expo-av';
+
+/**
+ * 축하음과 학습 음성의 소리 모드 (팀장 결정 2026-11-06, B안).
+ * iOS의 소리 모드는 앱 전체에 하나라서, 축하음을 내는 동안만 무음 스위치를 따르는 모드로 바꾸고 끝나면 되돌린다.
+ * - 축하음(complete·milestone): 무음 모드면 소리 없이 진동만.
+ * - 학습 음성(단어·예문 발음): 지금처럼 무음 모드에서도 들린다.
+ */
+export const PLAYBACK_AUDIO_MODE={allowsRecordingIOS:false,playsInSilentModeIOS:true,staysActiveInBackground:false,shouldDuckAndroid:true} as const;
+export const CELEBRATION_AUDIO_MODE={...PLAYBACK_AUDIO_MODE,playsInSilentModeIOS:false} as const;
+
+let chain:Promise<void>=Promise.resolve();
+/** play는 소리가 끝날 때 끝나는 약속을 돌려준다. 실패해도 학습 음성 모드로 되돌린다. */
+export function withCelebrationAudio(play:()=>Promise<void>):Promise<void>{
+ const run=chain.catch(()=>{}).then(async()=>{
+  try{await Audio.setAudioModeAsync(CELEBRATION_AUDIO_MODE);await play();}
+  finally{await Audio.setAudioModeAsync(PLAYBACK_AUDIO_MODE).catch(()=>{});}
+ });
+ chain=run.catch(()=>{});
+ return run;
+}
+
+/** 소리가 끝나거나 멈추면(최대 maxMs) 끝나는 약속. 상태를 알 수 없는 소리(테스트의 가짜 소리)는 바로 끝낸다. */
+export function untilFinished(sound:Audio.Sound,maxMs=3500):Promise<void>{
+ const listen=(sound as Partial<Audio.Sound>).setOnPlaybackStatusUpdate?.bind(sound);
+ if(!listen)return Promise.resolve();
+ return new Promise(resolve=>{
+  const done=()=>{clearTimeout(timer);listen(null);resolve();};
+  const timer=setTimeout(done,maxMs);
+  listen(s=>{if(!s.isLoaded||s.didJustFinish)done();});
+ });
+}
