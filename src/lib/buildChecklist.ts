@@ -10,6 +10,14 @@ export type BuildCheckMark={ok?:boolean;note:string};
 export type BuildCheckState=Record<string,BuildCheckMark>;
 
 export const BUILD_CHECKS:BuildChecklist[]=[
+ {build:51,items:[
+  {id:'records-open',title:'기록이 다시 열림',how:'목표 탭이 열리고 연속 실천·지갑·단어 진도가 예전대로 보이나요?'},
+  {id:'backup-resume',title:'자동 백업 다시 올라감',how:'설정 → 백업에서 마지막 백업 시각이 오늘 지금 시각으로 바뀌나요?'},
+  {id:'speaking',title:'말하기 음성 인식',how:'"말하기는 새 아이폰 빌드에서…" 대신 마이크·음성 인식 권한을 묻고, 말한 내용이 글자로 나오나요?'},
+  {id:'diary-voice',title:'일기 음성 입력',how:'일기에서 음성으로 입력하면 글자로 바뀌나요?'},
+  {id:'multi-page',title:'필기 여러 장 찍기',how:'"한 장 더 찍기"로 2~3장을 찍고 제출하면 글자 수와 분이 모든 장의 합인가요? 5장째 뒤에는 더 찍기 버튼이 사라지나요?'},
+  {id:'interest-ok',title:'이자·약속 정산 뒤에도 앱이 열림',how:'다음 날 04시 뒤 앱을 열어 이자가 들어온 뒤, 앱을 껐다 켜도 정상으로 열리나요?'},
+ ]},
  {build:50,items:[
   {id:'break-reward',title:'2분 채우고 휴식 → 바로 보상',how:'2분 뒤 "휴식 · +N분"을 누르면 잔액이 바로 늘어 휴식 중에 앱을 쓸 수 있나요?'},
   {id:'rounds',title:'25분 바퀴 반복',how:'2·5·10·15·25분마다 1·1·2·2·4분이 들어오고, 25분 뒤에는 다시 2분부터 시작하나요?'},

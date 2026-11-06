@@ -4,7 +4,7 @@ import { toDateKey } from './dateUtils';
 import {freeStudyStatus,FREE_STUDY_REWARD_MINUTES} from './freeStudy';
 import {bookFocusSeconds,bookRemaining} from './bookTimerTime';
 import {startNewRound,canStartBreak,claimFocusPlan,focusCarryInto,focusRampStatus,focusRestedInto,focusRunCredit} from './focusRamp';
-import {acceptHandwriting,startOutputStudy} from './handwriting';
+import {acceptHandwriting,acceptHandwritingPages,startOutputStudy} from './handwriting';
 import type {HandwritingAnalysis} from './handwriting';
 import {recordQuitPenalty} from './focusPenalty';
 import {payBreakStage} from './focusBreakReward';
@@ -59,6 +59,10 @@ export function finishFocusRun(data:RoutineData,now=Date.now()):RoutineData{
 /** "다 했어요": study ends here and a photo with at least 100 new letters settles it. No penalty applies. */
 export function acceptDeclaredFinish(data:RoutineData,id:string,hash:string,subject:string,analysis:HandwritingAnalysis,now=new Date()):RoutineData{
  return startNewRound(acceptHandwriting(stopBookTimer(data,now.getTime()),id,hash,subject,analysis,now,'ramp-v2',true),now.getTime());
+}
+/** "다 했어요" with the pending pages: 100 new letters over all of them settle it. */
+export function acceptDeclaredFinishPages(data:RoutineData,now=new Date()):RoutineData{
+ return startNewRound(acceptHandwritingPages(stopBookTimer(data,now.getTime()),now,true),now.getTime());
 }
 /** Only an explicit user action starts a break; preserve all real focus time first. */
 export function startBookBreak(data:RoutineData,now=Date.now()):RoutineData{

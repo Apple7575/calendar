@@ -21,7 +21,7 @@ import {advanceHabitOrder,initializeHabitOrder} from '../../lib/habitOrder';
 import {wordDailyCap} from '../../lib/studyRewards';
 import {reconcileMoneyRewards} from '../../lib/moneyRewards';
 import {reconcileEmergency} from '../../lib/emergencyUnlock';
-import {reconcileCommitments} from '../../lib/commitments';
+import {reconcileCommitments,repairSavedData} from '../../lib/commitments';
 import {focusLockUntil,penaltyMinutesOnDay,rewardSyncExtras} from '../../lib/focusPenalty';
 import {breakAlarmAt,syncBreakAlarm} from '../../lib/breakAlarm';
 import {streakWidgetPayload} from '../../lib/streakWidget';
@@ -69,7 +69,9 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
       if(!raw&&isCloudAccount(userId)){try{recovered=await latestRoutineBackup(userId!);if(live)cloudChecked.current=true;}catch(e){if(live)setBackupState({busy:false,lastAt:null,error:e instanceof Error?e.message:"백업을 확인하지 못했어요."});}}
       else cloudChecked.current=true;
       if(!live)return;
-      const saved = recovered?.data ?? (raw ? JSON.parse(raw) as RoutineData : initialData ?? emptyData());
+      const parsed = recovered?.data ?? (raw ? JSON.parse(raw) as RoutineData : initialData ?? emptyData());
+      // Repair what build 50 saved in a shape the check refuses, before checking, and save the repaired record.
+      const saved = repairSavedData(parsed);
       if (saved.version !== 1 || !Array.isArray(saved.words) || !saved.days || !Array.isArray(saved.decks)) throw new Error("저장된 루틴 데이터 형식을 확인해 주세요.");
       validateStudyState(saved);
       const migrated = migrateN3Deck(saved);
@@ -77,7 +79,7 @@ export function RoutineProvider({ userId, children,initialData,cloudUserId }: { 
         await AsyncStorage.setItem(`${key}.backup.n3-unified.v1`, raw);
       }
       const grown = initializeHabitOrder(reconcileStudyExclusions(reconcileAdditionalRewards(settleMorningWords(settleBookTimer(migrateDailyPlan(advanceBoriGrowth(migrated, routineDay()))),routineDay()),routineDay()),routineDay()),routineDay());
-      if (recovered||grown !== saved) await AsyncStorage.setItem(key, JSON.stringify(grown));
+      if (recovered||grown !== parsed) await AsyncStorage.setItem(key, JSON.stringify(grown));
       if (!alive.current||!live) return;
       if(recovered){lastBackedUp.current=grown;setBackupState({busy:false,lastAt:recovered.createdAt,error:null});}
       loadedIdentity.current=userId;current.current = grown; setData(grown); setReady(true);

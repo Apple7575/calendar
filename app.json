@@ -32,7 +32,7 @@
           "group.com.newblueday.mycalendar"
         ]
       },
-      "buildNumber": "50"
+      "buildNumber": "51"
     },
     "android": {
       "adaptiveIcon": {
@@ -209,6 +209,14 @@
         "expo-screen-orientation",
         {
           "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
         }
       ]
     ],
