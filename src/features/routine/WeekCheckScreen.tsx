@@ -7,6 +7,7 @@ import {RULE_OPTIONS,ruleLabel,weeklyReviews,weeklySummary,wonLabel} from '../..
 import {clockLabel,weekTrends} from '../../lib/weeklyTrends';
 import {RootScreenProps} from '../../navigation/types';
 import {space} from '../../theme/tokens';
+import {celebrate} from './Celebration';
 import {useRoutine} from './RoutineProvider';
 import {Action,CardView,Choice,Copy,Field,Link,LoadingState,Notice,Page,u} from './ui';
 
@@ -52,7 +53,7 @@ export function WeekCheckScreen({navigation}:RootScreenProps<'WeekCheck'>){
  const close=()=>navigation.canGoBack()?navigation.goBack():navigation.navigate('Main');
  const save=async()=>{
   setBusy(true);setSaveError('');
-  try{await update(current=>saveWeeklyReview(saveWeeklyNote(amount?placeWeeklyStake(current,dayKey,amount):current,lastWeek,note),week,rule??undefined));close();}
+  try{await update(current=>saveWeeklyReview(saveWeeklyNote(amount?placeWeeklyStake(current,dayKey,amount):current,lastWeek,note),week,rule??undefined));celebrate({kind:'weekCheck'});close();}
   catch(e){setSaveError(e instanceof Error?e.message:'저장하지 못했어요. 다시 시도해 주세요.');setBusy(false);}
  };
  return <Page title="주간 점검" right={<Link label="닫기" onPress={close}/>} footer={ready&&!done?<Action label="이번 주 시작하기" loading={busy} onPress={()=>void save()}/>:undefined}>
