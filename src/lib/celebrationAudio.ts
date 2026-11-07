@@ -40,6 +40,23 @@ export function withCelebrationAudio(play:(signal:AbortSignal)=>Promise<void>,no
  return run;
 }
 
+/**
+ * 축하음 파일 하나를 재생한다(S1-07). 재생하지 않은 채로 불러오고, 다 불러온 뒤 발음이 시작되지 않았을 때만 재생한다.
+ * 불러오는 중에 발음이 시작되면 축하음은 한 순간도 나지 않고 내려놓는다(Vera 검토: 이미 학습 음성 모드라 무음에서도 들리기 때문).
+ */
+export function playCelebrationClip(source:number,now=Date.now(),volume=0.65):Promise<void>{
+ return withCelebrationAudio(async signal=>{
+  const {sound}=await Audio.Sound.createAsync(source,{shouldPlay:false,volume});
+  try{
+   if(signal.aborted)return;
+   let stop=()=>{};const stopped=new Promise<void>(resolve=>{stop=()=>{void sound.stopAsync().catch(()=>{});resolve();};});
+   signal.addEventListener('abort',stop);
+   try{await sound.playAsync();await Promise.race([untilFinished(sound),stopped]);}
+   finally{signal.removeEventListener('abort',stop);}
+  }finally{void sound.unloadAsync().catch(()=>{});}
+ },now);
+}
+
 /** 소리가 끝나거나 멈추면(최대 maxMs) 끝나는 약속. 상태를 알 수 없는 소리(테스트의 가짜 소리)는 바로 끝낸다. */
 export function untilFinished(sound:Audio.Sound,maxMs=3500):Promise<void>{
  const listen=(sound as Partial<Audio.Sound>).setOnPlaybackStatusUpdate?.bind(sound);

@@ -1,8 +1,8 @@
 import {Audio} from 'expo-av';
-import {CELEBRATION_AUDIO_MODE,PLAYBACK_AUDIO_MODE,withCelebrationAudio} from '../lib/celebrationAudio';
+import {CELEBRATION_AUDIO_MODE,PLAYBACK_AUDIO_MODE,playCelebrationClip,withCelebrationAudio} from '../lib/celebrationAudio';
 import {claimStudyAudio,holdStudyAudio,studyAudioBusy} from '../lib/studyAudioFocus';
 
-jest.mock('expo-av',()=>({Audio:{setAudioModeAsync:jest.fn(async()=>{})}}));
+jest.mock('expo-av',()=>({Audio:{setAudioModeAsync:jest.fn(async()=>{}),Sound:{createAsync:jest.fn()}}}));
 beforeEach(()=>jest.clearAllMocks());
 const DAYTIME=new Date(2026,10,7,13,0).getTime(),NIGHT=new Date(2026,10,7,22,0).getTime();
 
@@ -69,5 +69,27 @@ describe('축하음과 학습 음성',()=>{
   expect(studyAudioBusy()).toBe(true);
   await claimStudyAudio(Symbol('feedback'));
   expect(studyAudioBusy()).toBe(false);
+ });
+});
+
+// S1-07 교차 검토(Vera): 축하음을 불러오는 중에 발음이 시작되면, 불러오기가 끝나도 축하음이 잠깐이라도 나면 안 된다.
+describe('축하음 파일 재생',()=>{
+ const clip=()=>({playAsync:jest.fn(async()=>{}),stopAsync:jest.fn(async()=>{}),unloadAsync:jest.fn(async()=>{})});
+ test('재생하지 않은 채로 불러오고, 다 불러온 뒤에 재생한다',async()=>{
+  const sound=clip();(Audio.Sound.createAsync as jest.Mock).mockResolvedValue({sound});
+  await playCelebrationClip(7,DAYTIME);
+  expect((Audio.Sound.createAsync as jest.Mock).mock.calls[0][1]).toMatchObject({shouldPlay:false,volume:0.65});
+  expect(sound.playAsync).toHaveBeenCalledTimes(1);
+  expect(sound.unloadAsync).toHaveBeenCalledTimes(1);
+ });
+ test('불러오는 중에 발음이 시작되면 다 불러와도 재생하지 않고 내려놓는다',async()=>{
+  const sound=clip();let loaded!:(v:{sound:ReturnType<typeof clip>})=>void;
+  (Audio.Sound.createAsync as jest.Mock).mockReturnValue(new Promise(r=>{loaded=r;}));
+  const playing=playCelebrationClip(7,DAYTIME);
+  await new Promise(r=>setTimeout(r,0));
+  await claimStudyAudio(Symbol('word'));
+  loaded({sound});await playing;await new Promise(r=>setTimeout(r,0));
+  expect(sound.playAsync).not.toHaveBeenCalled();
+  expect(sound.unloadAsync).toHaveBeenCalledTimes(1);
  });
 });

@@ -1,7 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {AppState,Modal,Platform,Text,View,useWindowDimensions} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Audio} from 'expo-av';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {planCelebration,rewardParts,streakFriends,type CelebrationLog,type CelebrationRequest,type CelebrationSound,type PlannedCelebration} from '../../lib/celebration';
 import {settlementNews} from '../../lib/settlementNews';
@@ -10,7 +9,7 @@ import {stickerFor} from '../../lib/calendarSticker';
 import {useIsFocused} from '@react-navigation/native';
 import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
 import {tapLight,tapSuccess} from '../../lib/haptics';
-import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
+import {playCelebrationClip} from '../../lib/celebrationAudio';
 import {isNightScreen} from '../../lib/nightScreen';
 import {radii,space,type} from '../../theme/tokens';
 import {useTheme} from '../../theme/ThemeContext';
@@ -45,16 +44,8 @@ const SOUNDS:Record<Exclude<CelebrationSound,'breakReward'>,number>={
 async function playSound(kind:CelebrationSound){
  if(kind==='breakReward')return;
  await loadExperiencePreferences();if(!experiencePreferences().sound)return;
- try{
-  // 무음 모드면 소리 없이 진동만(팀장 결정 B안). 끝나면 학습 음성 모드로 되돌린다. 발음이 시작되면 바로 멈춘다.
-  await withCelebrationAudio(async signal=>{
-   const {sound}=await Audio.Sound.createAsync(SOUNDS[kind],{shouldPlay:!signal.aborted,volume:0.65});
-   let stop=()=>{};const stopped=new Promise<void>(resolve=>{stop=()=>{void sound.stopAsync().catch(()=>{});resolve();};});
-   signal.addEventListener('abort',stop);
-   try{if(!signal.aborted)await Promise.race([untilFinished(sound),stopped]);}
-   finally{signal.removeEventListener('abort',stop);void sound.unloadAsync().catch(()=>{});}
-  });
- }catch{}
+ // 무음 모드면 소리 없이 진동만(팀장 결정 B안). 끝나면 학습 음성 모드로 되돌린다. 발음이 시작되면 바로 멈춘다.
+ try{await playCelebrationClip(SOUNDS[kind]);}catch{}
 }
 const CAST:AnimalCharacterId[]=['C03','C04','C01','C02'];
 
