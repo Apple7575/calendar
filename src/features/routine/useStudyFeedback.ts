@@ -7,8 +7,10 @@ import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
 import {playbackAudioMode} from '../../lib/focusNoise';
 import {useExperiencePreferences,loadExperiencePreferences,experiencePreferences} from '../../lib/experiencePreferences';
 
-export type StudyFeedback={kind:'milestone'|'complete'|'timer';id:string};
-const sources={milestone:require('../../../assets/sounds/study/milestone.mp3'),complete:require('../../../assets/sounds/study/complete.mp3'),timer:require('../../../assets/sounds/study/milestone.mp3')};
+export type StudyFeedback={kind:'milestone'|'complete'|'timer'|'break';id:string};
+const sources={milestone:require('../../../assets/sounds/study/milestone.mp3'),complete:require('../../../assets/sounds/study/complete.mp3'),timer:require('../../../assets/sounds/study/milestone.mp3'),
+  // S1-07(팀장 2026-11-07 선택): 집중이 끝나 휴식을 얻은 순간의 부드러운 차임.
+  break:require('../../../assets/sounds/celebration/breakReward.mp3')};
 
 /** One short cue per achievement; rerenders and returning to the screen do not replay it. */
 export function useStudyFeedback(event:StudyFeedback|null){
@@ -24,7 +26,7 @@ export function useStudyFeedback(event:StudyFeedback|null){
     if(!focused||!foreground||!preferences.sound)return;
     let active=true;const players=new Set<Audio.Sound>(),pending=new Map<StudyFeedback['kind'],Promise<Audio.Sound|null>>();
     const mode=Audio.setAudioModeAsync(playbackAudioMode());
-    for(const kind of ['milestone','complete','timer'] as const){
+    for(const kind of ['milestone','complete','timer','break'] as const){
       pending.set(kind,mode.then(()=>Audio.Sound.createAsync(sources[kind],{shouldPlay:false,volume:0.65})).then(async({sound})=>{
         if(!active){await sound.unloadAsync();return null;}players.add(sound);return sound;
       }).catch(()=>null));

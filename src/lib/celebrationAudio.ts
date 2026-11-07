@@ -2,6 +2,7 @@ import {Audio} from 'expo-av';
 import {isNightScreen} from './nightScreen';
 import {playbackAudioMode} from './focusNoise';
 import {duckFocusNoise} from './focusNoisePlayer';
+import {registerStudyAudio,studyAudioBusy} from './studyAudioFocus';
 
 /**
  * 축하음과 학습 음성의 소리 모드 (팀장 결정 2026-11-06, B안).
@@ -15,13 +16,25 @@ export const PLAYBACK_AUDIO_MODE={allowsRecordingIOS:false,playsInSilentModeIOS:
 export const CELEBRATION_AUDIO_MODE={...PLAYBACK_AUDIO_MODE,playsInSilentModeIOS:false,staysActiveInBackground:false} as const;
 
 let chain:Promise<void>=Promise.resolve();
-/** play는 소리가 끝날 때 끝나는 약속을 돌려준다. 실패해도 학습 음성 모드로 되돌린다. */
-export function withCelebrationAudio(play:()=>Promise<void>,now=Date.now()):Promise<void>{
- if(isNightScreen(now))return Promise.resolve();
+/**
+ * play는 소리가 끝날 때 끝나는 약속을 돌려준다. 실패해도 학습 음성 모드로 되돌린다.
+ * 학습 음성이 먼저다(S1-07): 발음이 나오는 중이면 축하음을 건너뛰고(진동은 부르는 쪽이 낸다),
+ * 축하음 중에 발음이 시작되면(claimStudyAudio) signal로 축하음을 멈추고 학습 음성 모드로 되돌린 뒤에 발음이 나온다.
+ */
+export function withCelebrationAudio(play:(signal:AbortSignal)=>Promise<void>,now=Date.now()):Promise<void>{
+ if(isNightScreen(now)||studyAudioBusy())return Promise.resolve();
  const run=chain.catch(()=>{}).then(async()=>{
+  if(studyAudioBusy())return;
+  const controller=new AbortController(),owner=Symbol('celebration');
+  let interrupted!:()=>void;const aborted=new Promise<void>(resolve=>{interrupted=resolve;});
+  let finished:Promise<void>=Promise.resolve();
+  const unregister=registerStudyAudio(owner,()=>{controller.abort();interrupted();return finished;});
   const release=duckFocusNoise();
-  try{await Audio.setAudioModeAsync(CELEBRATION_AUDIO_MODE);await play();}
-  finally{await Audio.setAudioModeAsync(playbackAudioMode()).catch(()=>{});release();}
+  finished=(async()=>{
+   try{await Audio.setAudioModeAsync(CELEBRATION_AUDIO_MODE);if(!controller.signal.aborted)await Promise.race([play(controller.signal),aborted]);}
+   finally{unregister();await Audio.setAudioModeAsync(playbackAudioMode()).catch(()=>{});release();}
+  })();
+  await finished;
  });
  chain=run.catch(()=>{});
  return run;

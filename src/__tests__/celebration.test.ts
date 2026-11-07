@@ -30,11 +30,11 @@ describe('축하 단계와 한도 (팀장 결정 2026-11-06)',()=>{
   expect(seen[1].action).not.toBe(seen[0].action);expect(seen[2].action).not.toBe(seen[1].action);
   expect(new Set(seen.map(s=>s.title)).size).toBe(3);
  });
- test('단계마다 소리·진동이 정해져 있다: 큰=완료 소리, 중간=짧은 소리(말하기 중엔 없음), 작은=진동만',()=>{
-  expect(planCelebration({kind:'dayComplete'},null,DAY,T).plan).toMatchObject({sound:'complete',haptic:'success',effect:'effect_confetti'});
-  expect(planCelebration({kind:'wordStep',minutes:5},null,DAY,T).plan).toMatchObject({sound:'milestone',haptic:'success',effect:'effect_bookmark'});
+ test('단계마다 소리·진동이 정해져 있다: 순간마다 정한 효과음(말하기 중엔 없음), 작은 축하는 루틴 단계·계획 저장만 아주 짧은 소리(S1-07)',()=>{
+  expect(planCelebration({kind:'dayComplete'},null,DAY,T).plan).toMatchObject({sound:'dayComplete',haptic:'success',effect:'effect_confetti'});
+  expect(planCelebration({kind:'wordStep',minutes:5},null,DAY,T).plan).toMatchObject({sound:'wordStep',haptic:'success',effect:'effect_bookmark'});
   expect(planCelebration({kind:'speakingStep',minutes:5},null,DAY,T).plan.sound).toBeNull();
-  expect(planCelebration({kind:'routineStep'},null,DAY,T).plan).toMatchObject({tier:'small',sound:null,haptic:'light',effect:undefined});
+  expect(planCelebration({kind:'routineStep'},null,DAY,T).plan).toMatchObject({tier:'small',sound:'routineStep',haptic:'light',effect:undefined});
  });
  test('숫자가 문구에 들어간다',()=>{
   expect(planCelebration({kind:'streak',n:7},null,DAY,T).plan.title).toContain('7');

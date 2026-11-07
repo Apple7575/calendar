@@ -9,7 +9,7 @@ import { resolveStudyAudio, StudyAudioKind } from '../../lib/studyAudio';
 import { Action, Copy, Link } from './ui';
 import { useSession } from '../../hooks/useSession';
 import { parseStudyRate,StudyRate,studyRateKey,WORD_SENTENCE_GAP_MS } from '../../lib/studyPlayback';
-import {claimStudyAudio,registerStudyAudio} from '../../lib/studyAudioFocus';
+import {claimStudyAudio,holdStudyAudio,registerStudyAudio} from '../../lib/studyAudioFocus';
 import {playbackAudioMode} from '../../lib/focusNoise';
 import {duckFocusNoise} from '../../lib/focusNoisePlayer';
 
@@ -51,6 +51,8 @@ export function useStudyAudio(note: JapaneseNote | undefined, kind: StudyAudioKi
   // Focus noise steps back while a word or sentence is loading or playing.
   const speaking=playing!==null||loading!==null;
   useEffect(()=>speaking?duckFocusNoise():undefined,[speaking]);
+  // Celebration sounds skip while a word or sentence is sounding (S1-07): learning audio goes first.
+  useEffect(()=>speaking?holdStudyAudio(audioOwner):undefined,[speaking,audioOwner]);
   useEffect(()=>{
     if(!focused||!foreground)return;
     let active=true;const players=new Set<Audio.Sound>(),pending=new Map<StudyAudioKind,Promise<Audio.Sound|null>>();

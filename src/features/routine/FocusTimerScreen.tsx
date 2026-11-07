@@ -31,7 +31,7 @@ import {FocusNoiseButton} from './FocusNoise';
 let flashFinishedTimer:string|undefined;
 export function FocusTimerScreen({navigation}:RootScreenProps<'FocusTimer'>){
  const {data,dayKey,update}=useRoutine(),timer=data.bookTimer,insets=useSafeAreaInsets(),[clock,setClock]=useState(Date.now()),[error,setError]=useState(''),[cue,setCue]=useState<string|null>(null);
- useStudyFeedback(cue?{kind:'timer',id:cue}:null);
+ useStudyFeedback(cue?{kind:cue.endsWith(':focus')?'break':'timer',id:cue}:null);
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),250);return()=>clearInterval(id)},[]);
  useEffect(()=>{void loadFocusQuestions()},[]);
  useEffect(()=>{if(timer?.running&&Date.now()>=timer.endsAt){setCue(timer.id+':'+timer.phase);if(timer.phase==='break')void update(s=>settleBookTimer(s)).catch(e=>setError(e.message))}},[clock,timer?.running,timer?.endsAt,update]);
