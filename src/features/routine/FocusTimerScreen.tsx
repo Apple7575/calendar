@@ -31,7 +31,8 @@ import {FocusNoiseButton} from './FocusNoise';
 let flashFinishedTimer:string|undefined;
 export function FocusTimerScreen({navigation}:RootScreenProps<'FocusTimer'>){
  const {data,dayKey,update}=useRoutine(),timer=data.bookTimer,insets=useSafeAreaInsets(),[clock,setClock]=useState(Date.now()),[error,setError]=useState(''),[cue,setCue]=useState<string|null>(null);
- useStudyFeedback(cue?{kind:cue.endsWith(':focus')?'break':'timer',id:cue}:null);
+ // 휴식 보상 차임은 휴식 버튼이 열릴 때만(Felix 검토): 휴식에서 돌아온 공부는 시계가 끝나도 아직 휴식이 안 열릴 수 있다.
+ useStudyFeedback(cue?{kind:cue.endsWith(':focus')&&canStartBreak(data,clock)?'break':'timer',id:cue}:null);
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),250);return()=>clearInterval(id)},[]);
  useEffect(()=>{void loadFocusQuestions()},[]);
  useEffect(()=>{if(timer?.running&&Date.now()>=timer.endsAt){setCue(timer.id+':'+timer.phase);if(timer.phase==='break')void update(s=>settleBookTimer(s)).catch(e=>setError(e.message))}},[clock,timer?.running,timer?.endsAt,update]);
