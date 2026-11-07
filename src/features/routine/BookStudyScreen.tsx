@@ -1,3 +1,4 @@
+import {timerCueKind} from '../../lib/focusCue';
 import {useStudyFeedback} from './useStudyFeedback';
 import React,{useEffect,useRef,useState} from 'react';
 import {TextInput,View} from 'react-native';
@@ -38,7 +39,7 @@ function BookStudyPage({navigation,route}:RootScreenProps<'BookStudy'>){
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),500);return()=>clearInterval(id)},[]);
  useEffect(()=>{if(timer?.phase==='break'&&timer.running&&clock>=timer.endsAt)void update(s=>settleBookTimer(s,Date.now())).catch(e=>setError(e.message))},[clock,timer?.running,timer?.endsAt,update]);
  useEffect(()=>{if(focused&&ready&&toTimer&&!switchTo)navigation.replace('FocusTimer')},[focused,ready,toTimer,switchTo,navigation]);
- useStudyFeedback(timer?.running&&clock>=timer.endsAt?{kind:'timer',id:timer.id+':'+timer.phase}:null);
+ useStudyFeedback(timer?.running&&clock>=timer.endsAt?{kind:timerCueKind(timer.phase,data,clock),id:timer.id+':'+timer.phase}:null);
  const run=(fn:Parameters<typeof update>[0])=>{void update(fn).catch(e=>setError(e.message))};
  const canFinish=!!draft&&!data.handwritingPending&&!working,penalty=penaltyLabel(focusQuitPenalty(data,clock)),askQuit=useQuitQuestion(dayKey),finishConfirm=useQuitConfirm(penalty,askQuit),switchConfirm=useQuitConfirm(penalty,askQuit);
  const rows=<>

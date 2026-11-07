@@ -29,6 +29,28 @@ export type CelebrationKind=
 export const STREAK_MILESTONES=[3,7,14,30] as const;
 export const CELEBRATION_LIMITS={bigPerDay:3,mediumGapMs:10*60_000} as const;
 
+/**
+ * 축하 효과음 (S1-07, 팀장 2026-11-07 선택). 파일은 assets/sounds/celebration/<이름>.mp3, 출처는 같은 폴더 README.
+ * 같은 순간에는 늘 같은 소리 하나(기억에 남게). 휴식 보상(breakReward)은 축하 부품이 아니라 집중 타이머의 학습 피드백에서 낸다.
+ */
+export type CelebrationSound='planSaved'|'routineStep'|'wordStep'|'interest'|'promiseKept'|'breakReward'|'weekCheck'|'priorityAll'|'dayComplete'|'streak3'|'streak14'|'comeback'|'stakeWon';
+/** 원래 단계에서 내는 소리. 말하기 500자는 말하는 중이라 소리 없음(정리안). 성장은 같은 '밝은 상승'인 우선 과제 소리. */
+const OWN_SOUND:Record<CelebrationKind,(n?:number)=>CelebrationSound|null>={
+ dayComplete:()=>'dayComplete',streak:n=>(n??0)>=14?'streak14':'streak3',stakeWon:()=>'stakeWon',comeback:()=>'comeback',
+ promiseKept:()=>'promiseKept',interest:()=>'interest',wordStep:()=>'wordStep',speakingStep:()=>null,weekCheck:()=>'weekCheck',priorityAll:()=>'priorityAll',growth:()=>'priorityAll',
+ routineStep:()=>'routineStep',planSaved:()=>'planSaved',
+};
+/** 하루 한도로 큰 축하가 중간으로 내려오면 1초 안팎의 중간 소리로. 돈이 들어온 예치금은 코인 소리. */
+const LOWERED_SOUND:Partial<Record<CelebrationKind,CelebrationSound>>={stakeWon:'interest'};
+/** 단계에 맞는 소리. 원래 단계보다 낮아졌으면 그 단계 소리로 낮추고, 작은 축하로 낮아졌거나 밤이면 소리 없음. */
+export function celebrationSound(kind:CelebrationKind,tier:CelebrationTier,night:boolean,n?:number):CelebrationSound|null{
+ const own=SPECS[kind].tier;
+ if(night)return null;
+ if(tier===own)return OWN_SOUND[kind](n);
+ if(tier==='medium')return LOWERED_SOUND[kind]??'priorityAll';
+ return null;
+}
+
 type Spec={tier:CelebrationTier;effect?:CelebrationEffect;actions:string[];lines:string[];detail?:string[]};
 /** 문구의 {n}은 숫자(장·분·원·일)로 바뀐다. 같은 날 같은 문구는 되도록 다시 쓰지 않는다. */
 const SPECS:Record<CelebrationKind,Spec>={
@@ -49,7 +71,7 @@ const SPECS:Record<CelebrationKind,Spec>={
 
 export type CelebrationRequest={kind:CelebrationKind;n?:number;minutes?:number;won?:number;title?:string;character?:string};
 export type CelebrationLog={day:string;big:CelebrationKind[];last:Partial<Record<CelebrationKind,number>>;lines:string[];action?:string}|null;
-export type PlannedCelebration={kind:CelebrationKind;tier:CelebrationTier;effect?:CelebrationEffect;action:string;title:string;detail?:string;sound:'complete'|'milestone'|null;haptic:'success'|'light';minutes?:number;won?:number;character?:string};
+export type PlannedCelebration={kind:CelebrationKind;tier:CelebrationTier;effect?:CelebrationEffect;action:string;title:string;detail?:string;sound:CelebrationSound|null;haptic:'success'|'light';minutes?:number;won?:number;character?:string};
 
 const pick=<T,>(list:T[],seed:number,avoid?:(item:T)=>boolean)=>{const order=list.map((_,i)=>list[(seed+i)%list.length]);return order.find(item=>!avoid?.(item))??order[0];};
 const fill=(text:string,n?:number)=>text.replace('{n}',n===undefined?'':n.toLocaleString('ko-KR'));
@@ -71,7 +93,7 @@ export function planCelebration(request:CelebrationRequest,log:CelebrationLog,da
  const title=request.title??fill(line,request.n??request.minutes);
  const detail=spec.detail?fill(pick(spec.detail,seed),request.n):undefined;
  const plan:PlannedCelebration={kind:request.kind,tier,effect:tier==='small'?undefined:spec.effect,action,title,detail:tier==='big'?detail:undefined,
-  sound:tier==='big'?'complete':tier==='medium'?(request.kind==='speakingStep'?null:'milestone'):null,haptic:tier==='small'&&!nightQuiet?'light':'success',minutes:request.minutes,won:request.won,character:request.character};
+  sound:celebrationSound(request.kind,tier,!!options.night,request.n),haptic:tier==='small'&&!nightQuiet?'light':'success',minutes:request.minutes,won:request.won,character:request.character};
  const next={day,big:tier==='big'?[...today.big,request.kind]:today.big,last:{...today.last,[request.kind]:now},lines:[...today.lines,title].slice(-20),action};
  return {plan,log:next};
 }

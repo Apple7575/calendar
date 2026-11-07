@@ -48,3 +48,14 @@ test('a dismissed achievement cannot start playing after a slow preload finishes
  await renderer.act(async()=>resolves.forEach((resolve,index)=>resolve({sound:sounds[index]})));
  expect(sounds.every(s=>s.replayAsync.mock.calls.length===0&&s.unloadAsync.mock.calls.length===1)).toBe(true);
 });
+
+// S1-07(팀장 2026-11-07 선택): 집중이 끝나 휴식을 얻은 순간은 부드러운 차임(breakReward) 하나.
+test('break plays the break-reward chime, not the timer cue',async()=>{
+ const made:{source:unknown;sound:ReturnType<typeof player>}[]=[];
+ (Audio.Sound.createAsync as jest.Mock).mockImplementation(async(source:unknown)=>{const sound=player();made.push({source,sound});return {sound}});
+ let tree:any;await renderer.act(async()=>{tree=renderer.create(React.createElement(Probe,{event:{kind:'break',id:'t1:focus'}}));});
+ const chime=require('../../assets/sounds/celebration/breakReward.mp3');
+ const played=made.filter(m=>m.sound.replayAsync.mock.calls.length>0);
+ expect(played).toHaveLength(1);expect(played[0].source).toBe(chime);
+ await renderer.act(async()=>tree.unmount());
+});

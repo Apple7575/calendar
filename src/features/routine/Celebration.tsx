@@ -1,16 +1,15 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {AppState,Modal,Platform,Text,View,useWindowDimensions} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Audio} from 'expo-av';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {planCelebration,rewardParts,streakFriends,type CelebrationLog,type CelebrationRequest,type PlannedCelebration} from '../../lib/celebration';
+import {planCelebration,rewardParts,streakFriends,type CelebrationLog,type CelebrationRequest,type CelebrationSound,type PlannedCelebration} from '../../lib/celebration';
 import {settlementNews} from '../../lib/settlementNews';
 import {achievements,newAchievements,type AchievedShown} from '../../lib/celebrationTriggers';
 import {stickerFor} from '../../lib/calendarSticker';
 import {useIsFocused} from '@react-navigation/native';
 import {experiencePreferences,loadExperiencePreferences} from '../../lib/experiencePreferences';
 import {tapLight,tapSuccess} from '../../lib/haptics';
-import {untilFinished,withCelebrationAudio} from '../../lib/celebrationAudio';
+import {playCelebrationClip} from '../../lib/celebrationAudio';
 import {isNightScreen} from '../../lib/nightScreen';
 import {radii,space,type} from '../../theme/tokens';
 import {useTheme} from '../../theme/ThemeContext';
@@ -33,17 +32,20 @@ export function celebrate(request:CelebrationRequest){if(listener)listener(reque
 // 웹 미리보기 검사(scripts/check-celebrations-web.cjs)에서만 부른다. 앱(iOS)에는 붙지 않는다.
 if(Platform.OS==='web'&&typeof window!=='undefined')(window as unknown as {__celebrate?:typeof celebrate}).__celebrate=celebrate;
 
-const SOUNDS={complete:require('../../../assets/sounds/study/complete.mp3'),milestone:require('../../../assets/sounds/study/milestone.mp3')};
-async function playSound(kind:'complete'|'milestone'){
+// S1-07 팀장 선택(2026-11-07). 출처·라이선스는 assets/sounds/celebration/README.md. 휴식 보상 소리는 useStudyFeedback이 쓴다.
+const SOUNDS:Record<Exclude<CelebrationSound,'breakReward'>,number>={
+ planSaved:require('../../../assets/sounds/celebration/planSaved.mp3'),routineStep:require('../../../assets/sounds/celebration/routineStep.mp3'),
+ wordStep:require('../../../assets/sounds/celebration/wordStep.mp3'),interest:require('../../../assets/sounds/celebration/interest.mp3'),
+ promiseKept:require('../../../assets/sounds/celebration/promiseKept.mp3'),weekCheck:require('../../../assets/sounds/celebration/weekCheck.mp3'),
+ priorityAll:require('../../../assets/sounds/celebration/priorityAll.mp3'),dayComplete:require('../../../assets/sounds/celebration/dayComplete.mp3'),
+ streak3:require('../../../assets/sounds/celebration/streak3.mp3'),streak14:require('../../../assets/sounds/celebration/streak14.mp3'),
+ comeback:require('../../../assets/sounds/celebration/comeback.mp3'),stakeWon:require('../../../assets/sounds/celebration/stakeWon.mp3'),
+};
+async function playSound(kind:CelebrationSound){
+ if(kind==='breakReward')return;
  await loadExperiencePreferences();if(!experiencePreferences().sound)return;
- try{
-  // 무음 모드면 소리 없이 진동만(팀장 결정 B안). 끝나면 학습 음성 모드로 되돌린다.
-  await withCelebrationAudio(async()=>{
-   const {sound}=await Audio.Sound.createAsync(SOUNDS[kind],{shouldPlay:true,volume:0.65});
-   await untilFinished(sound);
-   void sound.unloadAsync().catch(()=>{});
-  });
- }catch{}
+ // 무음 모드면 소리 없이 진동만(팀장 결정 B안). 끝나면 학습 음성 모드로 되돌린다. 발음이 시작되면 바로 멈춘다.
+ try{await playCelebrationClip(SOUNDS[kind]);}catch{}
 }
 const CAST:AnimalCharacterId[]=['C03','C04','C01','C02'];
 
